@@ -20,7 +20,7 @@ export default function PostsList() {
 
   const { data: postsData, isLoading } = useListPosts({
     search: search || undefined,
-    status: status === "all" ? undefined : status,
+    status,
     limit: 100
   });
 

@@ -3,6 +3,7 @@ import { useGetPostBySlug, useIncrementPostView, useListComments, useCreateComme
 import { useParams, Link } from "wouter";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useEffect, useState } from "react";
@@ -131,7 +132,7 @@ export default function PostPage() {
 
         <div className="prose prose-lg dark:prose-invert max-w-none prose-pre:bg-[#1E1E1E] prose-pre:p-0 prose-pre:border">
           <ReactMarkdown
-            remarkPlugins={[import('remark-gfm') as any]}
+            remarkPlugins={[remarkGfm]}
             components={{
               code({ node, inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || "");

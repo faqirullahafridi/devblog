@@ -6,7 +6,7 @@ import { Link } from "wouter";
 export default function Dashboard() {
   const { data: stats, isLoading: isLoadingStats } = useGetStatsOverview();
   const { data: topPosts, isLoading: isLoadingTopPosts } = useGetPostStats({ limit: 5 });
-  const { data: recentPosts, isLoading: isLoadingRecent } = useListPosts({ limit: 5 });
+  const { data: recentPosts, isLoading: isLoadingRecent } = useListPosts({ limit: 5, status: "all" });
 
   return (
     <AdminLayout>

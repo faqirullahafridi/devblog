@@ -36,7 +36,7 @@ function formatPost(p: typeof withCategory & Record<string, unknown>) {
 
 router.get("/posts", async (req, res) => {
   try {
-    const { category, search, status = "published", page = "1", limit = "10" } = req.query as Record<string, string>;
+    const { category, search, status, page = "1", limit = "10" } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, parseInt(limit, 10) || 10);
     const offset = (pageNum - 1) * limitNum;
