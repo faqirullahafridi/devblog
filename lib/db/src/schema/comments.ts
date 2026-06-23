@@ -9,6 +9,8 @@ export const commentsTable = pgTable("comments", {
   authorName: text("author_name").notNull(),
   authorEmail: text("author_email"),
   content: text("content").notNull(),
+  adminReply: text("admin_reply"),
+  adminRepliedAt: timestamp("admin_replied_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

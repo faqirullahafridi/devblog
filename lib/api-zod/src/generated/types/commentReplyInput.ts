@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListCommentsParams = {
-postId?: number;
-};
+export interface CommentReplyInput {
+  reply: string;
+}

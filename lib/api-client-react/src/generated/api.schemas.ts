@@ -27,6 +27,7 @@ export interface Post {
   /** @nullable */
   featuredImage?: string | null;
   status: PostStatus;
+  isFeatured: boolean;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */
@@ -67,6 +68,7 @@ export interface PostInput {
   excerpt?: string;
   featuredImage?: string;
   status?: PostInputStatus;
+  isFeatured?: boolean;
   categoryId?: number;
   seoTitle?: string;
   metaDescription?: string;
@@ -88,6 +90,7 @@ export interface PostUpdate {
   excerpt?: string;
   featuredImage?: string;
   status?: PostUpdateStatus;
+  isFeatured?: boolean;
   /** @nullable */
   categoryId?: number | null;
   seoTitle?: string;
@@ -104,6 +107,10 @@ export const PublishToggleStatus = {
 
 export interface PublishToggle {
   status: PublishToggleStatus;
+}
+
+export interface FeatureToggle {
+  isFeatured: boolean;
 }
 
 export interface ViewCount {
@@ -173,6 +180,10 @@ export interface Comment {
   /** @nullable */
   authorEmail?: string | null;
   content: string;
+  /** @nullable */
+  adminReply?: string | null;
+  /** @nullable */
+  adminRepliedAt?: string | null;
   createdAt: string;
 }
 
@@ -181,6 +192,10 @@ export interface CommentInput {
   authorName: string;
   authorEmail?: string;
   content: string;
+}
+
+export interface CommentReplyInput {
+  reply: string;
 }
 
 export interface NewsletterInput {
@@ -228,6 +243,6 @@ limit?: number;
 };
 
 export type ListCommentsParams = {
-postId: number;
+postId?: number;
 };
 

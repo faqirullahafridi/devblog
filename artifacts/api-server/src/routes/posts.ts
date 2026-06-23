@@ -13,6 +13,7 @@ const withCategory = {
   excerpt: postsTable.excerpt,
   featuredImage: postsTable.featuredImage,
   status: postsTable.status,
+  isFeatured: postsTable.isFeatured,
   categoryId: postsTable.categoryId,
   seoTitle: postsTable.seoTitle,
   metaDescription: postsTable.metaDescription,
@@ -87,7 +88,20 @@ router.get("/posts", async (req, res) => {
 router.get("/posts/featured", async (req, res) => {
   try {
     const limitNum = Math.min(20, parseInt(String(req.query.limit || "6"), 10));
-    const rows = await db
+
+    const featured = await db
+      .select(withCategory)
+      .from(postsTable)
+      .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+      .where(and(eq(postsTable.status, "published"), eq(postsTable.isFeatured, true)))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(limitNum);
+
+    if (featured.length > 0) {
+      return res.json(featured.map(formatPost as any));
+    }
+
+    const recent = await db
       .select(withCategory)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
@@ -95,7 +109,7 @@ router.get("/posts/featured", async (req, res) => {
       .orderBy(desc(postsTable.createdAt))
       .limit(limitNum);
 
-    res.json(rows.map(formatPost as any));
+    res.json(recent.map(formatPost as any));
   } catch (err) {
     req.log.error({ err }, "Failed to get featured posts");
     res.status(500).json({ error: "Failed to get featured posts" });
@@ -222,6 +236,27 @@ router.delete("/posts/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to delete post");
     res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+router.patch("/posts/:id/feature", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { isFeatured } = req.body as { isFeatured: boolean };
+    const [updated] = await db.update(postsTable).set({ isFeatured }).where(eq(postsTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Post not found" });
+
+    const [withCat] = await db
+      .select(withCategory)
+      .from(postsTable)
+      .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+      .where(eq(postsTable.id, id))
+      .limit(1);
+
+    res.json(formatPost(withCat as any));
+  } catch (err) {
+    req.log.error({ err }, "Failed to toggle post feature");
+    res.status(500).json({ error: "Failed to update post" });
   }
 });
 

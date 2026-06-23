@@ -17,6 +17,7 @@ export interface Post {
   /** @nullable */
   featuredImage?: string | null;
   status: PostStatus;
+  isFeatured: boolean;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */

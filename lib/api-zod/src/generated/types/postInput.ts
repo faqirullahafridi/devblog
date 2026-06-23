@@ -15,6 +15,7 @@ export interface PostInput {
   excerpt?: string;
   featuredImage?: string;
   status?: PostInputStatus;
+  isFeatured?: boolean;
   categoryId?: number;
   seoTitle?: string;
   metaDescription?: string;

@@ -26,6 +26,8 @@ import type {
   CategoryUpdate,
   Comment,
   CommentInput,
+  CommentReplyInput,
+  FeatureToggle,
   GetFeaturedPostsParams,
   GetPostStatsParams,
   HealthStatus,
@@ -739,6 +741,78 @@ export const useTogglePostPublish = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getTogglePostPublishMutationOptions(options));
+    }
+
+export const getTogglePostFeatureUrl = (id: number,) => {
+
+
+
+
+  return `/api/posts/${id}/feature`
+}
+
+/**
+ * @summary Toggle a post featured status
+ */
+export const togglePostFeature = async (id: number,
+    featureToggle: FeatureToggle, options?: RequestInit): Promise<Post> => {
+
+  return customFetch<Post>(getTogglePostFeatureUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      featureToggle,)
+  }
+);}
+
+
+
+
+export const getTogglePostFeatureMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof togglePostFeature>>, TError,{id: number;data: BodyType<FeatureToggle>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof togglePostFeature>>, TError,{id: number;data: BodyType<FeatureToggle>}, TContext> => {
+
+const mutationKey = ['togglePostFeature'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof togglePostFeature>>, {id: number;data: BodyType<FeatureToggle>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  togglePostFeature(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TogglePostFeatureMutationResult = NonNullable<Awaited<ReturnType<typeof togglePostFeature>>>
+    export type TogglePostFeatureMutationBody = BodyType<FeatureToggle>
+    export type TogglePostFeatureMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Toggle a post featured status
+ */
+export const useTogglePostFeature = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof togglePostFeature>>, TError,{id: number;data: BodyType<FeatureToggle>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof togglePostFeature>>,
+        TError,
+        {id: number;data: BodyType<FeatureToggle>},
+        TContext
+      > => {
+      return useMutation(getTogglePostFeatureMutationOptions(options));
     }
 
 export const getIncrementPostViewUrl = (id: number,) => {
@@ -1634,7 +1708,7 @@ export function useGetPostStats<TData = Awaited<ReturnType<typeof getPostStats>>
 
 
 
-export const getListCommentsUrl = (params: ListCommentsParams,) => {
+export const getListCommentsUrl = (params?: ListCommentsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1650,9 +1724,9 @@ export const getListCommentsUrl = (params: ListCommentsParams,) => {
 }
 
 /**
- * @summary List comments for a post
+ * @summary List comments, optionally filtered by post
  */
-export const listComments = async (params: ListCommentsParams, options?: RequestInit): Promise<Comment[]> => {
+export const listComments = async (params?: ListCommentsParams, options?: RequestInit): Promise<Comment[]> => {
 
   return customFetch<Comment[]>(getListCommentsUrl(params),
   {
@@ -1674,7 +1748,7 @@ export const getListCommentsQueryKey = (params?: ListCommentsParams,) => {
     }
 
 
-export const getListCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(params: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(params?: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1697,11 +1771,11 @@ export type ListCommentsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List comments for a post
+ * @summary List comments, optionally filtered by post
  */
 
 export function useListComments<TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(
- params: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1857,6 +1931,78 @@ export const useDeleteComment = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteCommentMutationOptions(options));
+    }
+
+export const getReplyToCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/comments/${id}/reply`
+}
+
+/**
+ * @summary Add admin reply to a comment
+ */
+export const replyToComment = async (id: number,
+    commentReplyInput: CommentReplyInput, options?: RequestInit): Promise<Comment> => {
+
+  return customFetch<Comment>(getReplyToCommentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      commentReplyInput,)
+  }
+);}
+
+
+
+
+export const getReplyToCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToComment>>, TError,{id: number;data: BodyType<CommentReplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replyToComment>>, TError,{id: number;data: BodyType<CommentReplyInput>}, TContext> => {
+
+const mutationKey = ['replyToComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replyToComment>>, {id: number;data: BodyType<CommentReplyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  replyToComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplyToCommentMutationResult = NonNullable<Awaited<ReturnType<typeof replyToComment>>>
+    export type ReplyToCommentMutationBody = BodyType<CommentReplyInput>
+    export type ReplyToCommentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add admin reply to a comment
+ */
+export const useReplyToComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToComment>>, TError,{id: number;data: BodyType<CommentReplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replyToComment>>,
+        TError,
+        {id: number;data: BodyType<CommentReplyInput>},
+        TContext
+      > => {
+      return useMutation(getReplyToCommentMutationOptions(options));
     }
 
 export const getSubscribeNewsletterUrl = () => {

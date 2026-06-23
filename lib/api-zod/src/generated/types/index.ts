@@ -12,6 +12,8 @@ export * from './categoryInput';
 export * from './categoryUpdate';
 export * from './comment';
 export * from './commentInput';
+export * from './commentReplyInput';
+export * from './featureToggle';
 export * from './getFeaturedPostsParams';
 export * from './getPostStatsParams';
 export * from './healthStatus';

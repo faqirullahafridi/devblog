@@ -15,6 +15,7 @@ export interface PostUpdate {
   excerpt?: string;
   featuredImage?: string;
   status?: PostUpdateStatus;
+  isFeatured?: boolean;
   /** @nullable */
   categoryId?: number | null;
   seoTitle?: string;

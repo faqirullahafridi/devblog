@@ -36,6 +36,7 @@ export const ListPostsResponse = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -65,6 +66,7 @@ export const CreatePostBody = zod.object({
   "excerpt": zod.string().optional(),
   "featuredImage": zod.string().optional(),
   "status": zod.enum(['draft', 'published']).optional(),
+  "isFeatured": zod.boolean().optional(),
   "categoryId": zod.number().optional(),
   "seoTitle": zod.string().optional(),
   "metaDescription": zod.string().optional()
@@ -86,6 +88,7 @@ export const GetFeaturedPostsResponseItem = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -114,6 +117,7 @@ export const GetPostBySlugResponse = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -141,6 +145,7 @@ export const GetPostResponse = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -170,6 +175,7 @@ export const UpdatePostBody = zod.object({
   "excerpt": zod.string().optional(),
   "featuredImage": zod.string().optional(),
   "status": zod.enum(['draft', 'published']).optional(),
+  "isFeatured": zod.boolean().optional(),
   "categoryId": zod.number().nullish(),
   "seoTitle": zod.string().optional(),
   "metaDescription": zod.string().optional()
@@ -183,6 +189,7 @@ export const UpdatePostResponse = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -222,6 +229,39 @@ export const TogglePostPublishResponse = zod.object({
   "excerpt": zod.string().nullish(),
   "featuredImage": zod.string().nullish(),
   "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
+  "categoryId": zod.number().nullish(),
+  "categoryName": zod.string().nullish(),
+  "categorySlug": zod.string().nullish(),
+  "seoTitle": zod.string().nullish(),
+  "metaDescription": zod.string().nullish(),
+  "views": zod.number(),
+  "readingTime": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Toggle a post featured status
+ */
+export const TogglePostFeatureParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const TogglePostFeatureBody = zod.object({
+  "isFeatured": zod.boolean()
+})
+
+export const TogglePostFeatureResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "content": zod.string(),
+  "excerpt": zod.string().nullish(),
+  "featuredImage": zod.string().nullish(),
+  "status": zod.enum(['draft', 'published']),
+  "isFeatured": zod.boolean(),
   "categoryId": zod.number().nullish(),
   "categoryName": zod.string().nullish(),
   "categorySlug": zod.string().nullish(),
@@ -407,10 +447,10 @@ export const GetPostStatsResponse = zod.array(GetPostStatsResponseItem)
 
 
 /**
- * @summary List comments for a post
+ * @summary List comments, optionally filtered by post
  */
 export const ListCommentsQueryParams = zod.object({
-  "postId": zod.coerce.number()
+  "postId": zod.coerce.number().optional()
 })
 
 export const ListCommentsResponseItem = zod.object({
@@ -419,6 +459,8 @@ export const ListCommentsResponseItem = zod.object({
   "authorName": zod.string(),
   "authorEmail": zod.string().nullish(),
   "content": zod.string(),
+  "adminReply": zod.string().nullish(),
+  "adminRepliedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListCommentsResponse = zod.array(ListCommentsResponseItem)
@@ -440,6 +482,29 @@ export const CreateCommentBody = zod.object({
  */
 export const DeleteCommentParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Add admin reply to a comment
+ */
+export const ReplyToCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReplyToCommentBody = zod.object({
+  "reply": zod.string()
+})
+
+export const ReplyToCommentResponse = zod.object({
+  "id": zod.number(),
+  "postId": zod.number(),
+  "authorName": zod.string(),
+  "authorEmail": zod.string().nullish(),
+  "content": zod.string(),
+  "adminReply": zod.string().nullish(),
+  "adminRepliedAt": zod.string().nullish(),
+  "createdAt": zod.string()
 })
 
 

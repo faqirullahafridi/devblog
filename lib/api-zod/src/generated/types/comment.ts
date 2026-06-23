@@ -13,5 +13,9 @@ export interface Comment {
   /** @nullable */
   authorEmail?: string | null;
   content: string;
+  /** @nullable */
+  adminReply?: string | null;
+  /** @nullable */
+  adminRepliedAt?: string | null;
   createdAt: string;
 }

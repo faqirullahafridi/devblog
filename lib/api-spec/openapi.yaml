@@ -198,6 +198,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Post"
 
+  /posts/{id}/feature:
+    patch:
+      operationId: togglePostFeature
+      tags: [posts]
+      summary: Toggle a post featured status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureToggle"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
   /posts/{id}/view:
     post:
       operationId: incrementPostView
@@ -403,11 +427,11 @@ paths:
     get:
       operationId: listComments
       tags: [comments]
-      summary: List comments for a post
+      summary: List comments, optionally filtered by post
       parameters:
         - name: postId
           in: query
-          required: true
+          required: false
           schema: { type: integer }
       responses:
         "200":
@@ -449,6 +473,30 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /comments/{id}/reply:
+    patch:
+      operationId: replyToComment
+      tags: [comments]
+      summary: Add admin reply to a comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentReplyInput"
+      responses:
+        "200":
+          description: Updated comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
 
   /newsletter/subscribe:
     post:
@@ -510,7 +558,7 @@ components:
 
     Post:
       type: object
-      required: [id, title, slug, content, status, views, createdAt, updatedAt]
+      required: [id, title, slug, content, status, isFeatured, views, createdAt, updatedAt]
       properties:
         id: { type: integer }
         title: { type: string }
@@ -519,6 +567,7 @@ components:
         excerpt: { type: ["string", "null"] }
         featuredImage: { type: ["string", "null"] }
         status: { type: string, enum: [draft, published] }
+        isFeatured: { type: boolean }
         categoryId: { type: ["integer", "null"] }
         categoryName: { type: ["string", "null"] }
         categorySlug: { type: ["string", "null"] }
@@ -551,6 +600,7 @@ components:
         excerpt: { type: string }
         featuredImage: { type: string }
         status: { type: string, enum: [draft, published] }
+        isFeatured: { type: boolean }
         categoryId: { type: integer }
         seoTitle: { type: string }
         metaDescription: { type: string }
@@ -564,6 +614,7 @@ components:
         excerpt: { type: string }
         featuredImage: { type: string }
         status: { type: string, enum: [draft, published] }
+        isFeatured: { type: boolean }
         categoryId: { type: ["integer", "null"] }
         seoTitle: { type: string }
         metaDescription: { type: string }
@@ -573,6 +624,12 @@ components:
       required: [status]
       properties:
         status: { type: string, enum: [draft, published] }
+
+    FeatureToggle:
+      type: object
+      required: [isFeatured]
+      properties:
+        isFeatured: { type: boolean }
 
     ViewCount:
       type: object
@@ -653,6 +710,8 @@ components:
         authorName: { type: string }
         authorEmail: { type: ["string", "null"] }
         content: { type: string }
+        adminReply: { type: ["string", "null"] }
+        adminRepliedAt: { type: ["string", "null"] }
         createdAt: { type: string }
 
     CommentInput:
@@ -663,6 +722,12 @@ components:
         authorName: { type: string }
         authorEmail: { type: string }
         content: { type: string }
+
+    CommentReplyInput:
+      type: object
+      required: [reply]
+      properties:
+        reply: { type: string }
 
     NewsletterInput:
       type: object
