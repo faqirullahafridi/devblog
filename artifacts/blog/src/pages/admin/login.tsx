@@ -1,4 +1,4 @@
-import { useAdminLogin } from "@workspace/api-client-react";
+import { useAdminLogin, getGetAuthMeQueryKey } from "@workspace/api-client-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export default function AdminLogin() {
       const res = await login.mutateAsync({ data: { username, password } });
       if (res.authenticated) {
         toast.success("Welcome back!");
-        queryClient.invalidateQueries();
+        queryClient.setQueryData(getGetAuthMeQueryKey(), res);
         setLocation("/admin/dashboard");
       }
     } catch (err) {

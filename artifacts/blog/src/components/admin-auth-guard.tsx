@@ -3,17 +3,26 @@ import { useLocation } from "wouter";
 import { useGetAuthMe } from "@workspace/api-client-react";
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
-  const [location, setLocation] = useLocation();
-  const { data: auth, isLoading } = useGetAuthMe();
+  const [, setLocation] = useLocation();
+  const { data: auth, isLoading, isFetching } = useGetAuthMe({
+    query: { staleTime: 5 * 60 * 1000 },
+  });
+
+  const settling = isLoading || isFetching;
+  const denied = !settling && !auth?.authenticated;
 
   useEffect(() => {
-    if (!isLoading && !auth?.authenticated) {
+    if (denied) {
       setLocation("/admin/login");
     }
-  }, [auth, isLoading, setLocation]);
+  }, [denied, setLocation]);
 
-  if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+  if (settling) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (!auth?.authenticated) {

@@ -13,7 +13,13 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 const router = Router();
 
-router.post("/auth/login", (req, res) => {
+const noCache = (_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+  (res as any).setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  (res as any).setHeader("Pragma", "no-cache");
+  next();
+};
+
+router.post("/auth/login", noCache as any, (req, res) => {
   const { username, password } = req.body as { username?: string; password?: string };
   if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     req.session.adminAuthenticated = true;
@@ -24,13 +30,13 @@ router.post("/auth/login", (req, res) => {
   }
 });
 
-router.post("/auth/logout", (req, res) => {
+router.post("/auth/logout", noCache as any, (req, res) => {
   req.session.destroy(() => {
     res.json({ authenticated: false, username: null });
   });
 });
 
-router.get("/auth/me", (req, res) => {
+router.get("/auth/me", noCache as any, (req, res) => {
   if (req.session.adminAuthenticated) {
     res.json({ authenticated: true, username: req.session.adminUsername ?? null });
   } else {
