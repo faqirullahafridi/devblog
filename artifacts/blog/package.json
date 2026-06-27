@@ -78,6 +78,15 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@types/react-syntax-highlighter": "^15.5.13"
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "sql.js": "^1.14.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-x64": "4.60.3",
+    "@rollup/rollup-linux-x64-gnu": "4.60.3",
+    "@tailwindcss/oxide-darwin-x64": "^4.3.1",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.1",
+    "lightningcss-darwin-x64": "1.32.0",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }

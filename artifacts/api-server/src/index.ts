@@ -1,5 +1,7 @@
+import "./load-env";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startJobSyncScheduler } from "./lib/job-sync";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +24,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startJobSyncScheduler();
 });

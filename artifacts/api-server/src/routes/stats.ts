@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { db, postsTable, categoriesTable, commentsTable, newsletterSubscribersTable } from "@workspace/db";
 import { eq, sql, desc } from "drizzle-orm";
+import { requireAuth } from "../middleware/require-auth";
 
 const router = Router();
 
-router.get("/stats/overview", async (req, res) => {
+router.get("/stats/overview", requireAuth, async (req, res) => {
   try {
     const [
       postStats,
@@ -38,7 +39,7 @@ router.get("/stats/overview", async (req, res) => {
   }
 });
 
-router.get("/stats/posts", async (req, res) => {
+router.get("/stats/posts", requireAuth, async (req, res) => {
   try {
     const limitNum = Math.min(50, parseInt(String(req.query.limit || "20"), 10));
     const rows = await db

@@ -27,7 +27,9 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
+# generated OpenAPI bundle
+lib/api-spec/openapi.bundle.yaml
+
 /.sass-cache
 /connect.lock
 /coverage
@@ -47,3 +49,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment (secrets)
+.env
+.env.local

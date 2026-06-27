@@ -2,22 +2,34 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { PostCard } from "@/components/post-card";
 import { useGetCategoryBySlug, useListPosts } from "@workspace/api-client-react";
 import { useParams } from "wouter";
+import { useState } from "react";
+import { Pagination } from "@/components/pagination";
+import { SeoHead } from "@/components/seo-head";
+
+const PAGE_SIZE = 10;
 
 export default function Category() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
+  const [page, setPage] = useState(1);
 
   const { data: category, isLoading: isLoadingCategory } = useGetCategoryBySlug(slug, {
     query: { enabled: !!slug }
   });
 
   const { data: postsData, isLoading: isLoadingPosts } = useListPosts(
-    { category: slug, status: "published", limit: 20 },
+    { category: slug, status: "published", limit: PAGE_SIZE, page },
     { query: { enabled: !!slug } }
   );
 
+  const totalPages = Math.ceil((postsData?.total ?? 0) / PAGE_SIZE);
+
   return (
     <PublicLayout>
+      <SeoHead
+        title={category ? `${category.name} — devblog` : "Category — devblog"}
+        description={category?.description || undefined}
+      />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-12">
           {isLoadingCategory ? (
@@ -45,11 +57,14 @@ export default function Category() {
               <p className="text-muted-foreground">No posts found in this category yet.</p>
             </div>
           ) : (
-            <div className="grid gap-10 sm:grid-cols-2">
-              {postsData?.posts.map(post => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {postsData?.posts.map(post => (
+                  <PostCard key={post.id} post={post} variant="card" />
+                ))}
+              </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </>
           )}
         </div>
       </div>

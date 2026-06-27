@@ -17,6 +17,10 @@ router.get("/sitemap", async (req, res) => {
 
     const entries = [
       { url: "/", type: "home", updatedAt: new Date().toISOString() },
+      { url: "/about", type: "page", updatedAt: new Date().toISOString() },
+      { url: "/contact", type: "page", updatedAt: new Date().toISOString() },
+      { url: "/privacy", type: "page", updatedAt: new Date().toISOString() },
+      { url: "/terms", type: "page", updatedAt: new Date().toISOString() },
       ...categories.map((c) => ({
         url: `/category/${c.slug}`,
         type: "category",

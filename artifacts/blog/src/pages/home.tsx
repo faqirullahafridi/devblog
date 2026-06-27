@@ -1,99 +1,127 @@
+import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { PostCard } from "@/components/post-card";
-import { useGetFeaturedPosts, useListPosts, useSubscribeNewsletter } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { toast } from "sonner";
+import { SeoHead, siteUrl } from "@/components/seo-head";
+import { getHomeFeed } from "@/lib/api-extra";
+import type { Post } from "@workspace/api-client-react";
+import { HomeHero } from "@/components/home/home-hero";
+import { HomeFeaturedSpotlight } from "@/components/home/home-featured-spotlight";
+import { HomeRecentFeed } from "@/components/home/home-recent-feed";
+import { HomeSidebar } from "@/components/home/home-sidebar";
+import { HomeTemplatesStrip } from "@/components/home/home-templates-strip";
+import { HomeAiChat } from "@/components/home/home-ai-chat";
 import { Link } from "wouter";
+import { ArrowRight } from "lucide-react";
+
+function SectionHeader({
+  label,
+  title,
+  href,
+  linkText = "View all",
+}: {
+  label: string;
+  title: string;
+  href?: string;
+  linkText?: string;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary mb-1">{label}</p>
+        <h2 className="text-2xl md:text-3xl font-black tracking-tight">{title}</h2>
+      </div>
+      {href && (
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-primary hover:underline shrink-0"
+        >
+          {linkText} <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
-  const { data: featuredPosts, isLoading: isLoadingFeatured } = useGetFeaturedPosts({ limit: 4 });
-  const { data: recentPostsData, isLoading: isLoadingRecent } = useListPosts({ limit: 6, status: "published" });
-  const subscribe = useSubscribeNewsletter();
-  const [email, setEmail] = useState("");
+  const { data: feed, isLoading } = useQuery({
+    queryKey: ["posts", "home-feed"],
+    queryFn: getHomeFeed,
+    staleTime: 2 * 60_000,
+  });
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    try {
-      await subscribe.mutateAsync({ data: { email } });
-      toast.success("Subscribed successfully!");
-      setEmail("");
-    } catch (err) {
-      toast.error("Failed to subscribe.");
-    }
-  };
+  const featuredPosts = (feed?.featured ?? []) as Post[];
+  const recentPosts = (feed?.recent ?? []) as Post[];
+  const popularPosts = (feed?.popular ?? []) as Post[];
 
   return (
     <PublicLayout>
-      {/* Hero Section */}
-      <section className="py-20 md:py-28 border-b bg-muted/20">
-        <div className="container mx-auto px-4 max-w-4xl text-center space-y-6">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground">
-            Crafting the web,<br />one line at a time.
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            A focused knowledge hub for developers who care about code quality, architecture, and the art of building software.
-          </p>
+      <SeoHead
+        title="devblog — Developer knowledge hub"
+        description="Articles, tutorials, and free developer tools for builders who care about code quality and craft."
+        url={siteUrl("/")}
+        image="/hero-devblog.png"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "devblog",
+          url: siteUrl("/"),
+          description: "Developer knowledge hub with articles and free tools",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${siteUrl("/search")}?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+
+      <HomeHero />
+      <HomeAiChat />
+
+      {/* Featured spotlight */}
+      <section className="container mx-auto px-4 py-14 md:py-16">
+        <SectionHeader label="Editor's pick" title="Featured this week" href="/search" />
+        {isLoading ? (
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-7 flex flex-col md:flex-row border-2 border-foreground bg-card overflow-hidden">
+              <div className="w-full md:w-52 aspect-[16/10] md:aspect-[4/3] md:max-h-[180px] bg-muted animate-pulse border-b-2 md:border-b-0 md:border-r-2 border-foreground" />
+              <div className="flex-1 p-6 space-y-3">
+                <div className="h-4 w-24 bg-muted animate-pulse" />
+                <div className="h-8 w-full bg-muted animate-pulse" />
+                <div className="h-12 w-3/4 bg-muted animate-pulse" />
+              </div>
+            </div>
+            <div className="lg:col-span-5 space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-24 border-2 border-foreground bg-muted animate-pulse" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <HomeFeaturedSpotlight posts={featuredPosts} />
+        )}
+      </section>
+
+      {/* Main feed + sidebar */}
+      <section className="border-y-2 border-foreground bg-muted/40">
+        <div className="container mx-auto px-4 py-14 md:py-16">
+          <div className="grid gap-10 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_340px] lg:gap-12">
+            <div className="min-w-0">
+              <SectionHeader label="Fresh reads" title="Latest articles" href="/search" />
+              {isLoading ? (
+                <div className="space-y-0 border-2 border-foreground">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-24 border-b-2 last:border-b-0 border-foreground bg-card animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <HomeRecentFeed posts={recentPosts} />
+              )}
+            </div>
+            <HomeSidebar popularPosts={popularPosts} />
+          </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-12">
-            <section>
-              <h2 className="text-2xl font-bold tracking-tight mb-6">Featured</h2>
-              {isLoadingFeatured ? (
-                <div className="h-40 bg-muted animate-pulse rounded-lg"></div>
-              ) : (
-                <div className="grid gap-8 sm:grid-cols-2">
-                  {featuredPosts?.map(post => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                  {featuredPosts?.length === 0 && <p className="text-muted-foreground">No featured posts yet.</p>}
-                </div>
-              )}
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold tracking-tight mb-6">Recent Articles</h2>
-              {isLoadingRecent ? (
-                <div className="space-y-4">
-                  {[1,2,3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg"></div>)}
-                </div>
-              ) : (
-                <div className="grid gap-10">
-                  {recentPostsData?.posts.map(post => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          <aside className="space-y-8">
-            <div className="p-6 bg-card border rounded-xl space-y-4 shadow-sm">
-              <h3 className="font-bold text-lg">Join the Newsletter</h3>
-              <p className="text-sm text-muted-foreground">
-                Get the latest articles and insights delivered straight to your inbox. No spam, just signal.
-              </p>
-              <form onSubmit={handleSubscribe} className="space-y-3">
-                <Input 
-                  type="email" 
-                  placeholder="hello@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="w-full" disabled={subscribe.isPending}>
-                  {subscribe.isPending ? "Subscribing..." : "Subscribe"}
-                </Button>
-              </form>
-            </div>
-          </aside>
-        </div>
-      </div>
+      <HomeTemplatesStrip />
     </PublicLayout>
   );
 }

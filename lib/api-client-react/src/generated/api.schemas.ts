@@ -152,6 +152,34 @@ export interface AuthStatus {
   username?: string | null;
 }
 
+export interface ChangePasswordInput {
+  currentPassword: string;
+  /** @minLength 6 */
+  newPassword: string;
+}
+
+export interface ChangeUsernameInput {
+  currentPassword: string;
+  /** @minLength 1 */
+  newUsername: string;
+}
+
+export interface ChangeUsernameResponse {
+  success: boolean;
+  username: string;
+}
+
+export interface ForgotPasswordInput {
+  username: string;
+  recoveryToken: string;
+  /** @minLength 6 */
+  newPassword: string;
+}
+
+export interface SuccessResponse {
+  success: boolean;
+}
+
 export interface StatsOverview {
   totalPosts: number;
   publishedPosts: number;
@@ -185,6 +213,10 @@ export interface Comment {
   /** @nullable */
   adminRepliedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  postTitle?: string | null;
+  /** @nullable */
+  postSlug?: string | null;
 }
 
 export interface CommentInput {
@@ -217,6 +249,457 @@ export interface SitemapEntry {
   updatedAt: string;
 }
 
+export interface ProfileWorkExperience {
+  title: string;
+  company: string;
+  period: string;
+  bullets: string[];
+}
+
+export interface ProfileEducation {
+  degree: string;
+  institution: string;
+  period: string;
+}
+
+export interface ProfileProject {
+  name: string;
+  description: string;
+}
+
+export interface ProfileSkillGroup {
+  category: string;
+  items: string;
+}
+
+export interface ProfileLanguage {
+  name: string;
+  level: string;
+}
+
+export type DeveloperProfileStatus = typeof DeveloperProfileStatus[keyof typeof DeveloperProfileStatus];
+
+
+export const DeveloperProfileStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+export interface DeveloperProfile {
+  id: number;
+  name: string;
+  /** @nullable */
+  headline?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  portfolioUrl?: string | null;
+  /** @nullable */
+  aboutMe?: string | null;
+  workExperience: ProfileWorkExperience[];
+  education: ProfileEducation[];
+  projects: ProfileProject[];
+  technicalSkills: ProfileSkillGroup[];
+  languages: ProfileLanguage[];
+  status: DeveloperProfileStatus;
+  updatedAt: string;
+}
+
+export type DeveloperProfileUpdateStatus = typeof DeveloperProfileUpdateStatus[keyof typeof DeveloperProfileUpdateStatus];
+
+
+export const DeveloperProfileUpdateStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+export interface DeveloperProfileUpdate {
+  name?: string;
+  headline?: string;
+  phone?: string;
+  email?: string;
+  location?: string;
+  portfolioUrl?: string;
+  aboutMe?: string;
+  workExperience?: ProfileWorkExperience[];
+  education?: ProfileEducation[];
+  projects?: ProfileProject[];
+  technicalSkills?: ProfileSkillGroup[];
+  languages?: ProfileLanguage[];
+  status?: DeveloperProfileUpdateStatus;
+}
+
+export interface JobCategory {
+  slug: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface Job {
+  id: number;
+  slug: string;
+  title: string;
+  company: string;
+  description: string;
+  requirements?: string;
+  location?: string;
+  remote?: boolean;
+  /** @nullable */
+  salaryRange?: string | null;
+  category: string;
+  applyUrl: string;
+  isActive: boolean;
+  /** @nullable */
+  expiresAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface JobInput {
+  title: string;
+  company: string;
+  description: string;
+  requirements?: string;
+  location?: string;
+  remote?: boolean;
+  salaryRange?: string;
+  category: string;
+  applyUrl: string;
+  expiresAt?: string;
+  isActive?: boolean;
+}
+
+export interface JobList {
+  jobs: Job[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type JobDetail = Job & {
+  bookmarked?: boolean;
+  related?: Job[];
+};
+
+export interface ChallengeTestCase {
+  input: string;
+  expected: string;
+  hidden?: boolean;
+}
+
+export interface Challenge {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  category: string;
+  starterCode: string;
+  testCases?: ChallengeTestCase[];
+  points: number;
+  isDaily?: boolean;
+  createdAt?: string;
+}
+
+export type ChallengeAdmin = Challenge & ({
+  /** @nullable */
+  solutionCode?: string | null;
+});
+
+export interface ChallengeInput {
+  title: string;
+  description: string;
+  difficulty: string;
+  category: string;
+  starterCode?: string;
+  solutionCode?: string;
+  testCases?: ChallengeTestCase[];
+  points?: number;
+  isDaily?: boolean;
+}
+
+export interface ChallengeList {
+  challenges: Challenge[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ChallengeAdminList {
+  challenges: ChallengeAdmin[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ChallengeSubmitInput {
+  code: string;
+  authorName?: string;
+  language?: string;
+}
+
+export type ChallengeSubmitResultSubmission = { [key: string]: unknown };
+
+export type ChallengeSubmitResultResultResultsItem = { [key: string]: unknown };
+
+export type ChallengeSubmitResultResult = {
+  passed?: boolean;
+  results?: ChallengeSubmitResultResultResultsItem[];
+  error?: string;
+  runtimeMs?: number;
+};
+
+export interface ChallengeSubmitResult {
+  submission?: ChallengeSubmitResultSubmission;
+  result?: ChallengeSubmitResultResult;
+}
+
+export interface ChallengeScore {
+  authorName?: string;
+  totalPoints?: number;
+  challengesSolved?: number;
+}
+
+export interface ChallengeStats {
+  challenges?: number;
+  submissions?: number;
+}
+
+export interface PlaygroundFile {
+  filename: string;
+  content: string;
+}
+
+export interface Playground {
+  id: number;
+  slug: string;
+  title: string;
+  language: string;
+  isPublic: boolean;
+  authorName: string;
+  views: number;
+  /** @nullable */
+  forkedFromId?: number | null;
+  files: PlaygroundFile[];
+  createdAt?: string;
+  updatedAt?: string;
+  shareToken?: string;
+}
+
+export interface PlaygroundInput {
+  title: string;
+  language: string;
+  isPublic?: boolean;
+  authorName?: string;
+  forkedFromId?: number;
+  files: PlaygroundFile[];
+}
+
+export interface PlaygroundUpdateInput {
+  title?: string;
+  isPublic?: boolean;
+  files?: PlaygroundFile[];
+}
+
+export interface PlaygroundList {
+  playgrounds: Playground[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PlaygroundShare {
+  shareToken: string;
+  expiresAt: string;
+}
+
+export type PlaygroundStatsTotals = { [key: string]: unknown };
+
+export type PlaygroundStatsPopularItem = { [key: string]: unknown };
+
+export interface PlaygroundStats {
+  totals?: PlaygroundStatsTotals;
+  popular?: PlaygroundStatsPopularItem[];
+}
+
+export interface AiConversation {
+  id?: number;
+  title?: string;
+  mode?: string;
+  updatedAt?: string;
+}
+
+export interface AiMessage {
+  id?: number;
+  role?: string;
+  content?: string;
+  createdAt?: string;
+}
+
+export type AiConversationDetail = AiConversation & {
+  messages?: AiMessage[];
+};
+
+export interface AiChatInput {
+  message: string;
+  conversationId?: number;
+  title?: string;
+}
+
+export type AiChatResponseUsage = {
+  tokensIn?: number;
+  tokensOut?: number;
+};
+
+export interface AiChatResponse {
+  conversationId?: number;
+  message?: AiMessage;
+  usage?: AiChatResponseUsage;
+}
+
+export interface AiUsage {
+  total?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+}
+
+export type AiStatsTotals = { [key: string]: unknown };
+
+export type AiStatsDailyItem = { [key: string]: unknown };
+
+export type AiStatsTopModesItem = { [key: string]: unknown };
+
+export interface AiStats {
+  totals?: AiStatsTotals;
+  daily?: AiStatsDailyItem[];
+  topModes?: AiStatsTopModesItem[];
+}
+
+export type RoadmapOptionsGoalsItem = {
+  slug?: string;
+  label?: string;
+};
+
+export interface RoadmapOptions {
+  levels?: string[];
+  goals?: RoadmapOptionsGoalsItem[];
+}
+
+export interface RoadmapGenerateInput {
+  currentLevel: string;
+  goal: string;
+}
+
+export type RoadmapGeneratedPayload = { [key: string]: unknown };
+
+export interface RoadmapGenerated {
+  slug?: string;
+  title?: string;
+  payload?: RoadmapGeneratedPayload;
+}
+
+export type RoadmapDetailPayload = { [key: string]: unknown };
+
+export type RoadmapDetailProgressItem = {
+  itemKey?: string;
+  completed?: boolean;
+};
+
+export interface RoadmapDetail {
+  slug?: string;
+  payload?: RoadmapDetailPayload;
+  progress?: RoadmapDetailProgressItem[];
+  isOwner?: boolean;
+}
+
+export type RoadmapStatsTopGoalsItem = { [key: string]: unknown };
+
+export interface RoadmapStats {
+  totalRoadmaps?: number;
+  completedSteps?: number;
+  topGoals?: RoadmapStatsTopGoalsItem[];
+}
+
+export interface CommunityQuestion {
+  id?: number;
+  slug?: string;
+  title?: string;
+  body?: string;
+  authorName?: string;
+  tags?: string[];
+  views?: number;
+  score?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface CommunityAnswer {
+  id?: number;
+  body?: string;
+  authorName?: string;
+  score?: number;
+  isAccepted?: boolean;
+  createdAt?: string;
+}
+
+export type CommunityQuestionDetail = CommunityQuestion & {
+  answers?: CommunityAnswer[];
+};
+
+export interface CommunityQuestionInput {
+  title: string;
+  body: string;
+  tags?: string[];
+  authorName?: string;
+}
+
+export interface CommunityAnswerInput {
+  body: string;
+  authorName?: string;
+}
+
+export type CommunityVoteInputTargetType = typeof CommunityVoteInputTargetType[keyof typeof CommunityVoteInputTargetType];
+
+
+export const CommunityVoteInputTargetType = {
+  question: 'question',
+  answer: 'answer',
+} as const;
+
+export type CommunityVoteInputValue = typeof CommunityVoteInputValue[keyof typeof CommunityVoteInputValue];
+
+
+export const CommunityVoteInputValue = {
+  NUMBER_1: 1,
+  NUMBER_MINUS_1: -1,
+} as const;
+
+export interface CommunityVoteInput {
+  targetType: CommunityVoteInputTargetType;
+  targetId: number;
+  value: CommunityVoteInputValue;
+}
+
+export interface CommunityQuestionList {
+  questions?: CommunityQuestion[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface CommunityReport {
+  id?: number;
+  targetType?: string;
+  targetId?: number;
+  reason?: string;
+  status?: string;
+}
+
 export type ListPostsParams = {
 category?: string;
 search?: string;
@@ -244,5 +727,78 @@ limit?: number;
 
 export type ListCommentsParams = {
 postId?: number;
+};
+
+export type ListAdminJobsParams = {
+search?: string;
+page?: number;
+limit?: number;
+};
+
+export type ListJobsParams = {
+category?: string;
+search?: string;
+remote?: boolean;
+page?: number;
+limit?: number;
+};
+
+export type ToggleJobBookmark200 = {
+  bookmarked: boolean;
+};
+
+export type ListChallengesParams = {
+difficulty?: string;
+category?: string;
+search?: string;
+page?: number;
+limit?: number;
+};
+
+export type ListAdminChallengesParams = {
+search?: string;
+page?: number;
+limit?: number;
+};
+
+export type GetChallengeLeaderboardParams = {
+limit?: number;
+};
+
+export type ListPlaygroundsParams = {
+language?: string;
+search?: string;
+page?: number;
+limit?: number;
+publicOnly?: boolean;
+};
+
+export type CreateAiConversationBody = {
+  mode?: string;
+  title?: string;
+};
+
+export type UpdateRoadmapProgressBody = {
+  itemKey: string;
+  completed: boolean;
+};
+
+export type UpdateRoadmapProgress200 = {
+  ok?: boolean;
+};
+
+export type ListCommunityQuestionsParams = {
+search?: string;
+tag?: string;
+page?: number;
+limit?: number;
+};
+
+export type VoteCommunity200 = {
+  ok?: boolean;
+};
+
+export type ListCommunityReportsParams = {
+status?: string;
 };
 

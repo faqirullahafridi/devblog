@@ -10,9 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MarkdownContent } from "@/components/markdown-content";
+import { uploadImage } from "@/lib/api-extra";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -24,6 +27,8 @@ const postSchema = z.object({
   seoTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   status: z.enum(["draft", "published"]),
+  tagsInput: z.string().optional(),
+  publishAt: z.string().optional(),
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
@@ -40,6 +45,8 @@ export default function PostEditor() {
 
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -53,11 +60,14 @@ export default function PostEditor() {
       seoTitle: "",
       metaDescription: "",
       status: "draft",
+      tagsInput: "",
+      publishAt: "",
     },
   });
 
   useEffect(() => {
     if (post) {
+      const p = post as typeof post & { tags?: string[]; publishAt?: string | null };
       form.reset({
         title: post.title,
         slug: post.slug,
@@ -68,19 +78,54 @@ export default function PostEditor() {
         seoTitle: post.seoTitle || "",
         metaDescription: post.metaDescription || "",
         status: post.status,
+        tagsInput: (p.tags ?? []).join(", "),
+        publishAt: p.publishAt ? p.publishAt.slice(0, 16) : "",
       });
     }
   }, [post, form]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      form.setValue("featuredImage", url);
+      toast.success("Image uploaded");
+    } catch {
+      toast.error("Image upload failed — check Supabase storage config");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const onSubmit = async (values: PostFormValues) => {
+    const tags = values.tagsInput
+      ? values.tagsInput.split(",").map((t) => t.trim()).filter(Boolean)
+      : [];
+    const payload = {
+      title: values.title,
+      slug: values.slug,
+      content: values.content,
+      excerpt: values.excerpt,
+      featuredImage: values.featuredImage,
+      categoryId: values.categoryId,
+      seoTitle: values.seoTitle,
+      metaDescription: values.metaDescription,
+      status: values.status,
+      tags,
+      publishAt: values.publishAt ? new Date(values.publishAt).toISOString() : undefined,
+    };
+
     try {
       if (isNew) {
-        await createPost.mutateAsync({ data: values });
+        await createPost.mutateAsync({ data: payload as never });
         toast.success("Post created");
         queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
         setLocation("/admin/posts");
       } else {
-        await updatePost.mutateAsync({ id: id!, data: values });
+        await updatePost.mutateAsync({ id: id!, data: payload as never });
         toast.success("Post updated");
         queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(id!) });
@@ -126,13 +171,35 @@ export default function PostEditor() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Content (Markdown)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Write your post content here in Markdown..." 
-                          className="min-h-[500px] font-mono" 
-                          {...field} 
-                        />
-                      </FormControl>
+                      <Tabs defaultValue="write" className="w-full">
+                        <TabsList className="mb-3">
+                          <TabsTrigger value="write">Write</TabsTrigger>
+                          <TabsTrigger value="preview">Preview</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="write">
+                          <FormControl>
+                            <Textarea
+                              placeholder="Write your post content here in Markdown..."
+                              className="min-h-[500px] font-mono text-sm"
+                              {...field}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Supports headings, lists, links, images, tables, blockquotes, and{" "}
+                            <code className="text-xs bg-muted px-1 rounded">```language</code> code blocks.
+                            Styling is applied automatically when published.
+                          </p>
+                        </TabsContent>
+                        <TabsContent value="preview">
+                          <div className="min-h-[500px] rounded-lg border bg-background p-6 md:p-8 overflow-auto">
+                            {field.value ? (
+                              <MarkdownContent content={field.value} />
+                            ) : (
+                              <p className="text-muted-foreground text-sm">Nothing to preview yet.</p>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -174,7 +241,7 @@ export default function PostEditor() {
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent position="popper" className="max-h-60">
                             {categories?.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id.toString()}>
                                 {cat.name}
@@ -206,10 +273,57 @@ export default function PostEditor() {
                     name="featuredImage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Featured Image URL</FormLabel>
+                        <FormLabel>Featured Image</FormLabel>
                         <FormControl>
-                          <Input placeholder="https://..." {...field} />
+                          <Input placeholder="https://... or upload below" {...field} />
                         </FormControl>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          disabled={uploading}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          {uploading ? "Uploading…" : "Upload image"}
+                        </Button>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tagsInput"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tags</FormLabel>
+                        <FormControl>
+                          <Input placeholder="react, typescript, devops" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">Comma-separated</p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="publishAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schedule publish (optional)</FormLabel>
+                        <FormControl>
+                          <Input type="datetime-local" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">Post stays hidden until this time</p>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -1,0 +1,162 @@
+{
+  "name": "Faqir Ullah",
+  "headline": "Full Stack Developer",
+  "phone": "03109766610",
+  "email": "faqir.ullahhh@gmail.com",
+  "location": "Peshawar, Pakistan",
+  "portfolioUrl": "https://faqirullahafridi.github.io/Portfolio-new/",
+  "aboutMe": "Full Stack Developer with commercial experience building scalable web applications using Python, Django, Flask, React.js, Node.js, Express.js, JavaScript, and modern relational and NoSQL databases. Experienced in developing booking systems, AI-powered applications, business management platforms, admin dashboards, REST APIs, and cloud-based applications for clients across the UK and internationally.\n\nStrong understanding of frontend architecture, backend development, API integrations, authentication, database optimization, and scalable software design. Passionate about writing clean, maintainable code and shipping reliable, production-ready applications in fast-paced, collaborative teams.",
+  "workExperience": [
+    {
+      "title": "Full Stack Developer",
+      "company": "BG Airport Taxi (UK)",
+      "period": "Current",
+      "bullets": [
+        "Sister company to Dinar Airport Transfers, operating under the same ownership group.",
+        "Developed the company's booking platform from scratch, covering both frontend and backend.",
+        "Built the complete frontend using React.js, focused on a fast, mobile-friendly booking experience.",
+        "Built backend services using Node.js and designed REST APIs to support booking and account features.",
+        "Used Supabase as the primary backend database for application data and user records.",
+        "Implemented authentication and access control across customer and admin areas.",
+        "Built internal dashboards for managing bookings, drivers, and business operations.",
+        "Maintain production systems and continuously ship new features and performance improvements."
+      ]
+    },
+    {
+      "title": "Full Stack Developer",
+      "company": "Dinar Airport Transfers (UK)",
+      "period": "Nov 2025 – Present",
+      "bullets": [
+        "Develop and maintain the company's airport transfer booking platform end to end.",
+        "Build booking workflows and customer-facing features using React.js.",
+        "Develop and maintain backend services and REST APIs using Node.js.",
+        "Manage and optimize MongoDB databases supporting booking and operational data.",
+        "Build and maintain admin dashboards for managing bookings and business operations.",
+        "Improve application performance and reliability across the platform.",
+        "Add new business features in response to evolving operational requirements."
+      ]
+    },
+    {
+      "title": "Full Stack Developer",
+      "company": "CodeChine",
+      "period": "",
+      "bullets": [
+        "Developed production-ready web applications using React.js, Node.js, Django, and Flask.",
+        "Designed scalable frontend architecture and built reusable UI components.",
+        "Developed backend APIs using Express.js and Django REST Framework.",
+        "Integrated third-party APIs to extend application functionality.",
+        "Optimized SQL and NoSQL databases for performance and reliability.",
+        "Collaborated closely with UI/UX designers to translate designs into functional interfaces.",
+        "Maintained existing applications and used Git/GitHub for version control."
+      ]
+    },
+    {
+      "title": "Full Stack Developer",
+      "company": "Brikmas Technology",
+      "period": "Aug 2024 – Nov 2025",
+      "bullets": [
+        "Developed full-stack web applications using Django, Flask, React.js, JavaScript, HTML5, and CSS3.",
+        "Designed and built scalable REST APIs for internal and client-facing applications.",
+        "Built AI-powered applications, including tools integrated with the OpenAI API.",
+        "Developed CMS platforms and admin dashboards for content and business management.",
+        "Built browser-based tools, including Chrome extensions, to extend product functionality.",
+        "Integrated third-party APIs and optimized database performance across projects.",
+        "Worked using Git and Agile workflows within cross-functional teams."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "BS Computer Science",
+      "institution": "IQRA National University",
+      "period": "2023 – 2027"
+    },
+    {
+      "degree": "Pre-Medical",
+      "institution": "Government College DAK",
+      "period": "2021 – 2022"
+    }
+  ],
+  "projects": [
+    {
+      "name": "AI Resume & CV Generator",
+      "description": "Flask-based application integrated with the OpenAI API to generate professional, ATS-optimized resumes and cover letters. Features dynamic templates and Gumroad-based monetization, enabling users to self-serve polished job application documents."
+    },
+    {
+      "name": "Travel & Visa Admin Panel",
+      "description": "Django-based admin system for managing visa clients, bookings, and analytics, with an integrated CMS for content management. Built with a modern, responsive orange-and-white UI to streamline day-to-day operations for staff."
+    },
+    {
+      "name": "Britannia Consultants Website",
+      "description": "Responsive, SEO-optimized consultancy website built with Django, featuring dynamic service pages, client testimonials, and an integrated blog system to support content marketing."
+    },
+    {
+      "name": "Britannia Consultants Admin Panel",
+      "description": "Django and MySQL admin backend for managing services, blog content, and testimonials, with secure authentication to control staff access."
+    },
+    {
+      "name": "Smart Recipe Generator",
+      "description": "AI-powered web app built with Flask that uses Vision AI to detect ingredients from images and dynamically suggests relevant recipes, combining computer vision with generative AI."
+    },
+    {
+      "name": "Keyword Highlighter Chrome Extension",
+      "description": "Browser extension built with HTML, CSS, JavaScript, and the Chrome Extensions API that highlights user-specified keywords on LinkedIn and other websites to speed up research and review."
+    },
+    {
+      "name": "School Management System",
+      "description": "Full-featured Django application for managing students, classes, and teachers, including admin CRUD operations and secure login for staff."
+    },
+    {
+      "name": "Gym Management System",
+      "description": "Membership tracking system built with Django and Bootstrap, supporting trainer scheduling and payment management for gym operators."
+    },
+    {
+      "name": "Library Management System",
+      "description": "Full-stack system for managing books, members, and borrowing records, with search and filtering to help staff locate records quickly."
+    },
+    {
+      "name": "CV Templates",
+      "description": "Collection of HTML, CSS, and JavaScript resume templates built for a CV builder application, optimized for responsiveness and ATS compatibility."
+    },
+    {
+      "name": "Personal Portfolio",
+      "description": "Custom-built portfolio website with a modern, responsive UI/UX, showcasing personal and company projects to prospective employers and clients."
+    }
+  ],
+  "technicalSkills": [
+    {
+      "category": "Languages",
+      "items": "Python, JavaScript, TypeScript, SQL, HTML5, CSS3"
+    },
+    {
+      "category": "Frontend",
+      "items": "React.js, Next.js, Redux, Bootstrap, Tailwind CSS, Responsive Design"
+    },
+    {
+      "category": "Backend",
+      "items": "Django, Flask, Node.js, Express.js, REST API Design, JWT Authentication, OAuth, API Integration"
+    },
+    {
+      "category": "Databases",
+      "items": "PostgreSQL, MySQL, MongoDB, Supabase, SQLite, Firebase"
+    },
+    {
+      "category": "AI",
+      "items": "OpenAI API, Gemini API, AI Integration, Prompt Engineering, Vision AI, LLM Integration"
+    },
+    {
+      "category": "Cloud & DevOps",
+      "items": "Git, GitHub, Docker, AWS, CI/CD, Nginx, Linux, Postman, Vercel, Render, Deployment"
+    },
+    {
+      "category": "Other",
+      "items": "Authentication & Authorization, MVC Architecture, CRUD Applications, Performance Optimization, SEO, Agile, Software Architecture"
+    }
+  ],
+  "languages": [
+    { "name": "English", "level": "Conversational" },
+    { "name": "Urdu", "level": "Fluent" },
+    { "name": "Pashto", "level": "Native" },
+    { "name": "Hindi", "level": "Fluent" }
+  ]
+}

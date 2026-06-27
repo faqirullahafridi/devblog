@@ -4,12 +4,11 @@ import { useGetAuthMe } from "@workspace/api-client-react";
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
-  const { data: auth, isLoading, isFetching } = useGetAuthMe({
+  const { data: auth, isLoading } = useGetAuthMe({
     query: { staleTime: 5 * 60 * 1000 },
   });
 
-  const settling = isLoading || isFetching;
-  const denied = !settling && !auth?.authenticated;
+  const denied = !isLoading && !auth?.authenticated;
 
   useEffect(() => {
     if (denied) {
@@ -17,7 +16,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [denied, setLocation]);
 
-  if (settling) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />

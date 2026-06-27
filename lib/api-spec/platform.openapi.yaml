@@ -1,0 +1,1256 @@
+tags:
+  - name: ai
+    description: AI developer assistant
+  - name: playground
+    description: Coding playground snippets
+  - name: roadmaps
+    description: Developer roadmap generator
+  - name: challenges
+    description: Coding challenges
+  - name: jobs
+    description: Developer job board
+  - name: community
+    description: Developer community Q&A
+  - name: platform
+    description: Platform admin operations
+
+paths:
+  /jobs/admin:
+    get:
+      operationId: listAdminJobs
+      tags: [jobs, platform]
+      summary: List all jobs for admin (includes inactive)
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Admin job list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobList"
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List active jobs
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: remote
+          in: query
+          schema: { type: boolean }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Job list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobList"
+    post:
+      operationId: createJob
+      tags: [jobs, platform]
+      summary: Create a job posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobInput"
+      responses:
+        "201":
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /jobs/categories:
+    get:
+      operationId: listJobCategories
+      tags: [jobs]
+      summary: List job categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobCategory"
+
+  /jobs/{slug}:
+    get:
+      operationId: getJobBySlug
+      tags: [jobs]
+      summary: Get job by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetail"
+
+  /jobs/{slug}/bookmark:
+    post:
+      operationId: toggleJobBookmark
+      tags: [jobs]
+      summary: Toggle job bookmark
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Bookmark state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bookmarked]
+                properties:
+                  bookmarked: { type: boolean }
+
+  /jobs/{id}:
+    patch:
+      operationId: updateJob
+      tags: [jobs, platform]
+      summary: Update a job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobInput"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    delete:
+      operationId: deleteJob
+      tags: [jobs, platform]
+      summary: Deactivate a job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deactivated
+
+  /challenges:
+    get:
+      operationId: listChallenges
+      tags: [challenges]
+      summary: List coding challenges
+      parameters:
+        - name: difficulty
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Challenge list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeList"
+    post:
+      operationId: createChallenge
+      tags: [challenges, platform]
+      summary: Create a challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeInput"
+      responses:
+        "201":
+          description: Created challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeAdmin"
+
+  /challenges/admin:
+    get:
+      operationId: listAdminChallenges
+      tags: [challenges, platform]
+      summary: List challenges for admin (includes solutions)
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Admin challenge list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeAdminList"
+
+  /challenges/daily:
+    get:
+      operationId: getDailyChallenge
+      tags: [challenges]
+      summary: Get daily challenge
+      responses:
+        "200":
+          description: Daily challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+
+  /challenges/leaderboard:
+    get:
+      operationId: getChallengeLeaderboard
+      tags: [challenges]
+      summary: Get challenge leaderboard
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeScore"
+
+  /challenges/stats:
+    get:
+      operationId: getChallengeStats
+      tags: [challenges, platform]
+      summary: Challenge platform stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeStats"
+
+  /challenges/{slug}:
+    get:
+      operationId: getChallengeBySlug
+      tags: [challenges]
+      summary: Get challenge by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+
+  /challenges/{slug}/submit:
+    post:
+      operationId: submitChallenge
+      tags: [challenges]
+      summary: Submit challenge solution
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeSubmitInput"
+      responses:
+        "200":
+          description: Submission result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeSubmitResult"
+
+  /challenges/{id}:
+    patch:
+      operationId: updateChallenge
+      tags: [challenges, platform]
+      summary: Update a challenge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeInput"
+      responses:
+        "200":
+          description: Updated challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeAdmin"
+
+  /playgrounds:
+    get:
+      operationId: listPlaygrounds
+      tags: [playground]
+      summary: List playground snippets
+      parameters:
+        - name: language
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: publicOnly
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Playground list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaygroundList"
+    post:
+      operationId: savePlayground
+      tags: [playground]
+      summary: Save a playground snippet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaygroundInput"
+      responses:
+        "201":
+          description: Saved playground
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playground"
+
+  /playgrounds/stats:
+    get:
+      operationId: getPlaygroundStats
+      tags: [playground, platform]
+      summary: Playground platform stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaygroundStats"
+
+  /playgrounds/share/{token}:
+    get:
+      operationId: getPlaygroundByShareToken
+      tags: [playground]
+      summary: Load playground by share token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Shared playground
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playground"
+
+  /playgrounds/{slug}:
+    get:
+      operationId: getPlaygroundBySlug
+      tags: [playground]
+      summary: Get playground by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Playground
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playground"
+    patch:
+      operationId: updatePlayground
+      tags: [playground]
+      summary: Update owned playground
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaygroundUpdateInput"
+      responses:
+        "200":
+          description: Updated playground
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playground"
+
+  /playgrounds/{slug}/share:
+    post:
+      operationId: sharePlayground
+      tags: [playground]
+      summary: Create share link for playground
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Share token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaygroundShare"
+
+  /ai/conversations:
+    get:
+      operationId: listAiConversations
+      tags: [ai]
+      summary: List AI conversations
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiConversation"
+    post:
+      operationId: createAiConversation
+      tags: [ai]
+      summary: Create AI conversation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode: { type: string }
+                title: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConversation"
+
+  /ai/conversations/{id}:
+    get:
+      operationId: getAiConversation
+      tags: [ai]
+      summary: Get AI conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConversationDetail"
+    delete:
+      operationId: deleteAiConversation
+      tags: [ai]
+      summary: Delete AI conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /ai/chat/{mode}:
+    post:
+      operationId: sendAiMessage
+      tags: [ai]
+      summary: Send message to AI assistant
+      parameters:
+        - name: mode
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+
+  /ai/usage/me:
+    get:
+      operationId: getAiUsage
+      tags: [ai]
+      summary: Get current user AI usage
+      responses:
+        "200":
+          description: Usage stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiUsage"
+
+  /ai/stats:
+    get:
+      operationId: getAiStats
+      tags: [ai, platform]
+      summary: AI platform stats (admin)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiStats"
+
+  /roadmaps/options:
+    get:
+      operationId: getRoadmapOptions
+      tags: [roadmaps]
+      summary: Get roadmap generator options
+      responses:
+        "200":
+          description: Options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapOptions"
+
+  /roadmaps/generate:
+    post:
+      operationId: generateRoadmap
+      tags: [roadmaps]
+      summary: Generate personalized roadmap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoadmapGenerateInput"
+      responses:
+        "201":
+          description: Generated roadmap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapGenerated"
+
+  /roadmaps/{slug}:
+    get:
+      operationId: getRoadmapBySlug
+      tags: [roadmaps]
+      summary: Get roadmap by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Roadmap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapDetail"
+
+  /roadmaps/{slug}/progress:
+    post:
+      operationId: updateRoadmapProgress
+      tags: [roadmaps]
+      summary: Update roadmap step progress
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemKey, completed]
+              properties:
+                itemKey: { type: string }
+                completed: { type: boolean }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
+  /roadmaps/stats:
+    get:
+      operationId: getRoadmapStats
+      tags: [roadmaps, platform]
+      summary: Roadmap platform stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapStats"
+
+  /community/questions:
+    get:
+      operationId: listCommunityQuestions
+      tags: [community]
+      summary: List community questions
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityQuestionList"
+    post:
+      operationId: createCommunityQuestion
+      tags: [community]
+      summary: Ask a question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityQuestionInput"
+      responses:
+        "201":
+          description: Created question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityQuestion"
+
+  /community/questions/{id}:
+    get:
+      operationId: getCommunityQuestion
+      tags: [community]
+      summary: Get question with answers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Question detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityQuestionDetail"
+
+  /community/questions/{id}/answers:
+    post:
+      operationId: postCommunityAnswer
+      tags: [community]
+      summary: Post an answer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityAnswerInput"
+      responses:
+        "201":
+          description: Created answer
+
+  /community/vote:
+    post:
+      operationId: voteCommunity
+      tags: [community]
+      summary: Upvote or downvote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityVoteInput"
+      responses:
+        "200":
+          description: Voted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
+  /community/moderation/reports:
+    get:
+      operationId: listCommunityReports
+      tags: [community, platform]
+      summary: List moderation reports
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityReport"
+
+components:
+  schemas:
+    JobCategory:
+      type: object
+      required: [slug, name]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: ["string", "null"] }
+
+    Job:
+      type: object
+      required: [id, slug, title, company, description, category, applyUrl, isActive]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        company: { type: string }
+        description: { type: string }
+        requirements: { type: string }
+        location: { type: string }
+        remote: { type: boolean }
+        salaryRange: { type: ["string", "null"] }
+        category: { type: string }
+        applyUrl: { type: string }
+        isActive: { type: boolean }
+        expiresAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    JobInput:
+      type: object
+      required: [title, company, description, category, applyUrl]
+      properties:
+        title: { type: string }
+        company: { type: string }
+        description: { type: string }
+        requirements: { type: string }
+        location: { type: string }
+        remote: { type: boolean }
+        salaryRange: { type: string }
+        category: { type: string }
+        applyUrl: { type: string }
+        expiresAt: { type: string }
+        isActive: { type: boolean }
+
+    JobList:
+      type: object
+      required: [jobs, total, page, limit]
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    JobDetail:
+      allOf:
+        - $ref: "#/components/schemas/Job"
+        - type: object
+          properties:
+            bookmarked: { type: boolean }
+            related:
+              type: array
+              items:
+                $ref: "#/components/schemas/Job"
+
+    ChallengeTestCase:
+      type: object
+      required: [input, expected]
+      properties:
+        input: { type: string }
+        expected: { type: string }
+        hidden: { type: boolean }
+
+    Challenge:
+      type: object
+      required: [id, slug, title, description, difficulty, category, starterCode, points]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        difficulty: { type: string }
+        category: { type: string }
+        starterCode: { type: string }
+        testCases:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeTestCase"
+        points: { type: integer }
+        isDaily: { type: boolean }
+        createdAt: { type: string }
+
+    ChallengeAdmin:
+      allOf:
+        - $ref: "#/components/schemas/Challenge"
+        - type: object
+          properties:
+            solutionCode: { type: ["string", "null"] }
+
+    ChallengeInput:
+      type: object
+      required: [title, description, difficulty, category]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        difficulty: { type: string }
+        category: { type: string }
+        starterCode: { type: string }
+        solutionCode: { type: string }
+        testCases:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeTestCase"
+        points: { type: integer }
+        isDaily: { type: boolean }
+
+    ChallengeList:
+      type: object
+      required: [challenges, total, page, limit]
+      properties:
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Challenge"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    ChallengeAdminList:
+      type: object
+      required: [challenges, total, page, limit]
+      properties:
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeAdmin"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    ChallengeSubmitInput:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+        authorName: { type: string }
+        language: { type: string }
+
+    ChallengeSubmitResult:
+      type: object
+      properties:
+        submission: { type: object }
+        result:
+          type: object
+          properties:
+            passed: { type: boolean }
+            results: { type: array, items: { type: object } }
+            error: { type: string }
+            runtimeMs: { type: integer }
+
+    ChallengeScore:
+      type: object
+      properties:
+        authorName: { type: string }
+        totalPoints: { type: integer }
+        challengesSolved: { type: integer }
+
+    ChallengeStats:
+      type: object
+      properties:
+        challenges: { type: integer }
+        submissions: { type: integer }
+
+    PlaygroundFile:
+      type: object
+      required: [filename, content]
+      properties:
+        filename: { type: string }
+        content: { type: string }
+
+    Playground:
+      type: object
+      required: [id, slug, title, language, isPublic, authorName, views, files]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        language: { type: string }
+        isPublic: { type: boolean }
+        authorName: { type: string }
+        views: { type: integer }
+        forkedFromId: { type: ["integer", "null"] }
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaygroundFile"
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        shareToken: { type: string }
+
+    PlaygroundInput:
+      type: object
+      required: [title, language, files]
+      properties:
+        title: { type: string }
+        language: { type: string }
+        isPublic: { type: boolean }
+        authorName: { type: string }
+        forkedFromId: { type: integer }
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaygroundFile"
+
+    PlaygroundUpdateInput:
+      type: object
+      properties:
+        title: { type: string }
+        isPublic: { type: boolean }
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaygroundFile"
+
+    PlaygroundList:
+      type: object
+      required: [playgrounds, total, page, limit]
+      properties:
+        playgrounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Playground"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    PlaygroundShare:
+      type: object
+      required: [shareToken, expiresAt]
+      properties:
+        shareToken: { type: string }
+        expiresAt: { type: string }
+
+    PlaygroundStats:
+      type: object
+      properties:
+        totals: { type: object }
+        popular: { type: array, items: { type: object } }
+
+    AiConversation:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        mode: { type: string }
+        updatedAt: { type: string }
+
+    AiMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        role: { type: string }
+        content: { type: string }
+        createdAt: { type: string }
+
+    AiConversationDetail:
+      allOf:
+        - $ref: "#/components/schemas/AiConversation"
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: "#/components/schemas/AiMessage"
+
+    AiChatInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+        conversationId: { type: integer }
+        title: { type: string }
+
+    AiChatResponse:
+      type: object
+      properties:
+        conversationId: { type: integer }
+        message:
+          $ref: "#/components/schemas/AiMessage"
+        usage:
+          type: object
+          properties:
+            tokensIn: { type: integer }
+            tokensOut: { type: integer }
+
+    AiUsage:
+      type: object
+      properties:
+        total: { type: integer }
+        tokensIn: { type: integer }
+        tokensOut: { type: integer }
+
+    AiStats:
+      type: object
+      properties:
+        totals: { type: object }
+        daily: { type: array, items: { type: object } }
+        topModes: { type: array, items: { type: object } }
+
+    RoadmapOptions:
+      type: object
+      properties:
+        levels: { type: array, items: { type: string } }
+        goals:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              label: { type: string }
+
+    RoadmapGenerateInput:
+      type: object
+      required: [currentLevel, goal]
+      properties:
+        currentLevel: { type: string }
+        goal: { type: string }
+
+    RoadmapGenerated:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        payload: { type: object }
+
+    RoadmapDetail:
+      type: object
+      properties:
+        slug: { type: string }
+        payload: { type: object }
+        progress:
+          type: array
+          items:
+            type: object
+            properties:
+              itemKey: { type: string }
+              completed: { type: boolean }
+        isOwner: { type: boolean }
+
+    RoadmapStats:
+      type: object
+      properties:
+        totalRoadmaps: { type: integer }
+        completedSteps: { type: integer }
+        topGoals: { type: array, items: { type: object } }
+
+    CommunityQuestion:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        body: { type: string }
+        authorName: { type: string }
+        tags: { type: array, items: { type: string } }
+        views: { type: integer }
+        score: { type: integer }
+        status: { type: string }
+        createdAt: { type: string }
+
+    CommunityQuestionDetail:
+      allOf:
+        - $ref: "#/components/schemas/CommunityQuestion"
+        - type: object
+          properties:
+            answers:
+              type: array
+              items:
+                $ref: "#/components/schemas/CommunityAnswer"
+
+    CommunityAnswer:
+      type: object
+      properties:
+        id: { type: integer }
+        body: { type: string }
+        authorName: { type: string }
+        score: { type: integer }
+        isAccepted: { type: boolean }
+        createdAt: { type: string }
+
+    CommunityQuestionInput:
+      type: object
+      required: [title, body]
+      properties:
+        title: { type: string }
+        body: { type: string }
+        tags: { type: array, items: { type: string } }
+        authorName: { type: string }
+
+    CommunityAnswerInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string }
+        authorName: { type: string }
+
+    CommunityVoteInput:
+      type: object
+      required: [targetType, targetId, value]
+      properties:
+        targetType: { type: string, enum: [question, answer] }
+        targetId: { type: integer }
+        value: { type: integer, enum: [1, -1] }
+
+    CommunityQuestionList:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityQuestion"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    CommunityReport:
+      type: object
+      properties:
+        id: { type: integer }
+        targetType: { type: string }
+        targetId: { type: integer }
+        reason: { type: string }
+        status: { type: string }

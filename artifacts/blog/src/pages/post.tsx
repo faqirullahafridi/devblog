@@ -2,10 +2,6 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { useGetPostBySlug, useIncrementPostView, useListComments, useCreateComment } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
 import { format } from "date-fns";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getListCommentsQueryKey } from "@workspace/api-client-react";
+import { MarkdownContent } from "@/components/markdown-content";
+import { SeoHead, siteUrl } from "@/components/seo-head";
+import { PostTags } from "@/components/post-tags";
+import { ShareButtons } from "@/components/share-buttons";
+import { TableOfContents } from "@/components/table-of-contents";
+import { ReadingProgress } from "@/components/reading-progress";
+import { AdSlot } from "@/components/site-scripts";
+import { PostCard } from "@/components/post-card";
+import { getRelatedPosts } from "@/lib/api-extra";
+import { SafeImage } from "@/components/safe-image";
+import { IMAGE_WIDTHS } from "@/lib/image-url";
+
+type RelatedPost = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  featuredImage?: string | null;
+  createdAt: string;
+};
 
 export default function PostPage() {
   const params = useParams<{ slug: string }>();
@@ -30,12 +46,17 @@ export default function PostPage() {
 
   const incrementView = useIncrementPostView();
   const createComment = useCreateComment();
+  const [related, setRelated] = useState<RelatedPost[]>([]);
 
   useEffect(() => {
     if (post?.id) {
       incrementView.mutate({ id: post.id });
     }
   }, [post?.id]);
+
+  useEffect(() => {
+    if (slug) getRelatedPosts(slug).then(setRelated);
+  }, [slug]);
 
   const [authorName, setAuthorName] = useState("");
   const [authorEmail, setAuthorEmail] = useState("");
@@ -61,7 +82,7 @@ export default function PostPage() {
       if (post?.id) {
         queryClient.invalidateQueries({ queryKey: getListCommentsQueryKey({ postId: post.id }) });
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add comment");
     }
   };
@@ -93,71 +114,115 @@ export default function PostPage() {
     );
   }
 
+  const postUrl = siteUrl(`/post/${post.slug}`);
+  const seoTitle = post.seoTitle || post.title;
+  const seoDesc = post.metaDescription || post.excerpt || "";
+
   return (
     <PublicLayout>
-      <article className="container mx-auto px-4 py-12 max-w-3xl">
-        <header className="space-y-6 mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+      <SeoHead
+        title={`${seoTitle} — devblog`}
+        description={seoDesc}
+        image={post.featuredImage || undefined}
+        url={postUrl}
+        type="article"
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: post.title,
+            description: seoDesc,
+            image: post.featuredImage,
+            datePublished: post.createdAt,
+            author: { "@type": "Person", name: "Dev Blog" },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: siteUrl("/") },
+              ...(post.categorySlug
+                ? [{
+                    "@type": "ListItem",
+                    position: 2,
+                    name: post.categoryName,
+                    item: siteUrl(`/category/${post.categorySlug}`),
+                  }]
+                : []),
+              {
+                "@type": "ListItem",
+                position: post.categorySlug ? 3 : 2,
+                name: post.title,
+                item: postUrl,
+              },
+            ],
+          },
+        ]}
+      />
+      <ReadingProgress />
+      <article className="container mx-auto px-4 py-10 md:py-14 max-w-4xl">
+        <header className="space-y-5 mb-10 border-b pb-10">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             {post.categorySlug && (
-              <Link href={`/category/${post.categorySlug}`} className="font-medium text-primary hover:underline">
+              <Link href={`/category/${post.categorySlug}`} className="font-semibold text-primary hover:underline">
                 {post.categoryName}
               </Link>
             )}
-            <span>•</span>
+            <span aria-hidden>•</span>
             <time dateTime={post.createdAt}>{format(new Date(post.createdAt), "MMMM d, yyyy")}</time>
             {post.readingTime && (
               <>
-                <span>•</span>
+                <span aria-hidden>•</span>
                 <span>{post.readingTime} min read</span>
               </>
             )}
-            <span>•</span>
+            <span aria-hidden>•</span>
             <span>{post.views} views</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.15] text-foreground">
             {post.title}
           </h1>
           {post.excerpt && (
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-3xl">
               {post.excerpt}
             </p>
           )}
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <ShareButtons title={post.title} url={postUrl} />
+            <PostTags tags={(post as typeof post & { tags?: string[] }).tags} />
+          </div>
         </header>
 
         {post.featuredImage && (
-          <div className="mb-12 aspect-[2/1] overflow-hidden rounded-xl bg-muted border shadow-sm">
-            <img src={post.featuredImage} alt={post.title} className="object-cover w-full h-full" />
-          </div>
+          <figure className="mb-10 aspect-[2/1] overflow-hidden rounded-2xl bg-muted border shadow-sm">
+            <SafeImage
+              src={post.featuredImage}
+              alt={post.title}
+              width={IMAGE_WIDTHS.hero}
+              sizes="(max-width: 768px) 100vw, 768px"
+              priority
+              className="object-cover w-full h-full"
+              wrapperClassName="w-full h-full"
+            />
+          </figure>
         )}
 
-        <div className="prose prose-lg dark:prose-invert max-w-none prose-pre:bg-[#1E1E1E] prose-pre:p-0 prose-pre:border">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ node, inline, className, children, ...props }: any) {
-                const match = /language-(\w+)/.exec(className || "");
-                return !inline && match ? (
-                  <SyntaxHighlighter
-                    style={vscDarkPlus as any}
-                    language={match[1]}
-                    PreTag="div"
-                    className="rounded-md"
-                    customStyle={{ margin: 0, padding: '1.25rem' }}
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                );
-              }
-            }}
-          >
-            {post.content}
-          </ReactMarkdown>
+        <AdSlot className="mb-8" />
+        <TableOfContents content={post.content} />
+        <div className="article-body">
+          <MarkdownContent content={post.content} />
         </div>
+
+        {related.length > 0 && (
+          <section className="mt-16 space-y-6">
+            <h2 className="text-2xl font-bold tracking-tight">Related articles</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {related.map((p) => (
+                <PostCard key={p.id} post={p as import("@workspace/api-client-react").Post} variant="card" />
+              ))}
+            </div>
+          </section>
+        )}
 
         <hr className="my-16" />
 
@@ -207,6 +272,17 @@ export default function PostPage() {
                     </time>
                   </div>
                   <p className="text-sm text-card-foreground whitespace-pre-wrap">{comment.content}</p>
+                  {comment.adminReply && (
+                    <div className="mt-3 pl-4 border-l-2 border-primary/30 space-y-1">
+                      <span className="text-xs font-semibold text-primary">Admin reply</span>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{comment.adminReply}</p>
+                      {comment.adminRepliedAt && (
+                        <time className="text-xs text-muted-foreground" dateTime={comment.adminRepliedAt}>
+                          {format(new Date(comment.adminRepliedAt), "MMM d, yyyy")}
+                        </time>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))
             )}

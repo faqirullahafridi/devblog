@@ -1,5 +1,12 @@
 import { AdminLayout } from "@/components/layout/admin-layout";
-import { useListPosts, useDeletePost, useTogglePostPublish, getListPostsQueryKey } from "@workspace/api-client-react";
+import {
+  useListPosts,
+  useDeletePost,
+  useTogglePostPublish,
+  useTogglePostFeature,
+  getListPostsQueryKey,
+  getGetFeaturedPostsQueryKey,
+} from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +17,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function PostsList() {
   const [search, setSearch] = useState("");
@@ -26,6 +35,7 @@ export default function PostsList() {
 
   const deletePost = useDeletePost();
   const togglePublish = useTogglePostPublish();
+  const toggleFeature = useTogglePostFeature();
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -50,6 +60,20 @@ export default function PostsList() {
       queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
     } catch {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleToggleFeatured = async (id: number, isFeatured: boolean) => {
+    try {
+      await toggleFeature.mutateAsync({
+        id,
+        data: { isFeatured: !isFeatured },
+      });
+      toast.success(isFeatured ? "Removed from featured" : "Added to featured");
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetFeaturedPostsQueryKey() });
+    } catch {
+      toast.error("Failed to update featured status");
     }
   };
 
@@ -87,6 +111,7 @@ export default function PostsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Featured</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Views</TableHead>
@@ -97,11 +122,11 @@ export default function PostsList() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center py-10">Loading...</TableCell>
                 </TableRow>
               ) : postsData?.posts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">No posts found</TableCell>
+                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">No posts found</TableCell>
                 </TableRow>
               ) : (
                 postsData?.posts.map((post) => (
@@ -110,6 +135,19 @@ export default function PostsList() {
                       <Link href={`/admin/posts/${post.id}/edit`} className="hover:underline">
                         {post.title}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id={`featured-${post.id}`}
+                          checked={post.isFeatured}
+                          disabled={post.status !== "published"}
+                          onCheckedChange={() => handleToggleFeatured(post.id, post.isFeatured)}
+                        />
+                        <Label htmlFor={`featured-${post.id}`} className="text-xs text-muted-foreground sr-only">
+                          Featured
+                        </Label>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <button 

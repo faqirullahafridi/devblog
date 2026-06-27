@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { db, commentsTable, postsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { requireAuth } from "../middleware/require-auth";
+import { rateLimit } from "../lib/rate-limit";
 
 const router = Router();
 
@@ -26,6 +28,10 @@ router.get("/comments", async (req, res) => {
       return res.json(rows.map(formatComment));
     }
 
+    if (!req.session.adminAuthenticated) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const rows = await db
       .select({
         id: commentsTable.id,
@@ -43,33 +49,47 @@ router.get("/comments", async (req, res) => {
       .leftJoin(postsTable, eq(commentsTable.postId, postsTable.id))
       .orderBy(desc(commentsTable.createdAt));
 
-    res.json(rows.map((r) => ({
-      ...r,
-      createdAt: r.createdAt.toISOString(),
-      adminRepliedAt: r.adminRepliedAt ? r.adminRepliedAt.toISOString() : null,
-    })));
+    return res.json(
+      rows.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        adminRepliedAt: r.adminRepliedAt ? r.adminRepliedAt.toISOString() : null,
+      })),
+    );
   } catch (err) {
     req.log.error({ err }, "Failed to list comments");
-    res.status(500).json({ error: "Failed to list comments" });
+    return res.status(500).json({ error: "Failed to list comments" });
   }
 });
 
-router.post("/comments", async (req, res) => {
-  try {
-    const { postId, authorName, authorEmail, content } = req.body as {
-      postId: number; authorName: string; authorEmail?: string; content: string;
-    };
-    if (!postId || !authorName || !content) return res.status(400).json({ error: "Missing required fields" });
+router.post(
+  "/comments",
+  rateLimit({ windowMs: 60_000, max: 10, keyPrefix: "comments" }),
+  async (req, res) => {
+    try {
+      const { postId, authorName, authorEmail, content } = req.body as {
+        postId: number;
+        authorName: string;
+        authorEmail?: string;
+        content: string;
+      };
+      if (!postId || !authorName || !content) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
 
-    const [comment] = await db.insert(commentsTable).values({ postId, authorName, authorEmail, content }).returning();
-    res.status(201).json(formatComment(comment));
-  } catch (err) {
-    req.log.error({ err }, "Failed to create comment");
-    res.status(500).json({ error: "Failed to create comment" });
-  }
-});
+      const [comment] = await db
+        .insert(commentsTable)
+        .values({ postId, authorName, authorEmail, content })
+        .returning();
+      res.status(201).json(formatComment(comment));
+    } catch (err) {
+      req.log.error({ err }, "Failed to create comment");
+      res.status(500).json({ error: "Failed to create comment" });
+    }
+  },
+);
 
-router.patch("/comments/:id/reply", async (req, res) => {
+router.patch("/comments/:id/reply", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { reply } = req.body as { reply: string };
@@ -89,7 +109,7 @@ router.patch("/comments/:id/reply", async (req, res) => {
   }
 });
 
-router.delete("/comments/:id", async (req, res) => {
+router.delete("/comments/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     await db.delete(commentsTable).where(eq(commentsTable.id, id));

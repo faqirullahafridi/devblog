@@ -1,19 +1,25 @@
 import { Router } from "express";
 import { db, postsTable, categoriesTable } from "@workspace/db";
-import { eq, desc, ilike, and, sql, or } from "drizzle-orm";
+import { eq, desc, ilike, and, sql, or, ne } from "drizzle-orm";
 import { slugify, calcReadingTime } from "../lib/slugify";
+import { publishedVisibleCondition } from "../lib/post-filters";
+import { requireAuth } from "../middleware/require-auth";
+import { cachePublic, setPublicCache } from "../lib/cache";
+import { cached } from "../lib/memory-cache";
 
 const router = Router();
 
-const withCategory = {
+/** List/card views — omit heavy `content` column */
+const postListSelect = {
   id: postsTable.id,
   title: postsTable.title,
   slug: postsTable.slug,
-  content: postsTable.content,
   excerpt: postsTable.excerpt,
   featuredImage: postsTable.featuredImage,
   status: postsTable.status,
   isFeatured: postsTable.isFeatured,
+  tags: postsTable.tags,
+  publishAt: postsTable.publishAt,
   categoryId: postsTable.categoryId,
   seoTitle: postsTable.seoTitle,
   metaDescription: postsTable.metaDescription,
@@ -25,9 +31,16 @@ const withCategory = {
   categorySlug: categoriesTable.slug,
 };
 
-function formatPost(p: typeof withCategory & Record<string, unknown>) {
+const postDetailSelect = {
+  ...postListSelect,
+  content: postsTable.content,
+};
+
+function formatPost(p: typeof postListSelect & Partial<Pick<typeof postDetailSelect, "content">> & Record<string, unknown>) {
   return {
     ...p,
+    tags: (p.tags as string[] | null) ?? [],
+    publishAt: p.publishAt ? (p.publishAt as Date).toISOString() : null,
     categoryName: (p.categoryName as string | null) ?? null,
     categorySlug: (p.categorySlug as string | null) ?? null,
     createdAt: (p.createdAt as Date).toISOString(),
@@ -37,14 +50,29 @@ function formatPost(p: typeof withCategory & Record<string, unknown>) {
 
 router.get("/posts", async (req, res) => {
   try {
-    const { category, search, status, page = "1", limit = "10" } = req.query as Record<string, string>;
+    const { category, search, tag, status, page = "1", limit = "10" } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, parseInt(limit, 10) || 10);
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (status && status !== "all") conditions.push(eq(postsTable.status, status));
+    if (status && status !== "all") {
+      if (status === "published") {
+        conditions.push(publishedVisibleCondition());
+      } else {
+        conditions.push(eq(postsTable.status, status));
+      }
+    }
     if (category) conditions.push(eq(categoriesTable.slug, category));
+    if (tag) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(${postsTable.tags}) AS elem
+          WHERE lower(regexp_replace(trim(elem), '[^a-zA-Z0-9]+', '-', 'g')) = lower(${tag})
+             OR lower(trim(elem)) = lower(replace(${tag}, '-', ' '))
+        )`,
+      );
+    }
     if (search) {
       conditions.push(
         or(
@@ -59,7 +87,7 @@ router.get("/posts", async (req, res) => {
 
     const [rows, countRows] = await Promise.all([
       db
-        .select(withCategory)
+        .select(postListSelect)
         .from(postsTable)
         .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
         .where(where)
@@ -73,6 +101,10 @@ router.get("/posts", async (req, res) => {
         .where(where),
     ]);
 
+    if (status === "published" || !status) {
+      setPublicCache(res, 120);
+    }
+
     res.json({
       posts: rows.map(formatPost as any),
       total: countRows[0]?.count ?? 0,
@@ -85,15 +117,50 @@ router.get("/posts", async (req, res) => {
   }
 });
 
-router.get("/posts/featured", async (req, res) => {
+router.get("/posts/home-feed", cachePublic(120), async (_req, res) => {
+  try {
+    const listFrom = () =>
+      db
+        .select(postListSelect)
+        .from(postsTable)
+        .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id));
+
+    const [featuredRows, recentRows, popularRows] = await Promise.all([
+      listFrom()
+        .where(and(eq(postsTable.isFeatured, true), publishedVisibleCondition()))
+        .orderBy(desc(postsTable.createdAt))
+        .limit(4),
+      listFrom().where(publishedVisibleCondition()).orderBy(desc(postsTable.createdAt)).limit(6),
+      listFrom()
+        .where(publishedVisibleCondition())
+        .orderBy(desc(postsTable.views), desc(postsTable.createdAt))
+        .limit(6),
+    ]);
+
+    let featured = featuredRows;
+    if (featured.length === 0) {
+      featured = recentRows.slice(0, 4);
+    }
+
+    res.json({
+      featured: featured.map(formatPost as any),
+      recent: recentRows.map(formatPost as any),
+      popular: popularRows.map(formatPost as any),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load home feed" });
+  }
+});
+
+router.get("/posts/featured", cachePublic(120), async (req, res) => {
   try {
     const limitNum = Math.min(20, parseInt(String(req.query.limit || "6"), 10));
 
     const featured = await db
-      .select(withCategory)
+      .select(postListSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
-      .where(and(eq(postsTable.status, "published"), eq(postsTable.isFeatured, true)))
+      .where(and(eq(postsTable.isFeatured, true), publishedVisibleCondition()))
       .orderBy(desc(postsTable.createdAt))
       .limit(limitNum);
 
@@ -102,10 +169,10 @@ router.get("/posts/featured", async (req, res) => {
     }
 
     const recent = await db
-      .select(withCategory)
+      .select(postListSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
-      .where(eq(postsTable.status, "published"))
+      .where(publishedVisibleCondition())
       .orderBy(desc(postsTable.createdAt))
       .limit(limitNum);
 
@@ -116,13 +183,91 @@ router.get("/posts/featured", async (req, res) => {
   }
 });
 
-router.get("/posts/slug/:slug", async (req, res) => {
+router.get("/posts/popular", cachePublic(120), async (req, res) => {
   try {
-    const [post] = await db
-      .select(withCategory)
+    const limitNum = Math.min(12, parseInt(String(req.query.limit || "6"), 10));
+
+    const popular = await db
+      .select(postListSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
-      .where(and(eq(postsTable.slug, req.params.slug), eq(postsTable.status, "published")))
+      .where(publishedVisibleCondition())
+      .orderBy(desc(postsTable.views), desc(postsTable.createdAt))
+      .limit(limitNum);
+
+    res.json(popular.map(formatPost as any));
+  } catch (err) {
+    req.log.error({ err }, "Failed to get popular posts");
+    res.status(500).json({ error: "Failed to get popular posts" });
+  }
+});
+
+router.get("/tags", cachePublic(300), async (_req, res) => {
+  try {
+    const tags = await cached("posts:tags", 5 * 60_000, async () => {
+      const rows = await db
+        .select({ tags: postsTable.tags })
+        .from(postsTable)
+        .where(publishedVisibleCondition());
+
+      const tagSet = new Map<string, string>();
+      for (const row of rows) {
+        for (const t of (row.tags as string[] | null) ?? []) {
+          const trimmed = t.trim();
+          if (!trimmed) continue;
+          const slug = trimmed.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+          if (slug) tagSet.set(slug, trimmed);
+        }
+      }
+
+      return [...tagSet.entries()]
+        .map(([slug, name]) => ({ slug, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    res.json(tags);
+  } catch (err) {
+    req.log.error({ err }, "Failed to list tags");
+    res.status(500).json({ error: "Failed to list tags" });
+  }
+});
+
+router.get("/posts/slug/:slug/related", cachePublic(300), async (req, res) => {
+  try {
+    const limitNum = Math.min(6, parseInt(String(req.query.limit || "3"), 10));
+    const [post] = await db
+      .select({ id: postsTable.id, categoryId: postsTable.categoryId })
+      .from(postsTable)
+      .where(and(eq(postsTable.slug, req.params.slug), publishedVisibleCondition()))
+      .limit(1);
+
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const conditions = [publishedVisibleCondition(), ne(postsTable.id, post.id)];
+    if (post.categoryId) conditions.push(eq(postsTable.categoryId, post.categoryId));
+
+    const related = await db
+      .select(postListSelect)
+      .from(postsTable)
+      .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(limitNum);
+
+    res.json(related.map(formatPost as any));
+  } catch (err) {
+    req.log.error({ err }, "Failed to get related posts");
+    res.status(500).json({ error: "Failed to get related posts" });
+  }
+});
+
+router.get("/posts/slug/:slug", cachePublic(300), async (req, res) => {
+  try {
+    const [post] = await db
+      .select(postDetailSelect)
+      .from(postsTable)
+      .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+      .where(and(eq(postsTable.slug, req.params.slug), publishedVisibleCondition()))
       .limit(1);
 
     if (!post) return res.status(404).json({ error: "Post not found" });
@@ -137,7 +282,7 @@ router.get("/posts/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const [post] = await db
-      .select(withCategory)
+      .select(postDetailSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
       .where(eq(postsTable.id, id))
@@ -151,10 +296,21 @@ router.get("/posts/:id", async (req, res) => {
   }
 });
 
-router.post("/posts", async (req, res) => {
+router.post("/posts", requireAuth, async (req, res) => {
   try {
-    const { title, slug, content, excerpt, featuredImage, status, categoryId, seoTitle, metaDescription } =
-      req.body as Record<string, string | number | undefined>;
+    const {
+      title,
+      slug,
+      content,
+      excerpt,
+      featuredImage,
+      status,
+      categoryId,
+      seoTitle,
+      metaDescription,
+      tags,
+      publishAt,
+    } = req.body as Record<string, string | number | string[] | undefined | null>;
     if (!title) return res.status(400).json({ error: "Title is required" });
     if (!content && content !== "") return res.status(400).json({ error: "Content is required" });
 
@@ -173,12 +329,14 @@ router.post("/posts", async (req, res) => {
         categoryId: categoryId ? Number(categoryId) : undefined,
         seoTitle: seoTitle as string | undefined,
         metaDescription: metaDescription as string | undefined,
+        tags: Array.isArray(tags) ? tags : [],
+        publishAt: publishAt ? new Date(publishAt as string) : undefined,
         readingTime,
       })
       .returning();
 
     const [withCat] = await db
-      .select(withCategory)
+      .select(postDetailSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
       .where(eq(postsTable.id, post.id))
@@ -191,11 +349,22 @@ router.post("/posts", async (req, res) => {
   }
 });
 
-router.patch("/posts/:id", async (req, res) => {
+router.patch("/posts/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { title, slug, content, excerpt, featuredImage, status, categoryId, seoTitle, metaDescription } =
-      req.body as Record<string, string | number | null | undefined>;
+    const {
+      title,
+      slug,
+      content,
+      excerpt,
+      featuredImage,
+      status,
+      categoryId,
+      seoTitle,
+      metaDescription,
+      tags,
+      publishAt,
+    } = req.body as Record<string, string | number | string[] | null | undefined>;
 
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
@@ -210,12 +379,16 @@ router.patch("/posts/:id", async (req, res) => {
     if (categoryId !== undefined) updates.categoryId = categoryId ? Number(categoryId) : null;
     if (seoTitle !== undefined) updates.seoTitle = seoTitle;
     if (metaDescription !== undefined) updates.metaDescription = metaDescription;
+    if (tags !== undefined) updates.tags = tags;
+    if (publishAt !== undefined) {
+      updates.publishAt = publishAt ? new Date(publishAt as string) : null;
+    }
 
     const [updated] = await db.update(postsTable).set(updates).where(eq(postsTable.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Post not found" });
 
     const [withCat] = await db
-      .select(withCategory)
+      .select(postDetailSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
       .where(eq(postsTable.id, id))
@@ -228,7 +401,7 @@ router.patch("/posts/:id", async (req, res) => {
   }
 });
 
-router.delete("/posts/:id", async (req, res) => {
+router.delete("/posts/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     await db.delete(postsTable).where(eq(postsTable.id, id));
@@ -239,7 +412,7 @@ router.delete("/posts/:id", async (req, res) => {
   }
 });
 
-router.patch("/posts/:id/feature", async (req, res) => {
+router.patch("/posts/:id/feature", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { isFeatured } = req.body as { isFeatured: boolean };
@@ -247,7 +420,7 @@ router.patch("/posts/:id/feature", async (req, res) => {
     if (!updated) return res.status(404).json({ error: "Post not found" });
 
     const [withCat] = await db
-      .select(withCategory)
+      .select(postDetailSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
       .where(eq(postsTable.id, id))
@@ -260,7 +433,7 @@ router.patch("/posts/:id/feature", async (req, res) => {
   }
 });
 
-router.patch("/posts/:id/publish", async (req, res) => {
+router.patch("/posts/:id/publish", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { status } = req.body as { status: string };
@@ -268,7 +441,7 @@ router.patch("/posts/:id/publish", async (req, res) => {
     if (!updated) return res.status(404).json({ error: "Post not found" });
 
     const [withCat] = await db
-      .select(withCategory)
+      .select(postDetailSelect)
       .from(postsTable)
       .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
       .where(eq(postsTable.id, id))

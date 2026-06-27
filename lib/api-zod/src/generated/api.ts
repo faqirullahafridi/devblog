@@ -414,6 +414,58 @@ export const GetAuthMeResponse = zod.object({
 
 
 /**
+ * @summary Change admin password
+ */
+export const changeAdminPasswordBodyNewPasswordMin = 6;
+
+
+
+export const ChangeAdminPasswordBody = zod.object({
+  "currentPassword": zod.string(),
+  "newPassword": zod.string().min(changeAdminPasswordBodyNewPasswordMin)
+})
+
+export const ChangeAdminPasswordResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Change admin username
+ */
+
+
+
+export const ChangeAdminUsernameBody = zod.object({
+  "currentPassword": zod.string(),
+  "newUsername": zod.string().min(1)
+})
+
+export const ChangeAdminUsernameResponse = zod.object({
+  "success": zod.boolean(),
+  "username": zod.string()
+})
+
+
+/**
+ * @summary Reset admin password using recovery token
+ */
+export const forgotAdminPasswordBodyNewPasswordMin = 6;
+
+
+
+export const ForgotAdminPasswordBody = zod.object({
+  "username": zod.string(),
+  "recoveryToken": zod.string(),
+  "newPassword": zod.string().min(forgotAdminPasswordBodyNewPasswordMin)
+})
+
+export const ForgotAdminPasswordResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Get blog-wide analytics overview
  */
 export const GetStatsOverviewResponse = zod.object({
@@ -461,7 +513,9 @@ export const ListCommentsResponseItem = zod.object({
   "content": zod.string(),
   "adminReply": zod.string().nullish(),
   "adminRepliedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "postTitle": zod.string().nullish(),
+  "postSlug": zod.string().nullish()
 })
 export const ListCommentsResponse = zod.array(ListCommentsResponseItem)
 
@@ -504,7 +558,9 @@ export const ReplyToCommentResponse = zod.object({
   "content": zod.string(),
   "adminReply": zod.string().nullish(),
   "adminRepliedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "postTitle": zod.string().nullish(),
+  "postSlug": zod.string().nullish()
 })
 
 
@@ -530,6 +586,160 @@ export const ListSubscribersResponse = zod.array(ListSubscribersResponseItem)
 
 
 /**
+ * @summary Get published developer profile (public)
+ */
+export const GetDeveloperProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "headline": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "portfolioUrl": zod.string().nullish(),
+  "aboutMe": zod.string().nullish(),
+  "workExperience": zod.array(zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "period": zod.string(),
+  "bullets": zod.array(zod.string())
+})),
+  "education": zod.array(zod.object({
+  "degree": zod.string(),
+  "institution": zod.string(),
+  "period": zod.string()
+})),
+  "projects": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "technicalSkills": zod.array(zod.object({
+  "category": zod.string(),
+  "items": zod.string()
+})),
+  "languages": zod.array(zod.object({
+  "name": zod.string(),
+  "level": zod.string()
+})),
+  "status": zod.enum(['draft', 'published']),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update developer profile (admin)
+ */
+export const UpdateDeveloperProfileBody = zod.object({
+  "name": zod.string().optional(),
+  "headline": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "email": zod.string().optional(),
+  "location": zod.string().optional(),
+  "portfolioUrl": zod.string().optional(),
+  "aboutMe": zod.string().optional(),
+  "workExperience": zod.array(zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "period": zod.string(),
+  "bullets": zod.array(zod.string())
+})).optional(),
+  "education": zod.array(zod.object({
+  "degree": zod.string(),
+  "institution": zod.string(),
+  "period": zod.string()
+})).optional(),
+  "projects": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "technicalSkills": zod.array(zod.object({
+  "category": zod.string(),
+  "items": zod.string()
+})).optional(),
+  "languages": zod.array(zod.object({
+  "name": zod.string(),
+  "level": zod.string()
+})).optional(),
+  "status": zod.enum(['draft', 'published']).optional()
+})
+
+export const UpdateDeveloperProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "headline": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "portfolioUrl": zod.string().nullish(),
+  "aboutMe": zod.string().nullish(),
+  "workExperience": zod.array(zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "period": zod.string(),
+  "bullets": zod.array(zod.string())
+})),
+  "education": zod.array(zod.object({
+  "degree": zod.string(),
+  "institution": zod.string(),
+  "period": zod.string()
+})),
+  "projects": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "technicalSkills": zod.array(zod.object({
+  "category": zod.string(),
+  "items": zod.string()
+})),
+  "languages": zod.array(zod.object({
+  "name": zod.string(),
+  "level": zod.string()
+})),
+  "status": zod.enum(['draft', 'published']),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Get developer profile for admin editing
+ */
+export const GetDeveloperProfileManageResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "headline": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "portfolioUrl": zod.string().nullish(),
+  "aboutMe": zod.string().nullish(),
+  "workExperience": zod.array(zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "period": zod.string(),
+  "bullets": zod.array(zod.string())
+})),
+  "education": zod.array(zod.object({
+  "degree": zod.string(),
+  "institution": zod.string(),
+  "period": zod.string()
+})),
+  "projects": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "technicalSkills": zod.array(zod.object({
+  "category": zod.string(),
+  "items": zod.string()
+})),
+  "languages": zod.array(zod.object({
+  "name": zod.string(),
+  "level": zod.string()
+})),
+  "status": zod.enum(['draft', 'published']),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Get sitemap data for SEO
  */
 export const GetSitemapResponseItem = zod.object({
@@ -538,5 +748,894 @@ export const GetSitemapResponseItem = zod.object({
   "updatedAt": zod.string()
 })
 export const GetSitemapResponse = zod.array(GetSitemapResponseItem)
+
+
+/**
+ * @summary List all jobs for admin (includes inactive)
+ */
+export const ListAdminJobsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListAdminJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().nullish(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary List active jobs
+ */
+export const ListJobsQueryParams = zod.object({
+  "category": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional(),
+  "remote": zod.coerce.boolean().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().nullish(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Create a job posting
+ */
+export const CreateJobBody = zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().optional(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "expiresAt": zod.string().optional(),
+  "isActive": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List job categories
+ */
+export const ListJobCategoriesResponseItem = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish()
+})
+export const ListJobCategoriesResponse = zod.array(ListJobCategoriesResponseItem)
+
+
+/**
+ * @summary Get job by slug
+ */
+export const GetJobBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetJobBySlugResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().nullish(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+}).and(zod.object({
+  "bookmarked": zod.boolean().optional(),
+  "related": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().nullish(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Toggle job bookmark
+ */
+export const ToggleJobBookmarkParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const ToggleJobBookmarkResponse = zod.object({
+  "bookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Update a job
+ */
+export const UpdateJobParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateJobBody = zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().optional(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "expiresAt": zod.string().optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateJobResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "description": zod.string(),
+  "requirements": zod.string().optional(),
+  "location": zod.string().optional(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string().nullish(),
+  "category": zod.string(),
+  "applyUrl": zod.string(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Deactivate a job
+ */
+export const DeleteJobParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List coding challenges
+ */
+export const ListChallengesQueryParams = zod.object({
+  "difficulty": zod.coerce.string().optional(),
+  "category": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListChallengesResponse = zod.object({
+  "challenges": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number(),
+  "isDaily": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Create a challenge
+ */
+export const CreateChallengeBody = zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string().optional(),
+  "solutionCode": zod.string().optional(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number().optional(),
+  "isDaily": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List challenges for admin (includes solutions)
+ */
+export const ListAdminChallengesQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListAdminChallengesResponse = zod.object({
+  "challenges": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number(),
+  "isDaily": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+}).and(zod.object({
+  "solutionCode": zod.string().nullish()
+}))),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Get daily challenge
+ */
+export const GetDailyChallengeResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number(),
+  "isDaily": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Get challenge leaderboard
+ */
+export const GetChallengeLeaderboardQueryParams = zod.object({
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetChallengeLeaderboardResponseItem = zod.object({
+  "authorName": zod.string().optional(),
+  "totalPoints": zod.number().optional(),
+  "challengesSolved": zod.number().optional()
+})
+export const GetChallengeLeaderboardResponse = zod.array(GetChallengeLeaderboardResponseItem)
+
+
+/**
+ * @summary Challenge platform stats
+ */
+export const GetChallengeStatsResponse = zod.object({
+  "challenges": zod.number().optional(),
+  "submissions": zod.number().optional()
+})
+
+
+/**
+ * @summary Get challenge by slug
+ */
+export const GetChallengeBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetChallengeBySlugResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number(),
+  "isDaily": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Submit challenge solution
+ */
+export const SubmitChallengeParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const SubmitChallengeBody = zod.object({
+  "code": zod.string(),
+  "authorName": zod.string().optional(),
+  "language": zod.string().optional()
+})
+
+export const SubmitChallengeResponse = zod.object({
+  "submission": zod.object({
+
+}).passthrough().optional(),
+  "result": zod.object({
+  "passed": zod.boolean().optional(),
+  "results": zod.array(zod.object({
+
+}).passthrough()).optional(),
+  "error": zod.string().optional(),
+  "runtimeMs": zod.number().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Update a challenge
+ */
+export const UpdateChallengeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateChallengeBody = zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string().optional(),
+  "solutionCode": zod.string().optional(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number().optional(),
+  "isDaily": zod.boolean().optional()
+})
+
+export const UpdateChallengeResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "difficulty": zod.string(),
+  "category": zod.string(),
+  "starterCode": zod.string(),
+  "testCases": zod.array(zod.object({
+  "input": zod.string(),
+  "expected": zod.string(),
+  "hidden": zod.boolean().optional()
+})).optional(),
+  "points": zod.number(),
+  "isDaily": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+}).and(zod.object({
+  "solutionCode": zod.string().nullish()
+}))
+
+
+/**
+ * @summary List playground snippets
+ */
+export const ListPlaygroundsQueryParams = zod.object({
+  "language": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional(),
+  "publicOnly": zod.coerce.boolean().optional()
+})
+
+export const ListPlaygroundsResponse = zod.object({
+  "playgrounds": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "isPublic": zod.boolean(),
+  "authorName": zod.string(),
+  "views": zod.number(),
+  "forkedFromId": zod.number().nullish(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+})),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional(),
+  "shareToken": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Save a playground snippet
+ */
+export const SavePlaygroundBody = zod.object({
+  "title": zod.string(),
+  "language": zod.string(),
+  "isPublic": zod.boolean().optional(),
+  "authorName": zod.string().optional(),
+  "forkedFromId": zod.number().optional(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+}))
+})
+
+
+/**
+ * @summary Playground platform stats
+ */
+export const GetPlaygroundStatsResponse = zod.object({
+  "totals": zod.object({
+
+}).passthrough().optional(),
+  "popular": zod.array(zod.object({
+
+}).passthrough()).optional()
+})
+
+
+/**
+ * @summary Load playground by share token
+ */
+export const GetPlaygroundByShareTokenParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPlaygroundByShareTokenResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "isPublic": zod.boolean(),
+  "authorName": zod.string(),
+  "views": zod.number(),
+  "forkedFromId": zod.number().nullish(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+})),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional(),
+  "shareToken": zod.string().optional()
+})
+
+
+/**
+ * @summary Get playground by slug
+ */
+export const GetPlaygroundBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetPlaygroundBySlugResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "isPublic": zod.boolean(),
+  "authorName": zod.string(),
+  "views": zod.number(),
+  "forkedFromId": zod.number().nullish(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+})),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional(),
+  "shareToken": zod.string().optional()
+})
+
+
+/**
+ * @summary Update owned playground
+ */
+export const UpdatePlaygroundParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const UpdatePlaygroundBody = zod.object({
+  "title": zod.string().optional(),
+  "isPublic": zod.boolean().optional(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+})).optional()
+})
+
+export const UpdatePlaygroundResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "isPublic": zod.boolean(),
+  "authorName": zod.string(),
+  "views": zod.number(),
+  "forkedFromId": zod.number().nullish(),
+  "files": zod.array(zod.object({
+  "filename": zod.string(),
+  "content": zod.string()
+})),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional(),
+  "shareToken": zod.string().optional()
+})
+
+
+/**
+ * @summary Create share link for playground
+ */
+export const SharePlaygroundParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const SharePlaygroundResponse = zod.object({
+  "shareToken": zod.string(),
+  "expiresAt": zod.string()
+})
+
+
+/**
+ * @summary List AI conversations
+ */
+export const ListAiConversationsResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "title": zod.string().optional(),
+  "mode": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})
+export const ListAiConversationsResponse = zod.array(ListAiConversationsResponseItem)
+
+
+/**
+ * @summary Create AI conversation
+ */
+export const CreateAiConversationBody = zod.object({
+  "mode": zod.string().optional(),
+  "title": zod.string().optional()
+})
+
+
+/**
+ * @summary Get AI conversation with messages
+ */
+export const GetAiConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAiConversationResponse = zod.object({
+  "id": zod.number().optional(),
+  "title": zod.string().optional(),
+  "mode": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+}).and(zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "role": zod.string().optional(),
+  "content": zod.string().optional(),
+  "createdAt": zod.string().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Delete AI conversation
+ */
+export const DeleteAiConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Send message to AI assistant
+ */
+export const SendAiMessageParams = zod.object({
+  "mode": zod.coerce.string()
+})
+
+export const SendAiMessageBody = zod.object({
+  "message": zod.string(),
+  "conversationId": zod.number().optional(),
+  "title": zod.string().optional()
+})
+
+export const SendAiMessageResponse = zod.object({
+  "conversationId": zod.number().optional(),
+  "message": zod.object({
+  "id": zod.number().optional(),
+  "role": zod.string().optional(),
+  "content": zod.string().optional(),
+  "createdAt": zod.string().optional()
+}).optional(),
+  "usage": zod.object({
+  "tokensIn": zod.number().optional(),
+  "tokensOut": zod.number().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Get current user AI usage
+ */
+export const GetAiUsageResponse = zod.object({
+  "total": zod.number().optional(),
+  "tokensIn": zod.number().optional(),
+  "tokensOut": zod.number().optional()
+})
+
+
+/**
+ * @summary AI platform stats (admin)
+ */
+export const GetAiStatsResponse = zod.object({
+  "totals": zod.object({
+
+}).passthrough().optional(),
+  "daily": zod.array(zod.object({
+
+}).passthrough()).optional(),
+  "topModes": zod.array(zod.object({
+
+}).passthrough()).optional()
+})
+
+
+/**
+ * @summary Get roadmap generator options
+ */
+export const GetRoadmapOptionsResponse = zod.object({
+  "levels": zod.array(zod.string()).optional(),
+  "goals": zod.array(zod.object({
+  "slug": zod.string().optional(),
+  "label": zod.string().optional()
+})).optional()
+})
+
+
+/**
+ * @summary Generate personalized roadmap
+ */
+export const GenerateRoadmapBody = zod.object({
+  "currentLevel": zod.string(),
+  "goal": zod.string()
+})
+
+
+/**
+ * @summary Get roadmap by slug
+ */
+export const GetRoadmapBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetRoadmapBySlugResponse = zod.object({
+  "slug": zod.string().optional(),
+  "payload": zod.object({
+
+}).passthrough().optional(),
+  "progress": zod.array(zod.object({
+  "itemKey": zod.string().optional(),
+  "completed": zod.boolean().optional()
+})).optional(),
+  "isOwner": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Update roadmap step progress
+ */
+export const UpdateRoadmapProgressParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const UpdateRoadmapProgressBody = zod.object({
+  "itemKey": zod.string(),
+  "completed": zod.boolean()
+})
+
+export const UpdateRoadmapProgressResponse = zod.object({
+  "ok": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Roadmap platform stats
+ */
+export const GetRoadmapStatsResponse = zod.object({
+  "totalRoadmaps": zod.number().optional(),
+  "completedSteps": zod.number().optional(),
+  "topGoals": zod.array(zod.object({
+
+}).passthrough()).optional()
+})
+
+
+/**
+ * @summary List community questions
+ */
+export const ListCommunityQuestionsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "tag": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListCommunityQuestionsResponse = zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "slug": zod.string().optional(),
+  "title": zod.string().optional(),
+  "body": zod.string().optional(),
+  "authorName": zod.string().optional(),
+  "tags": zod.array(zod.string()).optional(),
+  "views": zod.number().optional(),
+  "score": zod.number().optional(),
+  "status": zod.string().optional(),
+  "createdAt": zod.string().optional()
+})).optional(),
+  "total": zod.number().optional(),
+  "page": zod.number().optional(),
+  "limit": zod.number().optional()
+})
+
+
+/**
+ * @summary Ask a question
+ */
+export const CreateCommunityQuestionBody = zod.object({
+  "title": zod.string(),
+  "body": zod.string(),
+  "tags": zod.array(zod.string()).optional(),
+  "authorName": zod.string().optional()
+})
+
+
+/**
+ * @summary Get question with answers
+ */
+export const GetCommunityQuestionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetCommunityQuestionResponse = zod.object({
+  "id": zod.number().optional(),
+  "slug": zod.string().optional(),
+  "title": zod.string().optional(),
+  "body": zod.string().optional(),
+  "authorName": zod.string().optional(),
+  "tags": zod.array(zod.string()).optional(),
+  "views": zod.number().optional(),
+  "score": zod.number().optional(),
+  "status": zod.string().optional(),
+  "createdAt": zod.string().optional()
+}).and(zod.object({
+  "answers": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "body": zod.string().optional(),
+  "authorName": zod.string().optional(),
+  "score": zod.number().optional(),
+  "isAccepted": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Post an answer
+ */
+export const PostCommunityAnswerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PostCommunityAnswerBody = zod.object({
+  "body": zod.string(),
+  "authorName": zod.string().optional()
+})
+
+
+/**
+ * @summary Upvote or downvote
+ */
+export const VoteCommunityBody = zod.object({
+  "targetType": zod.enum(['question', 'answer']),
+  "targetId": zod.number(),
+  "value": zod.union([zod.literal(1),zod.literal(-1)])
+})
+
+export const VoteCommunityResponse = zod.object({
+  "ok": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List moderation reports
+ */
+export const ListCommunityReportsQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const ListCommunityReportsResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "targetType": zod.string().optional(),
+  "targetId": zod.number().optional(),
+  "reason": zod.string().optional(),
+  "status": zod.string().optional()
+})
+export const ListCommunityReportsResponse = zod.array(ListCommunityReportsResponseItem)
 
 

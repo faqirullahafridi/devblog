@@ -9,9 +9,19 @@
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "migrate:storage": "node scripts/run-storage-migration.mjs",
+    "migrate:platform": "node scripts/run-platform-migration.mjs",
+    "migrate:jobs": "node scripts/run-job-sources-migration.mjs",
+    "fix:arbeitnow-descriptions": "node scripts/fix-arbeitnow-descriptions.mjs",
+    "sync:developer-profile": "node scripts/sync-developer-profile.mjs",
+    "seed:posts": "node scripts/seed-blog-posts.mjs",
+    "seed:posts:update": "node scripts/seed-blog-posts.mjs --update",
+    "seed:template-categories": "node scripts/seed-template-categories.mjs",
+    "seed:platform": "node scripts/seed-platform-data.mjs"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.20.0",

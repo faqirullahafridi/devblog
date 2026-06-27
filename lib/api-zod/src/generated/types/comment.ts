@@ -18,4 +18,8 @@ export interface Comment {
   /** @nullable */
   adminRepliedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  postTitle?: string | null;
+  /** @nullable */
+  postSlug?: string | null;
 }

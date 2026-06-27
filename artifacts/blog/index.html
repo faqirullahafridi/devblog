@@ -3,19 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Web Dev Blog</title>
-    <meta name="description" content="Web Dev Blog — built on Replit. Update this description to reflect the app." />
+    <title>devblog</title>
+    <meta name="description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="Web Dev Blog" />
-    <meta property="og:description" content="Web Dev Blog — built on Replit. Update this description to reflect the app." />
+    <meta property="og:title" content="devblog" />
+    <meta property="og:description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Web Dev Blog" />
-    <meta name="twitter:description" content="Web Dev Blog — built on Replit. Update this description to reflect the app." />
+    <meta name="twitter:title" content="devblog" />
+    <meta name="twitter:description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title="devblog RSS Feed" href="/feed.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var dark =
+            stored === "dark" ||
+            (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

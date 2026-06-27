@@ -21,6 +21,8 @@ tags:
     description: Comment operations
   - name: newsletter
     description: Newsletter subscription operations
+  - name: profile
+    description: Developer profile / resume operations
 paths:
   /healthz:
     get:
@@ -391,6 +393,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthStatus"
 
+  /auth/change-password:
+    post:
+      operationId: changeAdminPassword
+      tags: [auth]
+      summary: Change admin password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+
+  /auth/change-username:
+    post:
+      operationId: changeAdminUsername
+      tags: [auth]
+      summary: Change admin username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeUsernameInput"
+      responses:
+        "200":
+          description: Username changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangeUsernameResponse"
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotAdminPassword
+      tags: [auth]
+      summary: Reset admin password using recovery token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+
   /stats/overview:
     get:
       operationId: getStatsOverview
@@ -531,6 +600,55 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/NewsletterSubscriber"
+
+  /profile:
+    get:
+      operationId: getDeveloperProfile
+      tags: [profile]
+      summary: Get published developer profile (public)
+      responses:
+        "200":
+          description: Developer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperProfile"
+        "404":
+          description: Profile not found or not published
+    patch:
+      operationId: updateDeveloperProfile
+      tags: [profile]
+      summary: Update developer profile (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeveloperProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperProfile"
+        "401":
+          description: Unauthorized
+
+  /profile/manage:
+    get:
+      operationId: getDeveloperProfileManage
+      tags: [profile]
+      summary: Get developer profile for admin editing
+      responses:
+        "200":
+          description: Developer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperProfile"
+        "401":
+          description: Unauthorized
 
   /sitemap:
     get:
@@ -677,6 +795,41 @@ components:
         authenticated: { type: boolean }
         username: { type: ["string", "null"] }
 
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 6 }
+
+    ChangeUsernameInput:
+      type: object
+      required: [currentPassword, newUsername]
+      properties:
+        currentPassword: { type: string }
+        newUsername: { type: string, minLength: 1 }
+
+    ChangeUsernameResponse:
+      type: object
+      required: [success, username]
+      properties:
+        success: { type: boolean }
+        username: { type: string }
+
+    ForgotPasswordInput:
+      type: object
+      required: [username, recoveryToken, newPassword]
+      properties:
+        username: { type: string }
+        recoveryToken: { type: string }
+        newPassword: { type: string, minLength: 6 }
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+
     StatsOverview:
       type: object
       required: [totalPosts, publishedPosts, draftPosts, totalViews, totalCategories, totalSubscribers, totalComments]
@@ -713,6 +866,8 @@ components:
         adminReply: { type: ["string", "null"] }
         adminRepliedAt: { type: ["string", "null"] }
         createdAt: { type: string }
+        postTitle: { type: ["string", "null"] }
+        postSlug: { type: ["string", "null"] }
 
     CommentInput:
       type: object
@@ -752,3 +907,110 @@ components:
         url: { type: string }
         type: { type: string }
         updatedAt: { type: string }
+
+    ProfileWorkExperience:
+      type: object
+      required: [title, company, period, bullets]
+      properties:
+        title: { type: string }
+        company: { type: string }
+        period: { type: string }
+        bullets:
+          type: array
+          items: { type: string }
+
+    ProfileEducation:
+      type: object
+      required: [degree, institution, period]
+      properties:
+        degree: { type: string }
+        institution: { type: string }
+        period: { type: string }
+
+    ProfileProject:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string }
+        description: { type: string }
+
+    ProfileSkillGroup:
+      type: object
+      required: [category, items]
+      properties:
+        category: { type: string }
+        items: { type: string }
+
+    ProfileLanguage:
+      type: object
+      required: [name, level]
+      properties:
+        name: { type: string }
+        level: { type: string }
+
+    DeveloperProfile:
+      type: object
+      required: [id, name, status, workExperience, education, projects, technicalSkills, languages, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        headline: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        portfolioUrl: { type: ["string", "null"] }
+        aboutMe: { type: ["string", "null"] }
+        workExperience:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileWorkExperience"
+        education:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileEducation"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileProject"
+        technicalSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileSkillGroup"
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileLanguage"
+        status: { type: string, enum: [draft, published] }
+        updatedAt: { type: string }
+
+    DeveloperProfileUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        headline: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        location: { type: string }
+        portfolioUrl: { type: string }
+        aboutMe: { type: string }
+        workExperience:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileWorkExperience"
+        education:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileEducation"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileProject"
+        technicalSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileSkillGroup"
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileLanguage"
+        status: { type: string, enum: [draft, published] }
