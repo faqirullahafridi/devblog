@@ -1,4 +1,5 @@
 import { query } from "./db-pool.js";
+import { buildTagLastmodMap, getStaticSitemapPaths } from "./sitemap-routes.js";
 import {
   envConfigured,
   getSiteUrl,
@@ -13,29 +14,6 @@ import {
 
 const PUBLISHED = `p.status = 'published' AND (p.publish_at IS NULL OR p.publish_at <= NOW())`;
 
-const STATIC_SITEMAP_PATHS = [
-  "/",
-  "/search",
-  "/about",
-  "/developer",
-  "/contact",
-  "/privacy",
-  "/terms",
-  "/templates",
-  "/tools",
-  "/learn",
-  "/refs",
-  "/snippets",
-  "/interview",
-  "/ai",
-  "/playground",
-  "/roadmaps",
-  "/challenges",
-  "/jobs",
-  "/api-sources",
-  "/community",
-  "/resources",
-];
 const POST_LIST_SELECT = `
   p.id, p.title, p.slug, p.excerpt, p.featured_image AS "featuredImage",
   p.status, p.is_featured AS "isFeatured", p.tags, p.publish_at AS "publishAt",
@@ -266,14 +244,16 @@ async function handleSitemap(res) {
   setCache(res, 3600);
   const site = getSiteUrl();
   const today = new Date().toISOString().split("T")[0];
-  const [posts, categories] = await Promise.all([
+  const [posts, categories, tagRows] = await Promise.all([
     query(
       `SELECT slug, updated_at AS "updatedAt" FROM posts p WHERE ${PUBLISHED} ORDER BY p.updated_at DESC LIMIT 500`,
     ),
     query(`SELECT slug FROM categories ORDER BY name`),
+    query(`SELECT tags, updated_at AS "updatedAt" FROM posts p WHERE ${PUBLISHED}`),
   ]);
-  const urls = STATIC_SITEMAP_PATHS.map((path) => ({
-    loc: `${site}${path === "/" ? "/" : path}`,
+  const tagLastmod = buildTagLastmodMap(tagRows.rows);
+  const urls = getStaticSitemapPaths().map((path) => ({
+    loc: `${site}${path === "" ? "/" : path}`,
     lastmod: today,
   }));
   for (const p of posts.rows) {
@@ -284,6 +264,9 @@ async function handleSitemap(res) {
   }
   for (const c of categories.rows) {
     urls.push({ loc: `${site}/category/${c.slug}`, lastmod: today });
+  }
+  for (const [slug, lastmod] of tagLastmod.entries()) {
+    urls.push({ loc: `${site}/tag/${slug}`, lastmod });
   }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
     .map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod></url>`)
