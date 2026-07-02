@@ -119,6 +119,19 @@ async function buildAll() {
     outExtension: { ".js": ".mjs" },
   });
 
+  // Lightweight bundle for homepage read-only API (avoids loading the full 2.5MB app)
+  await esbuild({
+    platform: "node",
+    bundle: true,
+    format: "esm",
+    logLevel: "info",
+    external,
+    sourcemap: "linked",
+    banner,
+    entryPoints: [path.resolve(artifactDir, "src/public-api.ts")],
+    outfile: path.join(distDir, "public-api.mjs"),
+  });
+
   // Vercel serverless bundle — no pino-pretty plugin (avoids multi-file outfile conflict)
   await esbuild({
     platform: "node",
