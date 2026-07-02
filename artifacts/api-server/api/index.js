@@ -4,11 +4,11 @@ export const config = {
   maxDuration: 30,
 };
 
-let handler: ReturnType<typeof serverless>;
+let handler;
 
 try {
-  const app = (await import("../dist/serverless.mjs")).default;
-  handler = serverless(app);
+  const mod = await import("../dist/serverless.mjs");
+  handler = serverless(mod.default);
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
   console.error("[api] Failed to load serverless bundle:", message);
