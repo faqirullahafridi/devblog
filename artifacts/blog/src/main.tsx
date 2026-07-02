@@ -8,4 +8,8 @@ if (apiUrl?.trim()) {
   setBaseUrl(apiUrl.trim().replace(/\/$/, ""));
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootEl = document.getElementById("root");
+if (rootEl) {
+  rootEl.querySelector("#seo-static-content")?.remove();
+  createRoot(rootEl).render(<App />);
+}

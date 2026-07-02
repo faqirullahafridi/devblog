@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>document.documentElement.classList.add("js");</script>
     <!-- Google tag (gtag.js) + Consent Mode v2 (EEA denied by default; rest of world granted) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4XPLQ8RK00"></script>
     <script>
@@ -80,6 +81,10 @@
         clip: rect(0, 0, 0, 0);
         white-space: nowrap;
         border: 0;
+      }
+      /* Crawler-only fallback: hidden as soon as JS runs (class added in head). */
+      html.js #seo-static-content {
+        display: none !important;
       }
     </style>
     <script>
