@@ -73,7 +73,11 @@ function isKnownLightRoute(path, method) {
 async function getHandler() {
   if (!handlerPromise) {
     const started = Date.now();
-    handlerPromise = withTimeout(import("../dist/serverless.mjs"), BUNDLE_LOAD_MS, "Serverless bundle load")
+    handlerPromise = withTimeout(
+      import("../artifacts/api-server/dist/serverless.mjs"),
+      BUNDLE_LOAD_MS,
+      "Serverless bundle load",
+    )
       .then((mod) => {
         console.log(`[api] serverless bundle loaded in ${Date.now() - started}ms`);
         return serverless(mod.default);

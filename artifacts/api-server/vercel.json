@@ -8,13 +8,11 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
-      "memory": 1024,
-      "includeFiles": "dist/**,api/**,node_modules/pg/**"
+      "includeFiles": "dist/**,api/**,api-lib/**,node_modules/pg/**"
     },
     "api/[...path].js": {
       "maxDuration": 30,
-      "memory": 1024,
-      "includeFiles": "dist/**,api/**,node_modules/pg/**"
+      "includeFiles": "dist/**,api/**,api-lib/**,node_modules/pg/**"
     }
   },
   "redirects": [],
