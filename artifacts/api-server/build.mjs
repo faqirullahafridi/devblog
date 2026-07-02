@@ -119,13 +119,13 @@ async function buildAll() {
     outExtension: { ".js": ".mjs" },
   });
 
-  // Vercel serverless bundle — keep heavy deps external for faster cold starts
+  // Vercel serverless bundle — no pino-pretty plugin (avoids multi-file outfile conflict)
   await esbuild({
     platform: "node",
     bundle: true,
     format: "esm",
     logLevel: "info",
-    external: [...external, "pg", "pino", "pino-http", "drizzle-orm", "drizzle-orm/node-postgres"],
+    external,
     sourcemap: "linked",
     banner,
     entryPoints: [path.resolve(artifactDir, "src/serverless.ts")],
