@@ -62,14 +62,27 @@
     <meta property="og:title" content="TechVentry" />
     <meta property="og:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.techventry.com/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TechVentry" />
     <meta name="twitter:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
-    <link rel="canonical" href="https://www.techventry.com/" />
+    <script>
+      (function () {
+        var origin = "https://www.techventry.com";
+        var path = location.pathname.replace(/\/$/, "") || "/";
+        var url = path === "/" ? origin + "/" : origin + path;
+        var link = document.createElement("link");
+        link.rel = "canonical";
+        link.href = url;
+        document.head.appendChild(link);
+        var og = document.createElement("meta");
+        og.setAttribute("property", "og:url");
+        og.content = url;
+        document.head.appendChild(og);
+      })();
+    </script>
     <style>
       .seo-crawl-nav {
         position: absolute;
