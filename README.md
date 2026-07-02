@@ -177,6 +177,8 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 
 Do **not** set `VITE_API_URL` when the site and API share the same domain.
 
+**www vs apex:** In Vercel → **Settings → Domains**, set `www.techventry.com` to **Redirect to `techventry.com`** (dashboard only — do not also redirect apex → www, or you get redirect loops). The `vercel.json` host redirect was removed because it broke JS/CSS on `www` (CORS + `ERR_TOO_MANY_REDIRECTS` on images).
+
 If the homepage shows *“API server only”*, the deploy was still using `outputDirectory: public` and `pnpm run build` (API only). Redeploy after pulling the latest `artifacts/api-server/vercel.json`.
 
 1. Connect the repo to Vercel.

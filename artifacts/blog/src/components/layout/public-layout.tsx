@@ -30,7 +30,8 @@ const PRIMARY_NAV = [
 ] as const;
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
-  const { data: categories } = useListCategories();
+  const { data: categoriesRaw } = useListCategories();
+  const categories = Array.isArray(categoriesRaw) ? categoriesRaw : [];
 
   return (
     <div className="min-h-screen min-w-0 overflow-x-clip bg-background flex flex-col">
@@ -99,7 +100,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-wider">Blog categories</DropdownMenuLabel>
-                {(categories ?? []).slice(0, 8).map((cat) => (
+                {categories.slice(0, 8).map((cat) => (
                   <DropdownMenuItem key={cat.id} asChild>
                     <Link href={`/category/${cat.slug}`}>{cat.name}</Link>
                   </DropdownMenuItem>

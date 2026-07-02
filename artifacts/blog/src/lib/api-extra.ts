@@ -42,10 +42,19 @@ export type HomeFeed = {
   popular: unknown[];
 };
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export async function getHomeFeed(): Promise<HomeFeed> {
   const res = await fetch("/api/posts/home-feed", { credentials: "include" });
   if (!res.ok) throw new Error("Failed to load home feed");
-  return res.json();
+  const data = (await res.json()) as Partial<HomeFeed>;
+  return {
+    featured: asArray(data.featured),
+    recent: asArray(data.recent),
+    popular: asArray(data.popular),
+  };
 }
 
 export async function getPostsByTag(tagSlug: string, page = 1, limit = 10) {
