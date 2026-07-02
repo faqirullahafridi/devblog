@@ -72,7 +72,7 @@ async function fetchCategoriesWithCounts() {
   return rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
 }
 
-app.get(["/api/categories", "/categories"], async (_req, res) => {
+app.get("/categories", async (_req, res) => {
   try {
     setPublicCache(res, 300);
     const rows = await cached("categories:all", 5 * 60_000, fetchCategoriesWithCounts);
@@ -83,7 +83,7 @@ app.get(["/api/categories", "/categories"], async (_req, res) => {
   }
 });
 
-app.get(["/api/posts/home-feed", "/posts/home-feed"], async (_req, res) => {
+app.get("/posts/home-feed", async (_req, res) => {
   try {
     setPublicCache(res, 120);
     const listFrom = () =>
@@ -117,7 +117,7 @@ app.get(["/api/posts/home-feed", "/posts/home-feed"], async (_req, res) => {
   }
 });
 
-app.get(["/api/feeds/dev-headlines", "/feeds/dev-headlines"], async (req, res) => {
+app.get("/feeds/dev-headlines", async (req, res) => {
   try {
     setPublicCache(res, 600);
     const limit = Math.min(Number(req.query.limit ?? 10), 20);
@@ -129,7 +129,7 @@ app.get(["/api/feeds/dev-headlines", "/feeds/dev-headlines"], async (req, res) =
   }
 });
 
-app.get(["/api/auth/user/me", "/auth/user/me"], (_req, res) => {
+app.get("/auth/user/me", (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.json({ authenticated: false, user: null });
 });

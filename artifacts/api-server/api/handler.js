@@ -7,7 +7,10 @@ export const config = {
 let handlerPromise = null;
 let publicHandlerPromise = null;
 
-/** Vercel may pass /categories instead of /api/categories after rewrites — normalize. */
+/**
+ * Vercel rewrites /api/* → /api (index.js). The function receives a stripped path
+ * like /posts/home-feed — normalize back to /api/posts/home-feed for routing.
+ */
 function requestPath(req) {
   const raw = req.url ?? "/";
   const pathOnly = raw.split("?")[0] || "/";
@@ -23,9 +26,19 @@ function requestPath(req) {
   return `/api/${pathOnly}`;
 }
 
-function applyRequestPath(req, path) {
-  const qs = req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
-  req.url = path + qs;
+function querySuffix(req) {
+  return req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+}
+
+/** Full Express app mounts routes at /api — keep the /api prefix. */
+function applyFullAppPath(req, path) {
+  req.url = path + querySuffix(req);
+}
+
+/** Public mini-app registers routes without /api prefix. */
+function applyPublicAppPath(req, path) {
+  const stripped = path === "/api" ? "/" : path.startsWith("/api/") ? path.slice(4) : path;
+  req.url = stripped + querySuffix(req);
 }
 
 function isPublicApiPath(path, req) {
@@ -85,7 +98,6 @@ async function getHandler() {
 
 export default async function handler(req, res) {
   const path = requestPath(req);
-  applyRequestPath(req, path);
 
   if (path === "/api/healthz") {
     return res.status(200).json({ status: "ok" });
@@ -106,9 +118,13 @@ export default async function handler(req, res) {
   try {
     if (isPublicApiPath(path, req)) {
       const publicEntry = await getPublicHandler();
-      if (publicEntry) return await publicEntry(req, res);
+      if (publicEntry) {
+        applyPublicAppPath(req, path);
+        return await publicEntry(req, res);
+      }
     }
     const entry = await getHandler();
+    applyFullAppPath(req, path);
     return await entry(req, res);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
