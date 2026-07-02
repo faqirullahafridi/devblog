@@ -166,6 +166,15 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 
 ## Deployment (Vercel)
 
+### Which project gets `techventry.com`?
+
+| Vercel project | Root Directory | Serves | Domain |
+|----------------|----------------|--------|--------|
+| **Main site** (use this for your domain) | *(empty — repo root)* | Blog homepage + `/api` on same domain | `techventry.com`, `www.techventry.com` |
+| **API-only** (optional) | `artifacts/api-server` | Backend only — **not** the homepage | `devblog-api-server.vercel.app` or `api.techventry.com` |
+
+If `techventry.com` shows *“TechVentry API — use /api/healthz”*, the domain is on the **wrong** project. In Vercel → **API-only project → Settings → Domains**, remove `techventry.com` / `www`. Add those domains to the **main** project instead, then redeploy the main project.
+
 1. Connect the repo to Vercel.
 2. Add environment variables from `.env.example`. **Minimum for production:**
    - `DATABASE_URL` — Supabase Postgres connection string

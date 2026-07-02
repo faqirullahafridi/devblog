@@ -10,6 +10,11 @@
       "maxDuration": 30,
       "memory": 1024,
       "includeFiles": "node_modules/connect-pg-simple/**,artifacts/api-server/dist/**"
+    },
+    "api/[...path].js": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "node_modules/connect-pg-simple/**,artifacts/api-server/dist/**"
     }
   },
   "redirects": [
@@ -56,7 +61,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
     { "source": "/robots.txt", "destination": "/api/robots.txt" },
     { "source": "/feed.xml", "destination": "/api/feed.xml" },
