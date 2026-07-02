@@ -57,7 +57,7 @@ export function HubIndexLayout({
 }) {
   return (
     <PublicLayout>
-      <SeoHead title={`${title} — devblog`} description={description} />
+      <SeoHead title={seoTitle(title)} description={description} />
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         <header className="mb-10 text-center max-w-2xl mx-auto">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">{section}</p>

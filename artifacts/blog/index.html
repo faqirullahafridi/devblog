@@ -56,15 +56,15 @@
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>TechVentry</title>
-    <meta name="description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
+    <title>TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials</title>
+    <meta name="description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="TechVentry" />
-    <meta property="og:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
+    <meta property="og:title" content="TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials" />
+    <meta property="og:description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TechVentry" />
-    <meta name="twitter:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
+    <meta name="twitter:title" content="TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials" />
+    <meta name="twitter:description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
@@ -73,18 +73,25 @@
         var origin = "https://www.techventry.com";
         var path = location.pathname.replace(/\/$/, "") || "/";
         var url = path === "/" ? origin + "/" : origin + path;
-        var link = document.createElement("link");
-        link.rel = "canonical";
+        var link = document.querySelector('link[rel="canonical"]');
+        if (!link) {
+          link = document.createElement("link");
+          link.rel = "canonical";
+          document.head.appendChild(link);
+        }
         link.href = url;
-        document.head.appendChild(link);
-        var og = document.createElement("meta");
-        og.setAttribute("property", "og:url");
+        var og = document.querySelector('meta[property="og:url"]');
+        if (!og) {
+          og = document.createElement("meta");
+          og.setAttribute("property", "og:url");
+          document.head.appendChild(og);
+        }
         og.content = url;
-        document.head.appendChild(og);
       })();
     </script>
     <style>
-      .seo-crawl-nav {
+      .seo-crawl-nav,
+      .seo-crawl-content {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -154,20 +161,23 @@
       <a href="/contact">Contact</a>
     </nav>
     <noscript>
-      <nav aria-label="Site navigation">
-        <p>TechVentry — developer knowledge hub. Enable JavaScript for the full experience, or browse:</p>
-        <ul>
-          <li><a href="/search">Articles</a></li>
-          <li><a href="/templates">Templates</a></li>
-          <li><a href="/tools">Tools</a></li>
-          <li><a href="/learn">Learning Paths</a></li>
-          <li><a href="/ai">AI Assistant</a></li>
-          <li><a href="/jobs">Jobs</a></li>
-          <li><a href="/api-sources">API Sources</a></li>
-          <li><a href="/about">About</a></li>
-        </ul>
-      </nav>
+      <article>
+        <h1>TechVentry developer knowledge hub</h1>
+        <h2>Articles, tools, templates, and learning paths for builders</h2>
+        <p>TechVentry is a focused developer knowledge hub for tutorials, deep dives, and practical tools covering web development, Python, JavaScript, APIs, databases, and the craft of building reliable software.</p>
+        <p>Browse in-depth articles and search the archive, use free browser-based utilities, copy vetted snippets, follow structured learning paths, and explore interview prep by topic.</p>
+        <p>Every resource is designed to respect your time: clear structure, strong fundamentals, and production-minded examples you can apply on real projects today.</p>
+        <p>Start with featured articles on the homepage, jump into the tools directory for everyday utilities, or open learning paths when you want a guided curriculum from basics to practice.</p>
+      </article>
     </noscript>
+    <article class="seo-crawl-content">
+      <h1>TechVentry developer knowledge hub</h1>
+      <h2>Articles, tools, templates, and learning paths for builders</h2>
+      <p>TechVentry is a focused developer knowledge hub for tutorials, deep dives, and practical tools covering web development, Python, JavaScript, APIs, databases, and the craft of building reliable software.</p>
+      <p>Browse in-depth articles and search the archive, use free browser-based utilities like JSON formatters and JWT decoders, copy vetted snippets, follow structured learning paths, and explore interview prep by topic.</p>
+      <p>Every resource is designed to respect your time: clear structure, strong fundamentals, and production-minded examples you can apply on real projects today.</p>
+      <p>Start with featured articles on the homepage, jump into the tools directory for everyday utilities, or open learning paths when you want a guided curriculum from basics to practice.</p>
+    </article>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
