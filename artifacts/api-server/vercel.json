@@ -9,12 +9,12 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "dist/**,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
+      "includeFiles": "dist/**,api/handler.js,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
     },
     "api/[...path].js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "dist/**,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
+      "includeFiles": "dist/**,api/handler.js,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
     }
   },
   "redirects": [],
@@ -58,6 +58,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
     { "source": "/robots.txt", "destination": "/api/robots.txt" },
     { "source": "/feed.xml", "destination": "/api/feed.xml" },
