@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Post-build: emit route-specific index.html files so non-JS crawlers see unique
- * titles, meta descriptions, canonical tags, H1/H2, and 200+ words of content.
+ * titles, meta descriptions, a single canonical, one H1/H2, and 200+ visible words.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -26,15 +26,23 @@ function canonicalFor(pathname) {
   return `${SITE_ORIGIN}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
 }
 
-function buildCrawlArticle(page) {
-  const paragraphs = page.paragraphs.map((p) => `      <p>${escapeHtml(p)}</p>`).join("\n");
-  return `    <article class="seo-crawl-content">
+function buildStaticMain(page) {
+  const paragraphs = [...page.paragraphs, ...STATIC_SEO_PARAGRAPHS];
+  const body = paragraphs.map((p) => `      <p>${escapeHtml(p)}</p>`).join("\n");
+  return `    <main id="seo-static-content">
       <h1>${escapeHtml(page.h1)}</h1>
       <h2>${escapeHtml(page.h2)}</h2>
-${paragraphs}
-    </article>
+${body}
+    </main>
 `;
 }
+
+const STATIC_SEO_PARAGRAPHS = [
+  "TechVentry links articles, tools, references, and learning paths so you can move from reading to practice in one session.",
+  "Use the site menu to jump between tutorials, templates, interview prep, job listings, and free browser utilities.",
+  "The full app loads with JavaScript and adds search, filters, live tools, playgrounds, and community features.",
+  "This page summary stays in HTML for crawlers and no-script browsers so the topic and value stay clear in search indexes.",
+];
 
 function applySeo(template, page) {
   const canonical = canonicalFor(page.path);
@@ -64,33 +72,26 @@ function applySeo(template, page) {
 
   const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonical)}" />`;
   const ogUrlTag = `<meta property="og:url" content="${escapeHtml(canonical)}" />`;
-  if (/<link rel="canonical" href="[^"]*"\s*\/?>/.test(html)) {
-    html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, canonicalTag);
+  html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/?>\s*/g, "");
+  html = html.replace(/<meta property="og:url" content="[^"]*"\s*\/?>\s*/g, "");
+  html = html.replace(
+    "<!-- seo-head-injection -->",
+    `${canonicalTag}\n    ${ogUrlTag}\n    <!-- seo-head-injection -->`,
+  );
+
+  // Remove JS canonical injector to avoid duplicate link elements after hydration.
+  html = html.replace(/\s*<script>\s*\(function \(\) \{\s*var origin = "https:\/\/www\.techventry\.com";[\s\S]*?\}\)\(\);\s*<\/script>/, "");
+
+  const main = buildStaticMain(page);
+  if (html.includes('id="seo-static-content"')) {
+    html = html.replace(/<main id="seo-static-content">[\s\S]*?<\/main>\s*/, main);
   } else {
-    html = html.replace("</head>", `    ${canonicalTag}\n    ${ogUrlTag}\n  </head>`);
-  }
-  if (!html.includes('property="og:url"')) {
-    html = html.replace("</head>", `    ${ogUrlTag}\n  </head>`);
-  } else {
-    html = html.replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, ogUrlTag);
+    html = html.replace("<div id=\"root\">", `${main}    <div id="root">`);
   }
 
-  const article = buildCrawlArticle(page);
-  if (html.includes('class="seo-crawl-content"')) {
-    html = html.replace(/<article class="seo-crawl-content">[\s\S]*?<\/article>\s*/, article);
-  } else {
-    html = html.replace("<div id=\"root\">", `${article}    <div id="root">`);
-  }
-
-  // Expand noscript with page summary for crawlers that prefer noscript blocks.
-  const noscriptBlock = `<noscript>
-      <article>
-        <h1>${escapeHtml(page.h1)}</h1>
-        <h2>${escapeHtml(page.h2)}</h2>
-        ${page.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n        ")}
-      </article>
-    </noscript>`;
-  html = html.replace(/<noscript>[\s\S]*?<\/noscript>/, noscriptBlock);
+  // Remove legacy duplicate blocks if present in an older template build.
+  html = html.replace(/\s*<noscript>[\s\S]*?<\/noscript>/, "");
+  html = html.replace(/\s*<article class="seo-crawl-content">[\s\S]*?<\/article>/, "");
 
   return html;
 }

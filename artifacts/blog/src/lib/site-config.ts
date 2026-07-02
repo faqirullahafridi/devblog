@@ -8,8 +8,8 @@ export const SITE_DESCRIPTION =
   "Articles, tutorials, and free developer tools on TechVentry — for builders who care about code quality and craft.";
 
 export function seoTitle(page?: string): string {
-  if (!page) return `${SITE_NAME} — Developer Knowledge Hub, Tools & Tutorials`;
-  return `${page} — ${SITE_NAME} Developer Hub`;
+  if (!page) return `${SITE_NAME} — Developer Hub, Tools & Tutorials`;
+  return `${page} — ${SITE_NAME}`;
 }
 
 /** Absolute canonical URL for SEO meta, JSON-LD, and share cards. */

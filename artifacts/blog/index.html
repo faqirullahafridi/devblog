@@ -56,42 +56,21 @@
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials</title>
-    <meta name="description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
+    <title>TechVentry — Developer Hub, Tools &amp; Tutorials</title>
+    <meta name="description" content="Articles, free dev tools, templates, and learning paths on TechVentry. Tutorials and utilities for web, Python, and JavaScript developers." />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials" />
-    <meta property="og:description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
+    <meta property="og:title" content="TechVentry — Developer Hub, Tools &amp; Tutorials" />
+    <meta property="og:description" content="Articles, free dev tools, templates, and learning paths on TechVentry. Tutorials and utilities for web, Python, and JavaScript developers." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TechVentry — Developer Knowledge Hub, Tools &amp; Tutorials" />
-    <meta name="twitter:description" content="Articles, tutorials, free developer tools, templates, and learning paths on TechVentry — built for developers who care about code quality and shipping great software." />
+    <meta name="twitter:title" content="TechVentry — Developer Hub, Tools &amp; Tutorials" />
+    <meta name="twitter:description" content="Articles, free dev tools, templates, and learning paths on TechVentry. Tutorials and utilities for web, Python, and JavaScript developers." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
-    <script>
-      (function () {
-        var origin = "https://www.techventry.com";
-        var path = location.pathname.replace(/\/$/, "") || "/";
-        var url = path === "/" ? origin + "/" : origin + path;
-        var link = document.querySelector('link[rel="canonical"]');
-        if (!link) {
-          link = document.createElement("link");
-          link.rel = "canonical";
-          document.head.appendChild(link);
-        }
-        link.href = url;
-        var og = document.querySelector('meta[property="og:url"]');
-        if (!og) {
-          og = document.createElement("meta");
-          og.setAttribute("property", "og:url");
-          document.head.appendChild(og);
-        }
-        og.content = url;
-      })();
-    </script>
+    <!-- seo-head-injection -->
     <style>
-      .seo-crawl-nav,
-      .seo-crawl-content {
+      .seo-crawl-nav {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -160,24 +139,25 @@
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
     </nav>
-    <noscript>
-      <article>
-        <h1>TechVentry developer knowledge hub</h1>
-        <h2>Articles, tools, templates, and learning paths for builders</h2>
-        <p>TechVentry is a focused developer knowledge hub for tutorials, deep dives, and practical tools covering web development, Python, JavaScript, APIs, databases, and the craft of building reliable software.</p>
-        <p>Browse in-depth articles and search the archive, use free browser-based utilities, copy vetted snippets, follow structured learning paths, and explore interview prep by topic.</p>
-        <p>Every resource is designed to respect your time: clear structure, strong fundamentals, and production-minded examples you can apply on real projects today.</p>
-        <p>Start with featured articles on the homepage, jump into the tools directory for everyday utilities, or open learning paths when you want a guided curriculum from basics to practice.</p>
-      </article>
-    </noscript>
-    <article class="seo-crawl-content">
+    <main id="seo-static-content">
       <h1>TechVentry developer knowledge hub</h1>
-      <h2>Articles, tools, templates, and learning paths for builders</h2>
-      <p>TechVentry is a focused developer knowledge hub for tutorials, deep dives, and practical tools covering web development, Python, JavaScript, APIs, databases, and the craft of building reliable software.</p>
-      <p>Browse in-depth articles and search the archive, use free browser-based utilities like JSON formatters and JWT decoders, copy vetted snippets, follow structured learning paths, and explore interview prep by topic.</p>
-      <p>Every resource is designed to respect your time: clear structure, strong fundamentals, and production-minded examples you can apply on real projects today.</p>
-      <p>Start with featured articles on the homepage, jump into the tools directory for everyday utilities, or open learning paths when you want a guided curriculum from basics to practice.</p>
-    </article>
+      <h2>Articles, tools, and learning paths for builders</h2>
+      <p>TechVentry helps developers learn, build, and ship better software. We publish clear tutorials and guides on web development, Python, JavaScript, APIs, and databases.</p>
+      <p>You can search the article archive, use free browser tools, copy snippets, and follow step-by-step learning paths.</p>
+      <p>Our tools include JSON formatters, JWT decoders, regex testers, hash generators, SQL helpers, and more. Everything runs locally in your browser.</p>
+      <p>Templates and references give you quick starting points. Interview prep pages group questions by topic so you can study with focus.</p>
+      <p>The site is built for daily use. Pages load fast, links are easy to scan, and each section has a clear purpose.</p>
+      <p>Start on the homepage for featured posts, open the tools hub for utilities, or pick a learning path when you want a guided plan.</p>
+      <p>TechVentry links articles, tools, references, and learning paths so you can move from reading to practice in one session.</p>
+      <p>Use the site menu to jump between tutorials, templates, interview prep, job listings, and free browser utilities.</p>
+      <p>The full app loads with JavaScript and adds search, filters, live tools, playgrounds, and community features.</p>
+      <p>This page summary stays in HTML for crawlers and no-script browsers so the topic and value stay clear in search indexes.</p>
+    </main>
+    <script>
+      document.documentElement.classList.add("js");
+      var seoStatic = document.getElementById("seo-static-content");
+      if (seoStatic) seoStatic.remove();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
