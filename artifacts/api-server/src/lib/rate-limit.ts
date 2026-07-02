@@ -19,7 +19,12 @@ export function rateLimit(opts: {
 
     if (isKvConfigured()) {
       try {
-        const count = await kvIncr(key, windowSec);
+        const count = await Promise.race([
+          kvIncr(key, windowSec),
+          new Promise<number>((_, reject) =>
+            setTimeout(() => reject(new Error("rate-limit timeout")), 4_000),
+          ),
+        ]);
         if (count > opts.max) {
           res.set("Retry-After", String(windowSec));
           return res.status(429).json({ error: "Too many requests. Please try again later." });

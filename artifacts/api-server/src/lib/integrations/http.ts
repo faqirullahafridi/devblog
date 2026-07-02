@@ -14,6 +14,8 @@ export async function fetchJson<T>(url: string, init?: { headers?: Record<string
     ...init?.headers,
   };
 
+  const timeoutMs = Number(process.env.HTTP_FETCH_TIMEOUT_MS ?? 8_000);
+
   return new Promise((resolve, reject) => {
     const req = lib.request(
       url,
@@ -28,6 +30,7 @@ export async function fetchJson<T>(url: string, init?: { headers?: Record<string
           body += chunk;
         });
         res.on("end", () => {
+          clearTimeout(timer);
           if ((res.statusCode ?? 500) >= 400) {
             reject(new Error(`HTTP ${res.statusCode} for ${url}`));
             return;
@@ -40,7 +43,13 @@ export async function fetchJson<T>(url: string, init?: { headers?: Record<string
         });
       },
     );
-    req.on("error", reject);
+    const timer = setTimeout(() => {
+      req.destroy(new Error(`Request timed out after ${timeoutMs}ms: ${url}`));
+    }, timeoutMs);
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
     req.end();
   });
 }

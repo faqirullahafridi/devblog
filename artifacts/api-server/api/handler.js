@@ -23,8 +23,12 @@ function buildUnavailableHandler(message) {
 
 async function getHandler() {
   if (!handlerPromise) {
+    const started = Date.now();
     handlerPromise = import("../dist/serverless.mjs")
-      .then((mod) => serverless(mod.default))
+      .then((mod) => {
+        console.log(`[api] serverless bundle loaded in ${Date.now() - started}ms`);
+        return serverless(mod.default);
+      })
       .catch((err) => {
         const message = err instanceof Error ? err.message : String(err);
         console.error("[api] Failed to load serverless bundle:", message);

@@ -13,7 +13,7 @@ const isServerless = Boolean(
 );
 
 const connectionString =
-  process.env.DATABASE_POOLER_URL?.trim() || process.env.DATABASE_URL;
+  process.env.DATABASE_POOLER_URL?.trim() || process.env.DATABASE_URL?.trim();
 
 if (!connectionString) {
   throw new Error(
@@ -21,9 +21,15 @@ if (!connectionString) {
   );
 }
 
-const poolMax = Number(process.env.DATABASE_POOL_MAX ?? (isServerless ? 2 : 10));
+if (isServerless && !process.env.DATABASE_POOLER_URL?.trim()) {
+  console.warn(
+    "[db] DATABASE_POOLER_URL is not set. Direct DATABASE_URL connections often hang on Vercel — use Supabase pooler port 6543 with ?pgbouncer=true.",
+  );
+}
+
+const poolMax = Number(process.env.DATABASE_POOL_MAX ?? (isServerless ? 1 : 10));
 const idleTimeoutMillis = Number(
-  process.env.DATABASE_IDLE_TIMEOUT_MS ?? (isServerless ? 10_000 : 30_000),
+  process.env.DATABASE_IDLE_TIMEOUT_MS ?? (isServerless ? 5_000 : 30_000),
 );
 
 export const pool = new Pool({
@@ -31,9 +37,8 @@ export const pool = new Pool({
   ssl: { rejectUnauthorized: false },
   max: poolMax,
   idleTimeoutMillis,
-  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? (isServerless ? 7_000 : 20_000)),
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10_000,
+  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? (isServerless ? 5_000 : 20_000)),
+  keepAlive: !isServerless,
   allowExitOnIdle: isServerless,
 });
 
