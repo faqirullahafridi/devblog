@@ -22,8 +22,15 @@ export function getPool() {
 }
 
 export async function query(text, params) {
-  const client = await getPool().connect();
+  const pool = getPool();
+  const client = await Promise.race([
+    pool.connect(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Database connection timeout")), 8_000),
+    ),
+  ]);
   try {
+    await client.query("SET statement_timeout = 12000");
     return await client.query(text, params);
   } finally {
     client.release();

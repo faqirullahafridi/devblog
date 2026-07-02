@@ -1,13 +1,27 @@
 import serverless from "serverless-http";
-import { tryFastRoute, isAiBundlePath } from "./fast-routes.js";
+import { tryFastRoute } from "./fast-routes.js";
 import { tryAdminRoute, isAdminRoutePath } from "./admin-routes.js";
+import { tryAiRoute, isAiRoutePath } from "./ai-chat-routes.js";
+import { tryJobsRoute, isJobsRoutePath } from "./jobs-routes.js";
+import { tryPlatformRoute, isPlatformRoutePath } from "./platform-routes.js";
+import { trySiteAuthRoute, isSiteAuthRoutePath } from "./site-auth-routes.js";
+import { tryContentRoute, isContentRoutePath } from "./content-routes.js";
 
 export const config = {
   maxDuration: 30,
 };
 
 let handlerPromise = null;
-let aiHandlerPromise = null;
+const BUNDLE_LOAD_MS = 8_000;
+
+const LIGHT_ROUTE_CHECKERS = [
+  isContentRoutePath,
+  isJobsRoutePath,
+  isPlatformRoutePath,
+  isSiteAuthRoutePath,
+  isAiRoutePath,
+  isAdminRoutePath,
+];
 
 function requestPath(req) {
   const raw = req.url ?? "/";
@@ -42,27 +56,24 @@ function buildUnavailableHandler(message) {
   });
 }
 
-async function getAiHandler() {
-  if (!aiHandlerPromise) {
-    const started = Date.now();
-    aiHandlerPromise = import("../artifacts/api-server/dist/ai-api.mjs")
-      .then((mod) => {
-        console.log(`[api] ai bundle loaded in ${Date.now() - started}ms`);
-        return serverless(mod.default);
-      })
-      .catch((err) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[api] Failed to load AI bundle:", message);
-        return null;
-      });
-  }
-  return aiHandlerPromise;
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
+function isKnownLightRoute(path, method) {
+  if (path === "/api/healthz" || path === "/api/readyz") return true;
+  return LIGHT_ROUTE_CHECKERS.some((fn) => fn(path, method));
 }
 
 async function getHandler() {
   if (!handlerPromise) {
     const started = Date.now();
-    handlerPromise = import("../artifacts/api-server/dist/serverless.mjs")
+    handlerPromise = withTimeout(import("../dist/serverless.mjs"), BUNDLE_LOAD_MS, "Serverless bundle load")
       .then((mod) => {
         console.log(`[api] serverless bundle loaded in ${Date.now() - started}ms`);
         return serverless(mod.default);
@@ -96,22 +107,19 @@ export default async function handler(req, res) {
     });
   }
 
-  if (await tryFastRoute(path, req, res)) {
-    return;
-  }
+  if (await tryFastRoute(path, req, res)) return;
+  if (await tryContentRoute(path, req, res)) return;
+  if (await tryJobsRoute(path, req, res)) return;
+  if (await tryPlatformRoute(path, req, res)) return;
+  if (await trySiteAuthRoute(path, req, res)) return;
+  if (isAdminRoutePath(path, req.method) && (await tryAdminRoute(path, req, res))) return;
+  if (isAiRoutePath(path, req.method) && (await tryAiRoute(path, req, res))) return;
 
-  if (isAdminRoutePath(path) && (await tryAdminRoute(path, req, res))) {
-    return;
+  if (isKnownLightRoute(path, req.method)) {
+    return res.status(404).json({ error: "Route not found", path });
   }
 
   try {
-    if (isAiBundlePath(path, req.method)) {
-      const aiEntry = await getAiHandler();
-      if (aiEntry) {
-        applyFullAppPath(req, path);
-        return await aiEntry(req, res);
-      }
-    }
     const entry = await getHandler();
     applyFullAppPath(req, path);
     return await entry(req, res);

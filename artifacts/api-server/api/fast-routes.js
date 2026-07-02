@@ -1,9 +1,6 @@
-import pg from "pg";
 import { randomBytes } from "node:crypto";
-
-const { Pool } = pg;
-
-let pool = null;
+import { query } from "./db-pool.js";
+import { loadSession } from "./admin-routes.js";
 
 const JOB_SOURCES = [
   { id: "remoteok", label: "RemoteOK", description: "Remote developer jobs", region: "global", requiresKey: false },
@@ -34,31 +31,11 @@ const POST_LIST_SELECT = `
 
 const POST_DETAIL_SELECT = `${POST_LIST_SELECT}, p.content`;
 
-function getPool() {
-  if (pool) return pool;
-  const connectionString =
-    process.env.DATABASE_POOLER_URL?.trim() || process.env.DATABASE_URL?.trim();
-  if (!connectionString) throw new Error("DATABASE_URL (or DATABASE_POOLER_URL) is not set");
-  pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-    max: 2,
-    idleTimeoutMillis: 5_000,
-    connectionTimeoutMillis: 8_000,
-    allowExitOnIdle: true,
-  });
-  pool.on("error", (err) => console.error("[fast-routes] pool error:", err.message));
-  return pool;
-}
-
-async function query(text, params) {
-  const client = await getPool().connect();
-  try {
-    return await client.query(text, params);
-  } finally {
-    client.release();
-  }
-}
+const PROFILE_SELECT = `
+  id, name, headline, phone, email, location, portfolio_url AS "portfolioUrl",
+  about_me AS "aboutMe", work_experience AS "workExperience", education, projects,
+  technical_skills AS "technicalSkills", languages, status, updated_at AS "updatedAt"
+`;
 
 function setCache(res, maxAge = 120) {
   res.setHeader(
@@ -529,6 +506,67 @@ function handleUserMe(res) {
   sendJson(res, 200, { authenticated: false, user: null });
 }
 
+async function handleUserMeWithSession(req, res) {
+  setNoCache(res);
+  const loaded = await loadSession(req);
+  const sess = loaded?.sess;
+  if (sess?.siteUserId) {
+    sendJson(res, 200, {
+      authenticated: true,
+      user: {
+        id: sess.siteUserId,
+        username: sess.siteUsername ?? "",
+        displayName: sess.siteDisplayName ?? "",
+        email: sess.siteUserEmail ?? "",
+      },
+    });
+    return;
+  }
+  handleUserMe(res);
+}
+
+function formatProfile(row) {
+  return {
+    ...row,
+    workExperience: row.workExperience ?? [],
+    education: row.education ?? [],
+    projects: row.projects ?? [],
+    technicalSkills: row.technicalSkills ?? [],
+    languages: row.languages ?? [],
+    updatedAt: new Date(row.updatedAt).toISOString(),
+  };
+}
+
+async function handlePublishedProfile(res) {
+  setCache(res, 300);
+  let { rows } = await query(`SELECT ${PROFILE_SELECT} FROM developer_profile LIMIT 1`);
+  if (!rows[0]) {
+    await query(
+      `INSERT INTO developer_profile (name, headline, email, status, work_experience, education, projects, technical_skills, languages)
+       VALUES ('Developer', 'Full Stack Developer', '', 'published', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb)`,
+    );
+    ({ rows } = await query(`SELECT ${PROFILE_SELECT} FROM developer_profile LIMIT 1`));
+  }
+  if (!rows[0] || rows[0].status !== "published") {
+    sendJson(res, 404, { error: "Profile not found" });
+    return;
+  }
+  sendJson(res, 200, formatProfile(rows[0]));
+}
+
+async function handlePopularPosts(req, res) {
+  setCache(res, 120);
+  const q = parseQuery(req.url);
+  const limitNum = Math.min(12, parseInt(q.limit || "6", 10) || 6);
+  const { rows } = await query(
+    `SELECT ${POST_LIST_SELECT} FROM posts p
+     LEFT JOIN categories c ON c.id = p.category_id
+     WHERE ${PUBLISHED} ORDER BY p.views DESC, p.created_at DESC LIMIT $1`,
+    [limitNum],
+  );
+  sendJson(res, 200, rows.map((r) => formatPost(r)));
+}
+
 /** Public routes — raw pg/fetch, no 2.5MB bundle. Returns true when handled. */
 export async function tryFastRoute(path, req, res) {
   const method = (req.method || "GET").toUpperCase();
@@ -546,8 +584,16 @@ export async function tryFastRoute(path, req, res) {
       await handleDevHeadlines(req, res);
       return true;
     }
-    if (method === "GET" && path === "/api/auth/user/me" && !parseCookies(req)["connect.sid"]) {
-      handleUserMe(res);
+    if (method === "GET" && path === "/api/auth/user/me") {
+      await handleUserMeWithSession(req, res);
+      return true;
+    }
+    if (method === "GET" && path === "/api/profile") {
+      await handlePublishedProfile(res);
+      return true;
+    }
+    if (method === "GET" && path === "/api/posts/popular") {
+      await handlePopularPosts(req, res);
       return true;
     }
     if (method === "GET" && path === "/api/ai/status") {
@@ -597,11 +643,13 @@ export async function tryFastRoute(path, req, res) {
   }
 }
 
-/** True for /api/ai/* routes that need the AI bundle (chat, stream, etc.). */
+/** True for /api/ai/* routes handled by ai-chat-routes.js (not the heavy bundle). */
 export function isAiBundlePath(path, method) {
   if (!path.startsWith("/api/ai/")) return false;
   if (path === "/api/ai/status" || path === "/api/ai/conversations") return false;
-  return true;
+  const m = (method || "GET").toUpperCase();
+  if (m === "GET" && path === "/api/ai/conversations") return false;
+  return false;
 }
 
 export function isFastRoutePath(path, req) {
@@ -612,6 +660,8 @@ export function isFastRoutePath(path, req) {
   if (method === "GET" && path === "/api/posts/home-feed") return true;
   if (method === "GET" && path.startsWith("/api/feeds/dev-headlines")) return true;
   if (method === "GET" && path === "/api/auth/user/me") return true;
+  if (method === "GET" && path === "/api/profile") return true;
+  if (method === "GET" && path === "/api/posts/popular") return true;
   if (method === "GET" && path === "/api/ai/status") return true;
   if (method === "GET" && path === "/api/ai/conversations") return true;
   if (method === "GET" && path === "/api/jobs/sources") return true;
