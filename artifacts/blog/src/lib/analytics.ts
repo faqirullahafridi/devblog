@@ -1,6 +1,6 @@
 /** Client-side analytics helpers for GA4 and Plausible */
 
-import { hasCookieConsent } from "@/lib/cookie-consent";
+import { hasCookieConsent, canTrackAnalytics } from "@/lib/cookie-consent";
 
 declare global {
   interface Window {
@@ -10,6 +10,10 @@ declare global {
 }
 
 function canTrack(): boolean {
+  return typeof window !== "undefined" && canTrackAnalytics();
+}
+
+function canTrackThirdParty(): boolean {
   return typeof window !== "undefined" && hasCookieConsent();
 }
 
@@ -20,7 +24,7 @@ export function trackPageView(path: string, title?: string) {
   if (window.gtag) {
     window.gtag("event", "page_view", { page_path: path, page_title: pageTitle });
   }
-  if (window.plausible) {
+  if (canTrackThirdParty() && window.plausible) {
     window.plausible("pageview", { props: { path } });
   }
 }
@@ -34,7 +38,7 @@ export function trackEvent(
   if (window.gtag) {
     window.gtag("event", name, props);
   }
-  if (window.plausible) {
+  if (canTrackThirdParty() && window.plausible) {
     window.plausible(name, props ? { props } : undefined);
   }
 }

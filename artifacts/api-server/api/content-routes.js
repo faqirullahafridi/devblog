@@ -12,6 +12,30 @@ import {
 } from "./route-utils.js";
 
 const PUBLISHED = `p.status = 'published' AND (p.publish_at IS NULL OR p.publish_at <= NOW())`;
+
+const STATIC_SITEMAP_PATHS = [
+  "/",
+  "/search",
+  "/about",
+  "/developer",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/templates",
+  "/tools",
+  "/learn",
+  "/refs",
+  "/snippets",
+  "/interview",
+  "/ai",
+  "/playground",
+  "/roadmaps",
+  "/challenges",
+  "/jobs",
+  "/api-sources",
+  "/community",
+  "/resources",
+];
 const POST_LIST_SELECT = `
   p.id, p.title, p.slug, p.excerpt, p.featured_image AS "featuredImage",
   p.status, p.is_featured AS "isFeatured", p.tags, p.publish_at AS "publishAt",
@@ -243,18 +267,26 @@ async function handleSitemap(res) {
   const site = getSiteUrl();
   const today = new Date().toISOString().split("T")[0];
   const [posts, categories] = await Promise.all([
-    query(`SELECT slug, updated_at AS "updatedAt" FROM posts WHERE ${PUBLISHED} ORDER BY updated_at DESC LIMIT 500`),
+    query(
+      `SELECT slug, updated_at AS "updatedAt" FROM posts p WHERE ${PUBLISHED} ORDER BY p.updated_at DESC LIMIT 500`,
+    ),
     query(`SELECT slug FROM categories ORDER BY name`),
   ]);
-  const urls = [`${site}/`, `${site}/jobs`, `${site}/challenges`, `${site}/learn`];
+  const urls = STATIC_SITEMAP_PATHS.map((path) => ({
+    loc: `${site}${path === "/" ? "/" : path}`,
+    lastmod: today,
+  }));
   for (const p of posts.rows) {
-    urls.push(`${site}/blog/${p.slug}`);
+    urls.push({
+      loc: `${site}/post/${p.slug}`,
+      lastmod: new Date(p.updatedAt).toISOString().split("T")[0],
+    });
   }
   for (const c of categories.rows) {
-    urls.push(`${site}/category/${c.slug}`);
+    urls.push({ loc: `${site}/category/${c.slug}`, lastmod: today });
   }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
-    .map((loc) => `  <url><loc>${loc}</loc><lastmod>${today}</lastmod></url>`)
+    .map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod></url>`)
     .join("\n")}\n</urlset>`;
   sendText(res, 200, xml, "application/xml; charset=utf-8");
 }
@@ -271,8 +303,8 @@ async function handleFeed(res) {
     .map(
       (p) => `<item>
   <title>${escapeXml(p.title)}</title>
-  <link>${site}/blog/${p.slug}</link>
-  <guid>${site}/blog/${p.slug}</guid>
+  <link>${site}/post/${p.slug}</link>
+  <guid>${site}/post/${p.slug}</guid>
   <pubDate>${new Date(p.createdAt).toUTCString()}</pubDate>
   <description>${escapeXml(p.excerpt ?? "")}</description>
 </item>`,

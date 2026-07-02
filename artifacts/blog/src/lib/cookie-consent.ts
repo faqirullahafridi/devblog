@@ -1,4 +1,6 @@
 export const COOKIE_CONSENT_KEY = "cookie-consent";
+export const COOKIE_CONSENT_ACCEPTED = "accepted";
+export const COOKIE_CONSENT_REJECTED = "rejected";
 
 const GOOGLE_CONSENT_DENIED = {
   ad_storage: "denied",
@@ -20,23 +22,42 @@ declare global {
   }
 }
 
-export function hasCookieConsent(): boolean {
+export function getCookieConsentChoice(): string | null {
   try {
-    return localStorage.getItem(COOKIE_CONSENT_KEY) === "accepted";
+    const value = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (value === COOKIE_CONSENT_ACCEPTED || value === COOKIE_CONSENT_REJECTED) return value;
+    return null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function hasCookieConsent(): boolean {
+  return getCookieConsentChoice() === COOKIE_CONSENT_ACCEPTED;
+}
+
+export function hasCookieChoice(): boolean {
+  return getCookieConsentChoice() !== null;
+}
+
+/** GA custom events + SPA page views (respects explicit reject; otherwise follows Consent Mode defaults). */
+export function canTrackAnalytics(): boolean {
+  return getCookieConsentChoice() !== COOKIE_CONSENT_REJECTED;
 }
 
 export function updateGoogleConsent(granted: boolean): void {
   window.gtag?.("consent", "update", granted ? GOOGLE_CONSENT_GRANTED : GOOGLE_CONSENT_DENIED);
-  if (granted) {
-    window.gtag?.("set", "ads_data_redaction", false);
-  }
+  window.gtag?.("set", "ads_data_redaction", !granted);
 }
 
 export function grantCookieConsent(): void {
-  localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
+  localStorage.setItem(COOKIE_CONSENT_KEY, COOKIE_CONSENT_ACCEPTED);
   updateGoogleConsent(true);
   window.dispatchEvent(new Event("cookie-consent-accepted"));
+}
+
+export function rejectCookieConsent(): void {
+  localStorage.setItem(COOKIE_CONSENT_KEY, COOKIE_CONSENT_REJECTED);
+  updateGoogleConsent(false);
+  window.dispatchEvent(new Event("cookie-consent-rejected"));
 }

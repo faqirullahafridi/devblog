@@ -1,19 +1,29 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { COOKIE_CONSENT_KEY, grantCookieConsent, hasCookieConsent } from "@/lib/cookie-consent";
+import {
+  COOKIE_CONSENT_KEY,
+  grantCookieConsent,
+  hasCookieChoice,
+  rejectCookieConsent,
+} from "@/lib/cookie-consent";
 
-export { hasCookieConsent } from "@/lib/cookie-consent";
+export { hasCookieConsent, hasCookieChoice } from "@/lib/cookie-consent";
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!hasCookieConsent()) setVisible(true);
+    if (!hasCookieChoice()) setVisible(true);
   }, []);
 
   const accept = () => {
     grantCookieConsent();
+    setVisible(false);
+  };
+
+  const reject = () => {
+    rejectCookieConsent();
     setVisible(false);
   };
 
@@ -27,8 +37,12 @@ export function CookieConsent() {
           <Link href="/privacy" className="text-primary underline">Privacy Policy</Link>.
         </p>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={() => setVisible(false)}>Dismiss</Button>
-          <Button size="sm" onClick={accept}>Accept</Button>
+          <Button size="sm" variant="outline" onClick={reject}>
+            Reject
+          </Button>
+          <Button size="sm" onClick={accept}>
+            Accept
+          </Button>
         </div>
       </div>
     </div>

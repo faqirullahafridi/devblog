@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) + Consent Mode v2 (defaults denied until Accept) -->
+    <!-- Google tag (gtag.js) + Consent Mode v2 (EEA denied by default; rest of world granted) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4XPLQ8RK00"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+
+      var eeaRegions = [
+        "AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT",
+        "LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH",
+      ];
 
       gtag("consent", "default", {
         ad_storage: "denied",
@@ -13,14 +18,24 @@
         ad_personalization: "denied",
         analytics_storage: "denied",
         wait_for_update: 500,
+        region: eeaRegions,
       });
+
+      gtag("consent", "default", {
+        ad_storage: "granted",
+        ad_user_data: "granted",
+        ad_personalization: "granted",
+        analytics_storage: "granted",
+      });
+
       gtag("set", "ads_data_redaction", true);
 
       gtag("js", new Date());
-      gtag("config", "G-4XPLQ8RK00");
+      gtag("config", "G-4XPLQ8RK00", { send_page_view: false });
 
       try {
-        if (localStorage.getItem("cookie-consent") === "accepted") {
+        var consentChoice = localStorage.getItem("cookie-consent");
+        if (consentChoice === "accepted") {
           gtag("consent", "update", {
             ad_storage: "granted",
             ad_user_data: "granted",
@@ -28,6 +43,14 @@
             analytics_storage: "granted",
           });
           gtag("set", "ads_data_redaction", false);
+        } else if (consentChoice === "rejected") {
+          gtag("consent", "update", {
+            ad_storage: "denied",
+            ad_user_data: "denied",
+            ad_personalization: "denied",
+            analytics_storage: "denied",
+          });
+          gtag("set", "ads_data_redaction", true);
         }
       } catch (e) {}
     </script>
