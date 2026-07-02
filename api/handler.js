@@ -1,11 +1,11 @@
 import serverless from "serverless-http";
+import { tryFastRoute } from "./fast-routes.js";
 
 export const config = {
   maxDuration: 30,
 };
 
 let handlerPromise = null;
-let publicHandlerPromise = null;
 
 function requestPath(req) {
   const raw = req.url ?? "/";
@@ -30,22 +30,6 @@ function applyFullAppPath(req, path) {
   req.url = path + querySuffix(req);
 }
 
-function applyPublicAppPath(req, path) {
-  const stripped = path === "/api" ? "/" : path.startsWith("/api/") ? path.slice(4) : path;
-  req.url = stripped + querySuffix(req);
-}
-
-function isPublicApiPath(path, req) {
-  if (path === "/api/auth/user/me") {
-    return !String(req.headers?.cookie || "").includes("connect.sid");
-  }
-  return (
-    path === "/api/categories" ||
-    path === "/api/posts/home-feed" ||
-    path.startsWith("/api/feeds/dev-headlines")
-  );
-}
-
 function buildUnavailableHandler(message) {
   return serverless((_req, res) => {
     res.status(503).json({
@@ -54,23 +38,6 @@ function buildUnavailableHandler(message) {
       detail: message,
     });
   });
-}
-
-async function getPublicHandler() {
-  if (!publicHandlerPromise) {
-    const started = Date.now();
-    publicHandlerPromise = import("../artifacts/api-server/dist/public-api.mjs")
-      .then((mod) => {
-        console.log(`[api] public bundle loaded in ${Date.now() - started}ms`);
-        return serverless(mod.default);
-      })
-      .catch((err) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[api] Failed to load public bundle:", message);
-        return null;
-      });
-  }
-  return publicHandlerPromise;
 }
 
 async function getHandler() {
@@ -96,6 +63,7 @@ export default async function handler(req, res) {
   if (path === "/api/healthz") {
     return res.status(200).json({ status: "ok" });
   }
+
   if (path === "/api/readyz") {
     return res.status(200).json({
       status: "ok",
@@ -109,14 +77,11 @@ export default async function handler(req, res) {
     });
   }
 
+  if (await tryFastRoute(path, req, res)) {
+    return;
+  }
+
   try {
-    if (isPublicApiPath(path, req)) {
-      const publicEntry = await getPublicHandler();
-      if (publicEntry) {
-        applyPublicAppPath(req, path);
-        return await publicEntry(req, res);
-      }
-    }
     const entry = await getHandler();
     applyFullAppPath(req, path);
     return await entry(req, res);
