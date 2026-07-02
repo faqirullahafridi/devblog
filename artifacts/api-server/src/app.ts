@@ -37,6 +37,12 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Keep health checks independent from session/database middleware so
+// diagnostics still work when the DB is unavailable.
+app.get("/api/healthz", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 import { ADMIN_SESSION_TTL_MS } from "./lib/admin-session";
 
 const PgSession = connectPgSimple(session);

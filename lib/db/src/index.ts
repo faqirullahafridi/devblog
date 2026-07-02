@@ -31,7 +31,7 @@ export const pool = new Pool({
   ssl: { rejectUnauthorized: false },
   max: poolMax,
   idleTimeoutMillis,
-  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? 20_000),
+  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? (isServerless ? 7_000 : 20_000)),
   keepAlive: true,
   keepAliveInitialDelayMillis: 10_000,
   allowExitOnIdle: isServerless,

@@ -4,21 +4,35 @@ export const config = {
   maxDuration: 30,
 };
 
-let handler;
+let handlerPromise = null;
 
-try {
-  const mod = await import("../dist/serverless.mjs");
-  handler = serverless(mod.default);
-} catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
-  console.error("[api] Failed to load serverless bundle:", message);
-  handler = serverless((_req, res) => {
+function buildUnavailableHandler(message) {
+  return serverless((_req, res) => {
     res.status(503).json({
       error: "API failed to start",
-      hint: "Run the api-server build and set DATABASE_URL (or DATABASE_POOLER_URL) on Vercel.",
+      hint: "Set DATABASE_URL (or DATABASE_POOLER_URL) on Vercel API project.",
       detail: message,
     });
   });
 }
 
-export default handler;
+async function getHandler() {
+  if (!handlerPromise) {
+    handlerPromise = import("../dist/serverless.mjs")
+      .then((mod) => serverless(mod.default))
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[api] Failed to load serverless bundle:", message);
+        return buildUnavailableHandler(message);
+      });
+  }
+  return handlerPromise;
+}
+
+export default async function entry(req, res) {
+  if (req.url === "/api/healthz" || req.url === "/healthz") {
+    return res.status(200).json({ status: "ok" });
+  }
+  const handler = await getHandler();
+  return handler(req, res);
+}
