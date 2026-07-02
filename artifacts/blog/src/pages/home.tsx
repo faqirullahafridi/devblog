@@ -12,6 +12,7 @@ import { HomeRecentFeed } from "@/components/home/home-recent-feed";
 import { HomeSidebar } from "@/components/home/home-sidebar";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 const HomeTemplatesStrip = lazy(() =>
   import("@/components/home/home-templates-strip").then((m) => ({ default: m.HomeTemplatesStrip })),
@@ -132,6 +133,10 @@ export default function Home() {
         <HomeTemplatesStrip />
         <HomeDevHeadlines />
       </Suspense>
+
+      <section className="container mx-auto px-4 py-14 max-w-4xl border-t">
+        <HubSeoIntro path="/" />
+      </section>
     </PublicLayout>
   );
 }

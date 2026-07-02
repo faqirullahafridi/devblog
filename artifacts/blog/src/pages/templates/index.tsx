@@ -15,6 +15,7 @@ import {
 import { SeoHead, siteUrl } from "@/components/seo-head";
 import { Search, LayoutTemplate, TrendingUp, Sparkles, Flame, ArrowRight } from "lucide-react";
 import { useState } from "react";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 export default function TemplatesIndexPage() {
   const [query, setQuery] = useState("");
@@ -96,6 +97,10 @@ export default function TemplatesIndexPage() {
           </div>
         </div>
       </section>
+
+      <div className="container mx-auto px-4 max-w-4xl">
+        <HubSeoIntro path="/templates" />
+      </div>
 
       <div className="container mx-auto px-4 py-12 space-y-14">
         {/* Categories grid */}

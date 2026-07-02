@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { submitContact } from "@/lib/api-extra";
 import { SeoHead } from "@/components/seo-head";
 import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, seoTitle } from "@/lib/site-config";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 export default function ContactPage() {
   const { data: profile } = useGetDeveloperProfile();
@@ -47,6 +48,8 @@ export default function ContactPage() {
             Have a question, feedback, or advertising inquiry? We&apos;d love to hear from you.
           </p>
         </header>
+
+        <HubSeoIntro path="/contact" className="mb-10" />
 
         <div className="grid gap-6 sm:grid-cols-2 mb-10">
           <div className="rounded-xl border bg-card p-5 flex items-start gap-3">

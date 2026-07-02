@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 const PAGE_SIZE = 10;
 
@@ -52,6 +53,8 @@ export default function Search() {
             autoFocus
           />
         </div>
+
+        <HubSeoIntro path="/search" />
 
         <div className="space-y-8">
           {isLoading ? (

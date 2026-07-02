@@ -6,6 +6,7 @@ import { AI_MODES, AI_SPECIAL_MODES } from "@/components/platform/ai-config";
 import { ArrowRight, MessageSquare, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 const ALL_MODES = [...AI_MODES, ...AI_SPECIAL_MODES];
 
@@ -76,6 +77,10 @@ export default function AiIndexPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="container mx-auto px-4 py-10 max-w-4xl">
+        <HubSeoIntro path="/ai" />
       </section>
 
       {/* Mode bento */}

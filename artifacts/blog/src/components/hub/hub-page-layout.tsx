@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 import { seoTitle } from "@/lib/site-config";
 import { ChevronLeft } from "lucide-react";
 
@@ -37,6 +38,7 @@ export function HubPageLayout({
           <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-2 leading-relaxed">{description}</p>
         </header>
+        <HubSeoIntro />
         {children}
         {footer}
       </div>
@@ -64,6 +66,7 @@ export function HubIndexLayout({
           <h1 className="text-4xl font-extrabold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-3 text-lg leading-relaxed">{description}</p>
         </header>
+        <HubSeoIntro className="mb-10 max-w-3xl mx-auto space-y-3 text-sm leading-relaxed text-muted-foreground md:text-base" />
         {children}
       </div>
     </PublicLayout>

@@ -3,6 +3,7 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { TOOLS, getToolHref } from "@/lib/tools-config";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 export default function ToolsIndexPage() {
   return (
@@ -19,6 +20,7 @@ export default function ToolsIndexPage() {
             Each tool includes a full guide explaining concepts, usage, and common mistakes.
           </p>
         </header>
+        <HubSeoIntro path="/tools" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((tool) => {
             const Icon = tool.icon;

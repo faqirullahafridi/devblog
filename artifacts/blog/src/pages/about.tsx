@@ -9,6 +9,7 @@ import { TOOLS } from "@/lib/tools-config";
 import { REFS } from "@/lib/refs-config";
 import { SNIPPETS } from "@/lib/snippets-config";
 import { LEARN_PATHS } from "@/lib/learn-config";
+import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 
 export default function AboutPage() {
   const { data: profile } = useGetDeveloperProfile();
@@ -30,6 +31,10 @@ export default function AboutPage() {
             covering web development, Python, JavaScript, and the craft of building software well.
           </p>
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-12 max-w-3xl">
+        <HubSeoIntro path="/about" />
       </div>
 
       <div className="container mx-auto px-4 py-12 max-w-3xl space-y-14">

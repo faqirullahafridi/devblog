@@ -27,22 +27,14 @@ function canonicalFor(pathname) {
 }
 
 function buildStaticMain(page) {
-  const paragraphs = [...page.paragraphs, ...STATIC_SEO_PARAGRAPHS];
-  const body = paragraphs.map((p) => `      <p>${escapeHtml(p)}</p>`).join("\n");
-  return `    <main id="seo-static-content">
-      <h1>${escapeHtml(page.h1)}</h1>
-      <h2>${escapeHtml(page.h2)}</h2>
+  const body = page.paragraphs.map((p) => `      <p>${escapeHtml(p)}</p>`).join("\n");
+  return `      <main id="seo-static-content">
+        <h1>${escapeHtml(page.h1)}</h1>
+        <h2>${escapeHtml(page.h2)}</h2>
 ${body}
-    </main>
+      </main>
 `;
 }
-
-const STATIC_SEO_PARAGRAPHS = [
-  "TechVentry links articles, tools, references, and learning paths so you can move from reading to practice in one session.",
-  "Use the site menu to jump between tutorials, templates, interview prep, job listings, and free browser utilities.",
-  "The full app loads with JavaScript and adds search, filters, live tools, playgrounds, and community features.",
-  "This page summary stays in HTML for crawlers and no-script browsers so the topic and value stay clear in search indexes.",
-];
 
 function applySeo(template, page) {
   const canonical = canonicalFor(page.path);
@@ -86,7 +78,7 @@ function applySeo(template, page) {
   if (html.includes('id="seo-static-content"')) {
     html = html.replace(/<main id="seo-static-content">[\s\S]*?<\/main>\s*/, main);
   } else {
-    html = html.replace("<div id=\"root\">", `${main}    <div id="root">`);
+    html = html.replace(/<div id="root">\s*/, `<div id="root">\n${main}`);
   }
 
   // Remove legacy duplicate blocks if present in an older template build.
