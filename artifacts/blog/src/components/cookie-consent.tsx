@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { COOKIE_CONSENT_KEY, grantCookieConsent, hasCookieConsent } from "@/lib/cookie-consent";
 
-const CONSENT_KEY = "cookie-consent";
+export { hasCookieConsent } from "@/lib/cookie-consent";
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(CONSENT_KEY)) setVisible(true);
+    if (!hasCookieConsent()) setVisible(true);
   }, []);
 
   const accept = () => {
-    localStorage.setItem(CONSENT_KEY, "accepted");
+    grantCookieConsent();
     setVisible(false);
-    window.dispatchEvent(new Event("cookie-consent-accepted"));
   };
 
   if (!visible) return null;
@@ -35,6 +35,5 @@ export function CookieConsent() {
   );
 }
 
-export function hasCookieConsent() {
-  return localStorage.getItem(CONSENT_KEY) === "accepted";
-}
+/** @deprecated Use COOKIE_CONSENT_KEY from `@/lib/cookie-consent`. */
+export const CONSENT_KEY = COOKIE_CONSENT_KEY;

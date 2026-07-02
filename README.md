@@ -177,7 +177,7 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 
 Do **not** set `VITE_API_URL` when the site and API share the same domain.
 
-**www vs apex:** In Vercel → **Settings → Domains**, set `www.techventry.com` to **Redirect to `techventry.com`** (dashboard only — do not also redirect apex → www, or you get redirect loops). The `vercel.json` host redirect was removed because it broke JS/CSS on `www` (CORS + `ERR_TOO_MANY_REDIRECTS` on images).
+**www vs apex:** In Vercel → **Settings → Domains**, set `techventry.com` (apex) to **Redirect to `www.techventry.com`**. Use `https://www.techventry.com` for `SITE_URL` and canonical tags.
 
 If the homepage shows *“API server only”*, the deploy was still using `outputDirectory: public` and `pnpm run build` (API only). Redeploy after pulling the latest `artifacts/api-server/vercel.json`.
 
@@ -187,7 +187,7 @@ If the homepage shows *“API server only”*, the deploy was still using `outpu
    - `DATABASE_POOLER_URL` — Supabase pooler (port 6543, `?pgbouncer=true`) — strongly recommended on Vercel
    - `SESSION_SECRET` — signs admin and public user session cookies
    - `CRON_SECRET` — authenticates `/api/jobs/sync/cron`
-   - `SITE_URL` — canonical site URL (e.g. `https://techventry.com`)
+   - `SITE_URL` — canonical site URL (e.g. `https://www.techventry.com`)
    - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_EMAIL` — admin OTP and password reset email
 3. **Run database migrations** against the production database (from your machine or CI, with `DATABASE_URL` set):
 

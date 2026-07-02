@@ -2,6 +2,8 @@ import { useEffect } from "react";
 
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site-config";
 
+export { siteUrl } from "@/lib/site-config";
+
 type SeoHeadProps = {
   title?: string;
   description?: string;
@@ -70,11 +72,4 @@ export function SeoHead({
   }, [title, description, image, url, type, jsonLd]);
 
   return null;
-}
-
-export function siteUrl(path = "") {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}${path}`;
-  }
-  return path;
 }

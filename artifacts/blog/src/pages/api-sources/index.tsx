@@ -25,9 +25,12 @@ function PricingBadge({ pricing }: { pricing: ApiPricing }) {
   );
 }
 
+const cardBodyText =
+  "min-w-0 max-w-full w-full break-all [overflow-wrap:anywhere] text-muted-foreground leading-relaxed";
+
 function ApiSourceCard({ source }: { source: ApiSource }) {
   return (
-    <li className="flex h-full min-w-0 flex-col overflow-hidden border-2 border-foreground bg-card p-5 brutal-shadow-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow transition-all">
+    <li className="flex h-full min-w-0 max-w-full flex-col overflow-x-hidden border-2 border-foreground bg-card p-5 brutal-shadow-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow transition-all">
       <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <h3 className="break-words font-black text-lg leading-tight">{source.name}</h3>
@@ -54,21 +57,23 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
         </a>
       </div>
 
-      <p className="mb-3 break-words text-sm font-medium text-foreground">{source.summary}</p>
+      <p className="mb-3 min-w-0 max-w-full break-all text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+        {source.summary}
+      </p>
 
-      <dl className="min-w-0 space-y-3 text-sm">
-        <div className="min-w-0">
+      <dl className="min-w-0 max-w-full w-full space-y-3 text-sm">
+        <div className="min-w-0 max-w-full">
           <dt className="mb-1 text-[10px] font-black uppercase tracking-wider text-primary">Great for</dt>
-          <dd className="break-words text-muted-foreground leading-relaxed">{source.idealFor}</dd>
+          <dd className={cardBodyText}>{source.idealFor}</dd>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-full">
           <dt className="mb-1 text-[10px] font-black uppercase tracking-wider text-primary">How it works</dt>
-          <dd className="break-words text-muted-foreground leading-relaxed [overflow-wrap:anywhere]">{source.howItWorks}</dd>
+          <dd className={cardBodyText}>{source.howItWorks}</dd>
         </div>
         {source.freeLimits && (
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-full">
             <dt className="mb-1 text-[10px] font-black uppercase tracking-wider text-primary">Free tier limits</dt>
-            <dd className="break-words text-muted-foreground leading-relaxed">{source.freeLimits}</dd>
+            <dd className={cardBodyText}>{source.freeLimits}</dd>
           </div>
         )}
         {source.envVars && source.envVars.length > 0 && (
@@ -141,7 +146,7 @@ export default function ApiSourcesPage() {
           <section key={cat.id}>
             <h2 className="text-xl font-black tracking-tight">{cat.title}</h2>
             <p className="text-sm text-muted-foreground mt-1 mb-6">{cat.description}</p>
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0 [&>*]:max-w-full">
               {cat.sources.map((source) => (
                 <ApiSourceCard key={source.id} source={source} />
               ))}

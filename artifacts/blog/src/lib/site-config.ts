@@ -1,5 +1,7 @@
 export const SITE_NAME = "TechVentry";
 export const SITE_DOMAIN = "techventry.com";
+/** Canonical production origin (www). Apex redirects here in Vercel. */
+export const SITE_ORIGIN = "https://www.techventry.com";
 export const SITE_EMAIL = "info@techventry.com";
 export const SITE_TAGLINE = "Developer knowledge hub for builders who ship.";
 export const SITE_DESCRIPTION =
@@ -8,4 +10,10 @@ export const SITE_DESCRIPTION =
 export function seoTitle(page?: string): string {
   if (!page) return `${SITE_NAME} — Developer knowledge hub`;
   return `${page} — ${SITE_NAME}`;
+}
+
+/** Absolute canonical URL for SEO meta, JSON-LD, and share cards. */
+export function siteUrl(path = ""): string {
+  if (!path || path === "/") return `${SITE_ORIGIN}/`;
+  return `${SITE_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
 }

@@ -1,5 +1,7 @@
 /** Client-side analytics helpers for GA4 and Plausible */
 
+import { hasCookieConsent } from "@/lib/cookie-consent";
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -8,7 +10,7 @@ declare global {
 }
 
 function canTrack(): boolean {
-  return typeof window !== "undefined" && localStorage.getItem("cookie-consent") === "accepted";
+  return typeof window !== "undefined" && hasCookieConsent();
 }
 
 export function trackPageView(path: string, title?: string) {

@@ -15,7 +15,7 @@ const OTP_EXPIRES_MINUTES = Math.round(OTP_TTL_MS / 60_000);
 export function getSiteUrl() {
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "https://techventry.com";
+  return "https://www.techventry.com";
 }
 
 export async function sendEmail(opts: {

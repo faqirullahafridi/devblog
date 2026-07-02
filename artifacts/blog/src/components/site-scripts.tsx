@@ -1,20 +1,11 @@
 import { useEffect, useState } from "react";
+import { hasCookieConsent } from "@/lib/cookie-consent";
 
 export function Analytics() {
-  const gaId = import.meta.env.VITE_GA_ID as string | undefined;
   const plausible = import.meta.env.VITE_PLAUSIBLE_DOMAIN as string | undefined;
 
   useEffect(() => {
     const load = () => {
-      if (gaId) {
-        const s1 = document.createElement("script");
-        s1.async = true;
-        s1.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
-        document.head.appendChild(s1);
-        const s2 = document.createElement("script");
-        s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`;
-        document.head.appendChild(s2);
-      }
       if (plausible) {
         const s = document.createElement("script");
         s.defer = true;
@@ -24,10 +15,10 @@ export function Analytics() {
       }
     };
 
-    if (localStorage.getItem("cookie-consent") === "accepted") load();
+    if (hasCookieConsent()) load();
     window.addEventListener("cookie-consent-accepted", load);
     return () => window.removeEventListener("cookie-consent-accepted", load);
-  }, [gaId, plausible]);
+  }, [plausible]);
 
   return null;
 }
@@ -46,7 +37,7 @@ export function AdSenseScript() {
       s.crossOrigin = "anonymous";
       document.head.appendChild(s);
     };
-    if (localStorage.getItem("cookie-consent") === "accepted") load();
+    if (hasCookieConsent()) load();
     window.addEventListener("cookie-consent-accepted", load);
     return () => window.removeEventListener("cookie-consent-accepted", load);
   }, [client]);
@@ -59,7 +50,7 @@ export function AdSlot({ className }: { className?: string }) {
   const [consented, setConsented] = useState(false);
 
   useEffect(() => {
-    setConsented(localStorage.getItem("cookie-consent") === "accepted");
+    setConsented(hasCookieConsent());
     const onAccept = () => setConsented(true);
     window.addEventListener("cookie-consent-accepted", onAccept);
     return () => window.removeEventListener("cookie-consent-accepted", onAccept);

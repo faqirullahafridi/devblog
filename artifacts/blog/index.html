@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) + Consent Mode v2 (defaults denied until Accept) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4XPLQ8RK00"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+
+      gtag("consent", "default", {
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+        analytics_storage: "denied",
+        wait_for_update: 500,
+      });
+      gtag("set", "ads_data_redaction", true);
+
+      gtag("js", new Date());
+      gtag("config", "G-4XPLQ8RK00");
+
+      try {
+        if (localStorage.getItem("cookie-consent") === "accepted") {
+          gtag("consent", "update", {
+            ad_storage: "granted",
+            ad_user_data: "granted",
+            ad_personalization: "granted",
+            analytics_storage: "granted",
+          });
+          gtag("set", "ads_data_redaction", false);
+        }
+      } catch (e) {}
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>TechVentry</title>
@@ -9,13 +39,27 @@
     <meta property="og:title" content="TechVentry" />
     <meta property="og:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.techventry.com/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TechVentry" />
     <meta name="twitter:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
-    <link rel="canonical" href="https://techventry.com/" />
+    <link rel="canonical" href="https://www.techventry.com/" />
+    <style>
+      .seo-crawl-nav {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
     <script>
       (function () {
         var p = location.pathname.replace(/\/$/, "") || "/";
@@ -53,6 +97,41 @@
     </script>
   </head>
   <body>
+    <nav class="seo-crawl-nav" aria-label="Site navigation">
+      <a href="/">Home</a>
+      <a href="/search">Articles</a>
+      <a href="/templates">Templates</a>
+      <a href="/tools">Tools</a>
+      <a href="/learn">Learning Paths</a>
+      <a href="/refs">References</a>
+      <a href="/snippets">Snippets</a>
+      <a href="/interview">Interview Prep</a>
+      <a href="/ai">AI Assistant</a>
+      <a href="/playground">Playground</a>
+      <a href="/roadmaps">Roadmaps</a>
+      <a href="/challenges">Challenges</a>
+      <a href="/jobs">Jobs</a>
+      <a href="/api-sources">API Sources</a>
+      <a href="/community">Community</a>
+      <a href="/resources">Resources</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <noscript>
+      <nav aria-label="Site navigation">
+        <p>TechVentry — developer knowledge hub. Enable JavaScript for the full experience, or browse:</p>
+        <ul>
+          <li><a href="/search">Articles</a></li>
+          <li><a href="/templates">Templates</a></li>
+          <li><a href="/tools">Tools</a></li>
+          <li><a href="/learn">Learning Paths</a></li>
+          <li><a href="/ai">AI Assistant</a></li>
+          <li><a href="/jobs">Jobs</a></li>
+          <li><a href="/api-sources">API Sources</a></li>
+          <li><a href="/about">About</a></li>
+        </ul>
+      </nav>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

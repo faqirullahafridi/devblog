@@ -1,9 +1,9 @@
-import { SITE_DOMAIN, SITE_NAME } from "./site-config";
+import { SITE_DOMAIN, SITE_NAME, SITE_ORIGIN } from "./site-config";
 
 function getSiteUrl(): string {
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return `https://${SITE_DOMAIN}`;
+  return SITE_ORIGIN;
 }
 
 function escapeHtml(value: string): string {
