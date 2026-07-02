@@ -2,8 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "public",
+  "buildCommand": "pnpm run build:vercel",
+  "outputDirectory": "../blog/dist/public",
   "framework": null,
   "functions": {
     "api/index.js": {
@@ -17,20 +17,60 @@
       "includeFiles": "dist/**,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
     }
   },
-  "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
-    { "source": "/robots.txt", "destination": "/api/robots.txt" },
-    { "source": "/feed.xml", "destination": "/api/feed.xml" }
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.techventry.com" }],
+      "destination": "https://techventry.com/:path*",
+      "permanent": true
+    }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/auth/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-store, no-cache, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:jpg|jpeg|png|gif|webp|svg|ico|woff2?))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
     }
-  ]
+  ],
+  "crons": [
+    {
+      "path": "/api/jobs/sync/cron",
+      "schedule": "0 6 * * *"
+    }
+  ],
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
+    { "source": "/robots.txt", "destination": "/api/robots.txt" },
+    { "source": "/feed.xml", "destination": "/api/feed.xml" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "build": {
+    "env": {
+      "BASE_PATH": "/",
+      "PORT": "3000",
+      "NODE_ENV": "production"
+    }
+  }
 }

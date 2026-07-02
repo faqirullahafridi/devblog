@@ -168,12 +168,16 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 
 ### Which project gets `techventry.com`?
 
-| Vercel project | Root Directory | Serves | Domain |
-|----------------|----------------|--------|--------|
-| **Main site** (use this for your domain) | *(empty — repo root)* | Blog homepage + `/api` on same domain | `techventry.com`, `www.techventry.com` |
-| **API-only** (optional) | `artifacts/api-server` | Backend only — **not** the homepage | `devblog-api-server.vercel.app` or `api.techventry.com` |
+**One project is enough.** If your Vercel **Root Directory** is `artifacts/api-server`, use that project’s `vercel.json` — it builds the full site (`pnpm run build:vercel`) and serves the blog from `../blog/dist/public` plus `/api` serverless routes.
 
-If `techventry.com` shows *“TechVentry API — use /api/healthz”*, the domain is on the **wrong** project. In Vercel → **API-only project → Settings → Domains**, remove `techventry.com` / `www`. Add those domains to the **main** project instead, then redeploy the main project.
+| Vercel Root Directory | `vercel.json` used | Build command |
+|-----------------------|-------------------|---------------|
+| *(empty — repo root)* | `/vercel.json` | `pnpm -w run build:vercel` |
+| `artifacts/api-server` | `artifacts/api-server/vercel.json` | `pnpm run build:vercel` |
+
+Do **not** set `VITE_API_URL` when the site and API share the same domain.
+
+If the homepage shows *“API server only”*, the deploy was still using `outputDirectory: public` and `pnpm run build` (API only). Redeploy after pulling the latest `artifacts/api-server/vercel.json`.
 
 1. Connect the repo to Vercel.
 2. Add environment variables from `.env.example`. **Minimum for production:**
