@@ -7,7 +7,7 @@ import { renderFeedHtml, wantsFeedHtml } from "../lib/feed-html";
 import { cachePublic } from "../lib/cache";
 import { cached } from "../lib/memory-cache";
 import learnSitemapRoutes from "../lib/learn-sitemap-routes.json" with { type: "json" };
-import templatesSitemapRoutes from "../lib/templates-sitemap-routes.json" with { type: "json" };
+import { SITE_NAME } from "../lib/site-config";
 
 const router = Router();
 
@@ -244,9 +244,9 @@ router.get("/feed.xml", cachePublic(1800), async (req, res) => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Dev Blog</title>
+    <title>${SITE_NAME}</title>
     <link>${site}</link>
-    <description>Developer knowledge hub</description>
+    <description>${SITE_NAME} — developer knowledge hub</description>
     <language>en-us</language>${items}
   </channel>
 </rss>`;

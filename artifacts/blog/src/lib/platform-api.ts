@@ -4,10 +4,32 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, { credentials: "include", ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
+    const message = (err as { error?: string }).error || `Request failed (${res.status})`;
+    const error = new Error(message) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+async function apiFetchWithRetry<T>(path: string, init?: RequestInit, retries = 2): Promise<T> {
+  let lastErr: Error | undefined;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await apiFetch<T>(path, init);
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      const status = (lastErr as Error & { status?: number }).status;
+      const retryable = status === 503 || status === 502 || status === 504 || status === 500;
+      if (attempt < retries && retryable) {
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        continue;
+      }
+      throw lastErr;
+    }
+  }
+  throw lastErr;
 }
 
 // ── AI ──────────────────────────────────────────────────────────────
@@ -15,28 +37,207 @@ export type AiMessage = { id: number; role: string; content: string; createdAt: 
 export type AiConversation = { id: number; title: string; mode: string; updatedAt: string; messages?: AiMessage[] };
 
 export const aiKeys = {
-  conversations: ["ai", "conversations"] as const,
+  conversations: (mode?: string) => (mode ? (["ai", "conversations", mode] as const) : (["ai", "conversations"] as const)),
   conversation: (id: number) => ["ai", "conversation", id] as const,
   usage: ["ai", "usage"] as const,
+  status: ["ai", "status"] as const,
+  models: (mode: string) => ["ai", "models", mode] as const,
 };
 
-export function listAiConversations() {
-  return apiFetch<AiConversation[]>("/ai/conversations");
+export function listAiConversations(mode?: string) {
+  const q = mode ? `?mode=${encodeURIComponent(mode)}` : "";
+  return apiFetch<AiConversation[]>(`/ai/conversations${q}`);
 }
 
 export function getAiConversation(id: number) {
-  return apiFetch<AiConversation & { messages: AiMessage[] }>(`/ai/conversations/${id}`);
+  return apiFetchWithRetry<AiConversation & { messages: AiMessage[] }>(`/ai/conversations/${id}`);
 }
 
-export function sendAiMessage(mode: string, message: string, conversationId?: number) {
-  return apiFetch<{ conversationId: number; message: AiMessage }>(`/ai/chat/${mode}`, {
+export function deleteAiConversation(id: number) {
+  return apiFetch<void>(`/ai/conversations/${id}`, { method: "DELETE" });
+}
+
+export function sendAiMessage(mode: string, message: string, conversationId?: number, modelId?: string) {
+  return apiFetch<{
+    conversationId: number;
+    message: AiMessage;
+    model?: { provider: string; name: string };
+  }>(`/ai/chat/${mode}`, {
     method: "POST",
-    body: JSON.stringify({ message, conversationId }),
+    body: JSON.stringify({ message, conversationId, modelId: modelId && modelId !== "auto" ? modelId : undefined }),
   });
+}
+
+export type AiStreamDone = {
+  conversationId: number;
+  message: AiMessage;
+  model?: { provider: string; name: string };
+  usage?: { tokensIn: number; tokensOut: number };
+};
+
+export async function streamAiMessage(
+  mode: string,
+  message: string,
+  handlers: {
+    onStart?: (conversationId: number) => void;
+    onDelta: (chunk: string, fullText: string) => void;
+    onDone: (data: AiStreamDone) => void;
+    onError: (error: string) => void;
+  },
+  conversationId?: number,
+  modelId?: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`/api/ai/chat/${mode}`, {
+    method: "POST",
+    credentials: "include",
+    signal,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify({
+      message,
+      conversationId,
+      stream: true,
+      modelId: modelId && modelId !== "auto" ? modelId : undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("Streaming not supported");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+
+    for (const event of events) {
+      for (const line of event.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const data = JSON.parse(line.slice(6)) as {
+            type: string;
+            content?: string;
+            conversationId?: number;
+            message?: AiMessage;
+            model?: { provider: string; name: string };
+            usage?: { tokensIn: number; tokensOut: number };
+            error?: string;
+          };
+
+          if (data.type === "start" && data.conversationId != null) {
+            handlers.onStart?.(data.conversationId);
+          } else if (data.type === "delta" && data.content) {
+            fullText += data.content;
+            handlers.onDelta(data.content, fullText);
+          } else if (data.type === "done" && data.message && data.conversationId != null) {
+            handlers.onDone({
+              conversationId: data.conversationId,
+              message: data.message,
+              model: data.model,
+              usage: data.usage,
+            });
+          } else if (data.type === "error" && data.error) {
+            handlers.onError(data.error);
+          }
+        } catch {
+          /* skip malformed SSE chunk */
+        }
+      }
+    }
+  }
 }
 
 export function getAiUsage() {
   return apiFetch<{ total: number; tokensIn: number; tokensOut: number }>("/ai/usage/me");
+}
+
+export type AiModelOption = {
+  id: string;
+  provider: string;
+  model: string;
+  label: string;
+  category?: AiModelCategory;
+};
+
+export type AiStatus = {
+  configured: boolean;
+  provider: string;
+  providers: Array<{ name: string; model: string }>;
+  models?: AiModelOption[];
+};
+
+import { AI_MODEL_PICKER_OPTIONS } from "@/lib/ai-model-prefs";
+import type { AiModelCategory } from "@/lib/ai-model-categories";
+
+export function aiModelOptionId(provider: string, model: string): string {
+  return `${provider}::${model}`;
+}
+
+const PICKER_CATEGORY: Record<string, AiModelCategory> = {
+  auto: "chat",
+  "category::chat": "chat",
+  "category::code": "code",
+  "category::image": "image",
+};
+
+function pickerOptionsAsModels(): AiModelOption[] {
+  return AI_MODEL_PICKER_OPTIONS.map((o) => ({
+    id: o.id,
+    provider: o.id === "auto" ? "auto" : "category",
+    model: o.id === "auto" ? "auto" : o.id.slice("category::".length),
+    label: o.label,
+    category: PICKER_CATEGORY[o.id] ?? "chat",
+  }));
+}
+
+export function getAiStatus() {
+  return apiFetch<AiStatus>("/ai/status");
+}
+
+export function getAiModels(mode: string) {
+  return apiFetch<{ mode: string; models: AiModelOption[] }>(`/ai/models?mode=${encodeURIComponent(mode)}`);
+}
+
+/** Tries /ai/models, then /ai/status — works with older API builds missing the models route. */
+export async function resolveAiModels(mode: string): Promise<{ mode: string; models: AiModelOption[]; source: "models" | "status" | "default" }> {
+  try {
+    const data = await getAiModels(mode);
+    if (data.models?.length) return { ...data, source: "models" };
+  } catch {
+    /* /ai/models missing or failed — fall back to status */
+  }
+
+  try {
+    const status = await getAiStatus();
+    if (status.models?.length) {
+      return { mode, models: status.models, source: "status" };
+    }
+    if (status.providers?.length) {
+      return {
+        mode,
+        models: pickerOptionsAsModels(),
+        source: "status",
+      };
+    }
+  } catch {
+    /* API unreachable */
+  }
+
+  return { mode, models: pickerOptionsAsModels(), source: "default" };
 }
 
 // ── Playground ──────────────────────────────────────────────────────

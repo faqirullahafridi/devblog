@@ -25,12 +25,12 @@ export function BrandLogo({
         <div className="relative flex min-w-0 flex-col">
           <div className="flex items-end gap-2">
             <span className="font-mono text-[1.35rem] font-black uppercase leading-none tracking-[-0.08em] text-foreground">
-              Dev
+              Tech
             </span>
             <span
               className="brand-wordmark-shine mb-0.5 font-mono text-[1.05rem] font-black italic leading-none tracking-[-0.03em] text-primary"
             >
-              blog
+              Ventry
             </span>
             {variant === "admin" && (
               <span className="mb-1 ml-0.5 inline-flex items-center gap-1 border-2 border-foreground bg-primary px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-[0.18em] text-primary-foreground brutal-shadow-sm">

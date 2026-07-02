@@ -5,6 +5,7 @@ import { useParams } from "wouter";
 import { useState } from "react";
 import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 
 const PAGE_SIZE = 10;
 
@@ -27,7 +28,7 @@ export default function Category() {
   return (
     <PublicLayout>
       <SeoHead
-        title={category ? `${category.name} — devblog` : "Category — devblog"}
+        title={category ? seoTitle(category.name) : seoTitle("Category")}
         description={category?.description || undefined}
       />
       <div className="container mx-auto px-4 py-12">

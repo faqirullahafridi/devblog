@@ -1,14 +1,36 @@
+import { kvGet, kvSet } from "./kv-store";
+
 type Entry<T> = { value: T; expiresAt: number };
 
 const store = new Map<string, Entry<unknown>>();
 
 export async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
   const now = Date.now();
+  const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+
+  const kvHit = await kvGet(key);
+  if (kvHit) {
+    try {
+      return JSON.parse(kvHit) as T;
+    } catch {
+      /* fall through */
+    }
+  }
+
   const hit = store.get(key) as Entry<T> | undefined;
   if (hit && hit.expiresAt > now) return hit.value;
 
   const value = await loader();
-  store.set(key, { value, expiresAt: now + ttlMs });
+  const shouldCache = !(Array.isArray(value) && value.length === 0);
+  if (shouldCache) {
+    store.set(key, { value, expiresAt: now + ttlMs });
+    try {
+      await kvSet(key, JSON.stringify(value), ttlSec);
+    } catch {
+      /* memory-only fallback */
+    }
+  }
+
   return value;
 }
 

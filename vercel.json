@@ -1,15 +1,54 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run build:vercel",
   "outputDirectory": "artifacts/blog/dist/public",
   "framework": null,
   "functions": {
     "api/index.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "node_modules/connect-pg-simple/**,artifacts/api-server/dist/**"
     }
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.techventry.com" }],
+      "destination": "https://techventry.com/:path*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/auth/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:jpg|jpeg|png|gif|webp|svg|ico|woff2?))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    }
+  ],
   "crons": [
     {
       "path": "/api/jobs/sync/cron",

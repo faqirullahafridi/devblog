@@ -2,7 +2,8 @@ import { Router, type Request, type Response } from "express";
 import { db, aiConversationsTable, aiMessagesTable, aiUsageTable } from "@workspace/db";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { getVisitorId } from "../lib/visitor-session";
-import { completeAiChat, getAiStatus, modeFromPath, type AiMode } from "../lib/ai-service";
+import { withDbRetry, isDbConnectionError } from "../lib/db-retry";
+import { completeAiChat, streamAiChat, getAiStatus, listAiModelOptions, modeFromPath, type AiMode } from "../lib/ai-service";
 import { requireAuth } from "../middleware/require-auth";
 import { cachePublic } from "../lib/cache";
 import { rateLimit } from "../lib/rate-limit";
@@ -16,22 +17,40 @@ const aiChatLimit = rateLimit({
 });
 
 router.get("/ai/status", cachePublic(300), (_req, res) => {
-  const status = getAiStatus();
-  res.json({ configured: status.configured });
+  res.json(getAiStatus());
+});
+
+router.get("/ai/models", cachePublic(60), (req, res) => {
+  const mode = modeFromPath(typeof req.query.mode === "string" ? req.query.mode : "chat");
+  res.json({ mode, models: listAiModelOptions(mode) });
 });
 
 router.get("/ai/conversations", async (req, res) => {
   try {
     const visitorId = getVisitorId(req, res);
-    const rows = await db
-      .select()
-      .from(aiConversationsTable)
-      .where(eq(aiConversationsTable.visitorId, visitorId))
-      .orderBy(desc(aiConversationsTable.updatedAt))
-      .limit(50);
+    const modeFilter =
+      typeof req.query.mode === "string" && req.query.mode.trim()
+        ? modeFromPath(req.query.mode)
+        : undefined;
+
+    const rows = await withDbRetry(() =>
+      db
+        .select()
+        .from(aiConversationsTable)
+        .where(
+          modeFilter
+            ? and(eq(aiConversationsTable.visitorId, visitorId), eq(aiConversationsTable.mode, modeFilter))
+            : eq(aiConversationsTable.visitorId, visitorId),
+        )
+        .orderBy(desc(aiConversationsTable.updatedAt))
+        .limit(50),
+    );
     res.json(rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to list AI conversations");
+    if (isDbConnectionError(err)) {
+      return res.status(503).json({ error: "Database temporarily unavailable. Try again." });
+    }
     res.status(500).json({ error: "Failed to list conversations" });
   }
 });
@@ -40,23 +59,41 @@ router.get("/ai/conversations/:id", async (req, res) => {
   try {
     const visitorId = getVisitorId(req, res);
     const id = parseInt(req.params.id, 10);
-    const [conv] = await db.select().from(aiConversationsTable).where(and(eq(aiConversationsTable.id, id), eq(aiConversationsTable.visitorId, visitorId))).limit(1);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid conversation id" });
+
+    const [conv] = await withDbRetry(() =>
+      db
+        .select()
+        .from(aiConversationsTable)
+        .where(and(eq(aiConversationsTable.id, id), eq(aiConversationsTable.visitorId, visitorId)))
+        .limit(1),
+    );
     if (!conv) return res.status(404).json({ error: "Conversation not found" });
 
-    const messages = await db
-      .select()
-      .from(aiMessagesTable)
-      .where(eq(aiMessagesTable.conversationId, id))
-      .orderBy(aiMessagesTable.createdAt);
+    const messages = await withDbRetry(() =>
+      db
+        .select()
+        .from(aiMessagesTable)
+        .where(eq(aiMessagesTable.conversationId, id))
+        .orderBy(aiMessagesTable.createdAt),
+    );
 
     res.json({
       ...conv,
       createdAt: conv.createdAt.toISOString(),
       updatedAt: conv.updatedAt.toISOString(),
-      messages: messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() })),
+      messages: messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      })),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get AI conversation");
+    if (isDbConnectionError(err)) {
+      return res.status(503).json({ error: "Database temporarily unavailable. Try again." });
+    }
     res.status(500).json({ error: "Failed to get conversation" });
   }
 });
@@ -89,13 +126,19 @@ router.delete("/ai/conversations/:id", async (req, res) => {
 });
 
 async function handleAiChat(req: Request, res: Response) {
+  const wantsStream =
+    (req.body as { stream?: boolean })?.stream === true ||
+    String(req.headers.accept ?? "").includes("text/event-stream");
+
   try {
     const visitorId = getVisitorId(req, res);
     const mode = modeFromPath(req.params.mode || "chat") as AiMode;
-    const { message, conversationId, title } = req.body as {
+    const { message, conversationId, title, modelId } = req.body as {
       message?: string;
       conversationId?: number;
       title?: string;
+      modelId?: string;
+      stream?: boolean;
     };
 
     if (!message?.trim()) return res.status(400).json({ error: "message is required" });
@@ -122,6 +165,73 @@ async function handleAiChat(req: Request, res: Response) {
       .where(eq(aiMessagesTable.conversationId, convId))
       .orderBy(aiMessagesTable.createdAt);
 
+    const history = prior.map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+    if (wantsStream) {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders?.();
+
+      const send = (payload: unknown) => {
+        res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      };
+
+      send({ type: "start", conversationId: convId });
+
+      await db.insert(aiMessagesTable).values({
+        conversationId: convId,
+        role: "user",
+        content: message.trim(),
+        tokensUsed: 0,
+      });
+
+      try {
+        const { content, tokensIn, tokensOut, provider, model } = await streamAiChat({
+          mode,
+          messages: history,
+          userMessage: message.trim(),
+          modelId,
+          onDelta: (text) => send({ type: "delta", content: text }),
+        });
+
+        const [assistantMsg] = await db
+          .insert(aiMessagesTable)
+          .values({
+            conversationId: convId,
+            role: "assistant",
+            content,
+            tokensUsed: tokensOut,
+          })
+          .returning();
+
+        await db.insert(aiUsageTable).values({
+          visitorId,
+          mode,
+          promptType: mode,
+          tokensIn,
+          tokensOut,
+        });
+
+        await db.update(aiConversationsTable).set({ updatedAt: new Date() }).where(eq(aiConversationsTable.id, convId));
+
+        send({
+          type: "done",
+          conversationId: convId,
+          message: { ...assistantMsg, createdAt: assistantMsg.createdAt.toISOString() },
+          usage: { tokensIn, tokensOut },
+          model: { provider, name: model },
+        });
+        res.end();
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "AI request failed";
+        send({ type: "error", error: errMsg });
+        res.end();
+      }
+      return;
+    }
+
     await db.insert(aiMessagesTable).values({
       conversationId: convId,
       role: "user",
@@ -129,11 +239,11 @@ async function handleAiChat(req: Request, res: Response) {
       tokensUsed: 0,
     });
 
-    const history = prior.map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
-    const { content, tokensIn, tokensOut } = await completeAiChat({
+    const { content, tokensIn, tokensOut, provider, model } = await completeAiChat({
       mode,
       messages: history,
       userMessage: message.trim(),
+      modelId,
     });
 
     const [assistantMsg] = await db
@@ -160,10 +270,12 @@ async function handleAiChat(req: Request, res: Response) {
       conversationId: convId,
       message: { ...assistantMsg, createdAt: assistantMsg.createdAt.toISOString() },
       usage: { tokensIn, tokensOut },
+      model: { provider, name: model },
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : "AI request failed";
     req.log.error({ err }, "AI chat failed");
-    res.status(503).json({ error: "AI is temporarily unavailable. Please try again later." });
+    res.status(503).json({ error: message });
   }
 }
 

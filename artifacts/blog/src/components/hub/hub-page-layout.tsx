@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { ChevronLeft } from "lucide-react";
 
 export function HubPageLayout({
@@ -22,7 +23,7 @@ export function HubPageLayout({
 }) {
   return (
     <PublicLayout>
-      <SeoHead title={`${title} — devblog ${section}`} description={description} />
+      <SeoHead title={seoTitle(`${title} ${section}`)} description={description} />
       <div className="container mx-auto px-4 py-10 max-w-4xl">
         <Link
           href={backHref}

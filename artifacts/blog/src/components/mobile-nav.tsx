@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { MobileDrawer, MobileDrawerTitle } from "@/components/mobile-drawer";
 import {
@@ -17,6 +18,47 @@ import { REFS, getRefHref } from "@/lib/refs-config";
 import { LEARN_PATHS, getLearnHref } from "@/lib/learn-config";
 import { INTERVIEW_TOPICS, getInterviewHref } from "@/lib/interview-config";
 import { TEMPLATE_CATEGORIES, getTemplateCategoryHref } from "@/lib/templates-config";
+import { getSiteUser } from "@/lib/api-extra";
+
+function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
+  const { data } = useQuery({
+    queryKey: ["auth", "site-user"],
+    queryFn: getSiteUser,
+    staleTime: 60_000,
+  });
+
+  if (data?.authenticated && data.user) {
+    return (
+      <NavSection title="Account">
+        <NavLink
+          href={`/community/profile/${data.user.username}`}
+          label={data.user.displayName || data.user.username}
+          onNavigate={onNavigate}
+        />
+      </NavSection>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 px-3">
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="flex-1 font-bold border-foreground brutal-shadow-sm"
+      >
+        <Link href="/login" onClick={onNavigate}>Sign in</Link>
+      </Button>
+      <Button
+        asChild
+        size="sm"
+        className="flex-1 font-bold border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm hover:bg-primary/90"
+      >
+        <Link href="/signup" onClick={onNavigate}>Sign up</Link>
+      </Button>
+    </div>
+  );
+}
 
 function NavLink({
   href,
@@ -63,6 +105,18 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
   const closeMenu = () => {
     setMoreOpen(false);
     setOpen(false);
+    forceUnlockBodyScroll();
+    document.documentElement.style.overflow = "";
+  };
+
+  const toggleMenu = () => {
+    setOpen((v) => {
+      if (v) {
+        forceUnlockBodyScroll();
+        document.documentElement.style.overflow = "";
+      }
+      return !v;
+    });
   };
 
   useEffect(() => {
@@ -80,11 +134,15 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
         type="button"
         variant="ghost"
         size="icon"
-        className="md:hidden shrink-0 border-2 border-transparent hover:border-foreground relative z-[102]"
+        className="relative z-20 shrink-0 touch-manipulation md:hidden border-2 border-transparent hover:border-foreground"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
-        onClick={() => setOpen((v) => !v)}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleMenu();
+        }}
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
@@ -219,6 +277,8 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
 
             <NavLink href="/resources" label="Resources" onNavigate={closeMenu} />
             <NavLink href="/ides" label="IDEs & Editors" onNavigate={closeMenu} />
+
+            <MobileAuthLinks onNavigate={closeMenu} />
           </nav>
         </div>
       </MobileDrawer>

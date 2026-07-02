@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { SITE_DESCRIPTION, SITE_NAME, seoTitle } from "@/lib/site-config";
 import { useGetDeveloperProfile, useListCategories } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Mail, PenLine, Search, Wrench, User, BookMarked, Code, GraduationCap, MessageSquare, Link2 } from "lucide-react";
@@ -15,10 +16,7 @@ export default function AboutPage() {
 
   return (
     <PublicLayout>
-      <SeoHead
-        title="About — devblog"
-        description="devblog is a developer knowledge hub with articles, tutorials, free tools, and a newsletter for builders who care about craft."
-      />
+      <SeoHead title={seoTitle("About")} description={SITE_DESCRIPTION} />
       <div className="border-b-2 border-foreground bg-muted">
         <div className="container mx-auto px-4 py-14 md:py-20 max-w-3xl text-center">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">
@@ -28,7 +26,7 @@ export default function AboutPage() {
             A home for developers who care about craft
           </h1>
           <p className="text-lg text-muted-foreground mt-5 leading-relaxed">
-            devblog is a focused knowledge hub for tutorials, deep dives, and practical tools —
+            {SITE_NAME} is a focused knowledge hub for tutorials, deep dives, and practical tools —
             covering web development, Python, JavaScript, and the craft of building software well.
           </p>
         </div>
@@ -152,10 +150,10 @@ export default function AboutPage() {
           <section className="rounded-xl border bg-muted/20 p-6 space-y-4">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <User className="h-6 w-6 text-primary" />
-              Who runs devblog
+              Who runs {SITE_NAME}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              devblog is created and maintained by{" "}
+              {SITE_NAME} is created and maintained by{" "}
               <strong className="text-foreground">{profile.name}</strong>
               {profile.headline ? ` — ${profile.headline}` : ""}.
               {profile.aboutMe && (

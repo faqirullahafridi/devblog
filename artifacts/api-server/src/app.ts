@@ -37,6 +37,8 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+import { ADMIN_SESSION_TTL_MS } from "./lib/admin-session";
+
 const PgSession = connectPgSimple(session);
 
 app.use(
@@ -51,7 +53,7 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: ADMIN_SESSION_TTL_MS,
       sameSite: "lax",
     },
   }),

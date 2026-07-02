@@ -9,12 +9,19 @@ import {
   communityReportsTable,
 } from "@workspace/db";
 import { eq, desc, and, sql, or, ilike } from "drizzle-orm";
+import type { Request } from "express";
 import { getVisitorId } from "../lib/visitor-session";
 import { slugify } from "../lib/slugify";
 import { requireAuth } from "../middleware/require-auth";
 import { cachePublic } from "../lib/cache";
 
 const router = Router();
+
+function resolveAuthorName(req: Request, authorName?: string): string {
+  if (authorName?.trim()) return authorName.trim();
+  if (req.session.siteDisplayName) return req.session.siteDisplayName;
+  return req.session.githubName || req.session.githubLogin || "Anonymous";
+}
 
 async function ensureCommunityUser(visitorId: string, username: string) {
   const [existing] = await db.select().from(communityUsersTable).where(eq(communityUsersTable.visitorId, visitorId)).limit(1);
@@ -88,7 +95,7 @@ router.post("/community/questions", async (req, res) => {
     };
     if (!title?.trim() || !body?.trim()) return res.status(400).json({ error: "title and body required" });
 
-    const name = authorName?.trim() || "Anonymous";
+    const name = resolveAuthorName(req, authorName);
     await ensureCommunityUser(visitorId, name);
 
     const slug = `${slugify(title)}-${randomBytes(3).toString("hex")}`;
@@ -120,7 +127,7 @@ router.post("/community/questions/:id/answers", async (req, res) => {
     const [q] = await db.select().from(communityQuestionsTable).where(eq(communityQuestionsTable.id, questionId)).limit(1);
     if (!q) return res.status(404).json({ error: "Question not found" });
 
-    const name = authorName?.trim() || "Anonymous";
+    const name = resolveAuthorName(req, authorName);
     await ensureCommunityUser(visitorId, name);
 
     const [a] = await db

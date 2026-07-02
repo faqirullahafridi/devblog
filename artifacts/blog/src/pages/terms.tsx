@@ -6,13 +6,13 @@ export default function TermsPage() {
   return (
     <LegalPageLayout title="Terms of Service" lastUpdated={LAST_UPDATED}>
       <p>
-        Welcome to devblog. By accessing or using this website, you agree to be bound by these
+        Welcome to TechVentry. By accessing or using this website, you agree to be bound by these
         Terms of Service. If you do not agree, please do not use the site.
       </p>
 
       <h2>Use of the website</h2>
       <p>
-        devblog provides educational articles, tutorials, and developer resources for personal and
+        TechVentry provides educational articles, tutorials, and developer resources for personal and
         non-commercial use, unless otherwise stated. You may read, share links to, and reference our
         content with proper attribution.
       </p>
@@ -28,7 +28,7 @@ export default function TermsPage() {
       <h2>Intellectual property</h2>
       <p>
         Unless otherwise noted, all content on this website—including text, graphics, logos, and
-        layout—is owned by devblog or its content contributors and is protected by copyright and
+        layout—is owned by TechVentry or its content contributors and is protected by copyright and
         other intellectual property laws. You may not reproduce, distribute, or create derivative
         works without prior written consent, except as permitted by fair use or with attribution
         when sharing links.
@@ -67,7 +67,7 @@ export default function TermsPage() {
 
       <h2>Limitation of liability</h2>
       <p>
-        To the fullest extent permitted by law, devblog and its operators shall not be liable for
+        To the fullest extent permitted by law, TechVentry and its operators shall not be liable for
         any indirect, incidental, special, consequential, or punitive damages arising from your use
         of the site, including reliance on any content or loss of data or profits.
       </p>

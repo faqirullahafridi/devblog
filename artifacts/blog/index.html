@@ -3,21 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>devblog</title>
-    <meta name="description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
+    <title>TechVentry</title>
+    <meta name="description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="devblog" />
-    <meta property="og:description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
+    <meta property="og:title" content="TechVentry" />
+    <meta property="og:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="devblog" />
-    <meta name="twitter:description" content="devblog — a focused knowledge hub for developers who care about code quality and craft." />
+    <meta name="twitter:title" content="TechVentry" />
+    <meta name="twitter:description" content="TechVentry — a developer knowledge hub with articles, tools, templates, and learning paths." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
-    <link rel="alternate" type="application/rss+xml" title="devblog RSS Feed" href="/feed.xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
+    <script>
+      (function () {
+        var p = location.pathname.replace(/\/$/, "") || "/";
+        if (p !== "/") return;
+        var lq = document.createElement("link");
+        lq.rel = "preload";
+        lq.as = "image";
+        lq.href = "/hero-devblog-lqip.jpg";
+        document.head.appendChild(lq);
+        var specs = [
+          { href: "/hero-devblog-480.webp", media: "(max-width: 1023px)", type: "image/webp" },
+          { href: "/hero-devblog-768.webp", media: "(min-width: 1024px)", type: "image/webp" },
+        ];
+        for (var i = 0; i < specs.length; i++) {
+          var l = document.createElement("link");
+          l.rel = "preload";
+          l.as = "image";
+          l.href = specs[i].href;
+          l.media = specs[i].media;
+          if (specs[i].type) l.type = specs[i].type;
+          document.head.appendChild(l);
+        }
+      })();
+    </script>
     <script>
       (function () {
         try {

@@ -1,16 +1,24 @@
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead, siteUrl } from "@/components/seo-head";
+import { SITE_DESCRIPTION, SITE_NAME, seoTitle } from "@/lib/site-config";
+import { HERO_IMAGE } from "@/lib/hero-image";
 import { getHomeFeed } from "@/lib/api-extra";
 import type { Post } from "@workspace/api-client-react";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeFeaturedSpotlight } from "@/components/home/home-featured-spotlight";
 import { HomeRecentFeed } from "@/components/home/home-recent-feed";
 import { HomeSidebar } from "@/components/home/home-sidebar";
-import { HomeTemplatesStrip } from "@/components/home/home-templates-strip";
-import { HomeAiChat } from "@/components/home/home-ai-chat";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
+
+const HomeTemplatesStrip = lazy(() =>
+  import("@/components/home/home-templates-strip").then((m) => ({ default: m.HomeTemplatesStrip })),
+);
+const HomeDevHeadlines = lazy(() =>
+  import("@/components/home/home-dev-headlines").then((m) => ({ default: m.HomeDevHeadlines })),
+);
 
 function SectionHeader({
   label,
@@ -55,16 +63,16 @@ export default function Home() {
   return (
     <PublicLayout>
       <SeoHead
-        title="devblog — Developer knowledge hub"
-        description="Articles, tutorials, and free developer tools for builders who care about code quality and craft."
+        title={seoTitle("Developer knowledge hub")}
+        description={SITE_DESCRIPTION}
         url={siteUrl("/")}
-        image="/hero-devblog.png"
+        image={HERO_IMAGE.og}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "devblog",
+          name: SITE_NAME,
           url: siteUrl("/"),
-          description: "Developer knowledge hub with articles and free tools",
+          description: SITE_DESCRIPTION,
           potentialAction: {
             "@type": "SearchAction",
             target: `${siteUrl("/search")}?q={search_term_string}`,
@@ -74,7 +82,6 @@ export default function Home() {
       />
 
       <HomeHero />
-      <HomeAiChat />
 
       {/* Featured spotlight */}
       <section className="container mx-auto px-4 py-14 md:py-16">
@@ -121,7 +128,10 @@ export default function Home() {
         </div>
       </section>
 
-      <HomeTemplatesStrip />
+      <Suspense fallback={null}>
+        <HomeTemplatesStrip />
+        <HomeDevHeadlines />
+      </Suspense>
     </PublicLayout>
   );
 }

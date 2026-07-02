@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { SITE_NAME } from "@/lib/site-config";
 import { TemplateCard } from "@/components/templates/template-card";
 import { TemplatesLayout } from "@/components/templates/templates-layout";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ export default function TemplatesIndexPage() {
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "devblog Templates",
+          name: `${SITE_NAME} Templates`,
           description: "Free website template library with source code downloads",
           url: siteUrl("/templates"),
           numberOfItems: TEMPLATES.length,

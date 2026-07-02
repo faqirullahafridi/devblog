@@ -31,8 +31,14 @@ export const pool = new Pool({
   ssl: { rejectUnauthorized: false },
   max: poolMax,
   idleTimeoutMillis,
-  connectionTimeoutMillis: 10_000,
+  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? 20_000),
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
   allowExitOnIdle: isServerless,
+});
+
+pool.on("error", (err) => {
+  console.error("[db] idle pool client error", err.message);
 });
 export const db = drizzle(pool, { schema });
 

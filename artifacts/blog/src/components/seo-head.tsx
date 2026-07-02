@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site-config";
+
 type SeoHeadProps = {
   title?: string;
   description?: string;
@@ -21,8 +23,8 @@ function setMeta(name: string, content: string, property = false) {
 }
 
 export function SeoHead({
-  title = "devblog",
-  description = "A focused knowledge hub for developers who care about code quality and craft.",
+  title = SITE_NAME,
+  description = SITE_DESCRIPTION,
   image,
   url,
   type = "website",

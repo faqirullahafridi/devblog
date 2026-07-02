@@ -5,11 +5,14 @@
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "build:vercel": "pnpm run typecheck:libs && pnpm --filter @workspace/blog exec -- env BASE_PATH=/ PORT=3000 vite build --config vite.config.ts",
+    "build:vercel": "pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/blog exec -- env BASE_PATH=/ PORT=3000 vite build --config vite.config.ts",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=20"
+  },
   "private": true,
   "dependencies": {
     "serverless-http": "^3.2.0"

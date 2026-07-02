@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RouteAnalytics } from "@/components/route-analytics";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { SeoDocumentReload } from "@/components/seo-document-reload";
 import NotFound from "@/pages/not-found";
 
@@ -43,6 +44,7 @@ import LearnChapterPage from "@/pages/learn/chapter";
 import InterviewIndexPage from "@/pages/interview/index";
 import InterviewDetailPage from "@/pages/interview/detail";
 import ResourcesPage from "@/pages/resources/index";
+import ApiSourcesPage from "@/pages/api-sources/index";
 import IdesIndexPage from "@/pages/ides/index";
 import IdeDetailPage from "@/pages/ides/detail";
 import TemplatesIndexPage from "@/pages/templates/index";
@@ -60,6 +62,10 @@ import AiDebugPage from "@/pages/ai/debug";
 import AiExplainPage from "@/pages/ai/explain";
 import AiGeneratePage from "@/pages/ai/generate";
 import AiConvertPage from "@/pages/ai/convert";
+import AiOptimizePage from "@/pages/ai/optimize";
+import AiSqlPage from "@/pages/ai/sql";
+import AiApiPage from "@/pages/ai/api";
+import AiErrorsPage from "@/pages/ai/errors";
 import PlaygroundIndexPage from "@/pages/playground/index";
 import PlaygroundHtmlPage from "@/pages/playground/html-css-js";
 import PlaygroundPythonPage from "@/pages/playground/python";
@@ -80,6 +86,8 @@ import CommunityAskPage from "@/pages/community/ask";
 import CommunityQuestionPage from "@/pages/community/question";
 import CommunityTagPage from "@/pages/community/tag";
 import CommunityProfilePage from "@/pages/community/profile";
+import SignupPage from "@/pages/signup";
+import LoginPage from "@/pages/login";
 import AdminPlatform from "@/pages/admin/platform";
 import AdminJobs from "@/pages/admin/jobs/index";
 import AdminJobEditor from "@/pages/admin/jobs/editor";
@@ -148,6 +156,7 @@ function Router() {
       <Route path="/interview" component={InterviewIndexPage} />
       <Route path="/interview/:slug" component={InterviewDetailPage} />
       <Route path="/resources" component={ResourcesPage} />
+      <Route path="/api-sources" component={ApiSourcesPage} />
       <Route path="/ides" component={IdesIndexPage} />
       <Route path="/ides/:slug" component={IdeDetailPage} />
       <Route path="/templates" component={TemplatesIndexPage} />
@@ -165,6 +174,10 @@ function Router() {
       <Route path="/ai/explain" component={AiExplainPage} />
       <Route path="/ai/generate" component={AiGeneratePage} />
       <Route path="/ai/convert" component={AiConvertPage} />
+      <Route path="/ai/optimize" component={AiOptimizePage} />
+      <Route path="/ai/sql" component={AiSqlPage} />
+      <Route path="/ai/api" component={AiApiPage} />
+      <Route path="/ai/errors" component={AiErrorsPage} />
       <Route path="/playground" component={PlaygroundIndexPage} />
       <Route path="/playground/html-css-js" component={PlaygroundHtmlPage} />
       <Route path="/playground/python" component={PlaygroundPythonPage} />
@@ -185,6 +198,8 @@ function Router() {
       <Route path="/community/question/:id" component={CommunityQuestionPage} />
       <Route path="/community/tag/:slug" component={CommunityTagPage} />
       <Route path="/community/profile/:username" component={CommunityProfilePage} />
+      <Route path="/signup" component={SignupPage} />
+      <Route path="/login" component={LoginPage} />
 
       {/* SEO documents — full reload so Vite/API serves XML, not the SPA 404 */}
       <Route path="/feed.xml" component={SeoDocumentReload} />
@@ -224,6 +239,7 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <ScrollToTop />
             <RouteAnalytics />
             <Router />
           </WouterRouter>

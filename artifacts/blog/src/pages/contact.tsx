@@ -10,10 +10,11 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { submitContact } from "@/lib/api-extra";
 import { SeoHead } from "@/components/seo-head";
+import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, seoTitle } from "@/lib/site-config";
 
 export default function ContactPage() {
   const { data: profile } = useGetDeveloperProfile();
-  const contactEmail = profile?.email ?? "faqirullah.dev@gmail.com";
+  const contactEmail = profile?.email ?? SITE_EMAIL;
   const location = profile?.location ?? "Peshawar, Pakistan";
   const [sending, setSending] = useState(false);
 
@@ -38,7 +39,7 @@ export default function ContactPage() {
 
   return (
     <PublicLayout>
-      <SeoHead title="Contact — devblog" description="Get in touch with the devblog team." />
+      <SeoHead title={seoTitle("Contact")} description={`Get in touch with the ${SITE_NAME} team.`} />
       <div className="container mx-auto px-4 py-12 max-w-2xl">
         <header className="mb-10 text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Contact Us</h1>

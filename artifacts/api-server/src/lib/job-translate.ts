@@ -69,6 +69,34 @@ function chunkText(text: string, maxLen = CHUNK_SIZE): string[] {
   return chunks.filter(Boolean);
 }
 
+async function translateChunkLibre(text: string, fromLang: string): Promise<string> {
+  const base = (process.env.LIBRETRANSLATE_URL?.trim() || "https://libretranslate.com").replace(/\/$/, "");
+  const apiKey = process.env.LIBRETRANSLATE_API_KEY?.trim();
+
+  const body: Record<string, string> = {
+    q: text,
+    source: fromLang,
+    target: "en",
+    format: "text",
+  };
+  if (apiKey) body.api_key = apiKey;
+
+  const res = await fetch(`${base}/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`LibreTranslate unavailable (${res.status})`);
+  }
+
+  const data = (await res.json()) as { translatedText?: string };
+  const translated = data.translatedText?.trim() ?? "";
+  if (!translated) throw new Error("LibreTranslate returned empty text");
+  return translated;
+}
+
 async function translateChunk(text: string, fromLang: string, attempt = 0): Promise<string> {
   const params = new URLSearchParams({
     q: text,
@@ -132,7 +160,11 @@ async function translateChunk(text: string, fromLang: string, attempt = 0): Prom
       await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
       return translateChunk(text, fromLang, attempt + 1);
     }
-    throw err;
+    try {
+      return await translateChunkLibre(text, fromLang);
+    } catch (libreErr) {
+      throw err instanceof Error ? err : libreErr;
+    }
   }
 }
 

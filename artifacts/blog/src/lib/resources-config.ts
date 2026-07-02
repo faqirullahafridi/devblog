@@ -15,9 +15,9 @@ export type ResourceCategory = {
 
 export const RESOURCE_CATEGORIES: ResourceCategory[] = [
   {
-    id: "devblog",
+    id: "techventry",
     title: "On this site",
-    description: "Guides, tools, and reference material built into DevTool Blog.",
+    description: "Guides, tools, and reference material built into TechVentry.",
     guide: `This site is more than a blog — it bundles structured learning paths, browser-based utilities, copy-paste snippets, and quick-reference sheets alongside interview prep and IDE guides. Use these hubs when you want **curated, opinionated material** that stays close to how you actually work, without hunting through scattered bookmarks.
 
 **Learning Paths** walk topic-by-topic from fundamentals to capstone projects. **Tools** run entirely in your browser — format JSON, decode JWTs, test regex, and more — so you never leave the tab. **Snippets** are short, tested code blocks you can drop into a project. **References** condense syntax and APIs into scannable pages. **Interview Prep** groups common questions by topic with concise answers. **IDEs & Editors** compare setup, shortcuts, and extensions for the editors you use daily.
@@ -65,6 +65,13 @@ Start with the hub that matches your immediate goal: learning something new, sol
         description: "Setup guides, shortcuts, and extension picks for VS Code, Neovim, JetBrains, and more.",
         detail:
           "Check IDEs & Editors when you are setting up a new machine, switching editors, or optimizing your daily workflow. Each guide covers installation, essential extensions, keybindings, and tips specific to that editor so you spend less time configuring and more time shipping.",
+      },
+      {
+        name: "API Sources",
+        url: "/api-sources",
+        description: "Curated directory of free public APIs — limits, docs, and integration notes.",
+        detail:
+          "Browse AI, jobs, email, databases, news, media, and auth APIs with plain-language explanations of how each works, typical environment variable names, and free tier limits.",
       },
     ],
   },

@@ -40,7 +40,7 @@ export default function IdeDetailPage() {
           </Button>
           {ide.relatedHref && (
             <Button asChild variant="ghost">
-              <Link href={ide.relatedHref}>Related guide on devblog →</Link>
+              <Link href={ide.relatedHref}>Related guide on TechVentry →</Link>
             </Button>
           )}
         </div>

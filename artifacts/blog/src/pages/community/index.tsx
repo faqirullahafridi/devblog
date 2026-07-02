@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownContent } from "@/components/markdown-content";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { platformEvents } from "@/lib/analytics";
+import { GitHubAuthBar } from "@/components/community/github-auth-bar";
+import { getGitHubUser } from "@/lib/api-extra";
 
 export default function CommunityIndexPage() {
   const [search, setSearch] = useState("");
@@ -25,6 +27,7 @@ export default function CommunityIndexPage() {
 
   return (
     <PlatformHubLayout title="Developer Community" description="Ask questions, share answers, and build reputation." section="Platform">
+      <GitHubAuthBar />
       <div className="flex flex-wrap gap-2 mb-6">
         <Input placeholder="Search questions…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
         <Button asChild size="sm"><Link href="/community/ask">Ask question</Link></Button>
@@ -49,6 +52,13 @@ export function CommunityAskPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [name, setName] = useState("");
+  const { data: github } = useQuery({ queryKey: ["auth", "github"], queryFn: getGitHubUser });
+
+  useEffect(() => {
+    if (github?.authenticated && github.user && !name) {
+      setName(github.user.name ?? github.user.login ?? "");
+    }
+  }, [github, name]);
 
   const create = useMutation({
     mutationFn: () => createCommunityQuestion({ title, body, authorName: name || undefined }),
@@ -61,6 +71,7 @@ export function CommunityAskPage() {
 
   return (
     <PlatformHubLayout title="Ask a question" description="" section="Community" backHref="/community" backLabel="Community">
+      <GitHubAuthBar />
       <div className="max-w-xl space-y-4">
         <Input placeholder="Question title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <Textarea placeholder="Details (markdown supported in body as plain text)" value={body} onChange={(e) => setBody(e.target.value)} className="min-h-[160px]" />

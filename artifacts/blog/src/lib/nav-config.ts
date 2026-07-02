@@ -15,6 +15,7 @@ export const PLATFORM_LINKS = [
   { href: "/roadmaps", label: "Roadmaps" },
   { href: "/challenges", label: "Challenges" },
   { href: "/jobs", label: "Jobs" },
+  { href: "/api-sources", label: "API Sources" },
   { href: "/community", label: "Community" },
 ] as const;
 
@@ -25,6 +26,7 @@ export const CONTENT_LINKS = [
   { href: "/snippets", label: "Snippets" },
   { href: "/learn", label: "Learning Paths" },
   { href: "/interview", label: "Interview Prep" },
+  { href: "/api-sources", label: "API Sources" },
 ] as const;
 
 export const RESOURCE_LINKS = [

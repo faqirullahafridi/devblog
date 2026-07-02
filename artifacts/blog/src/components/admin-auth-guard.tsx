@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useGetAuthMe } from "@workspace/api-client-react";
+import { toast } from "sonner";
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
@@ -12,6 +13,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (denied) {
+      toast.message("Session expired. Please sign in again.");
       setLocation("/admin/login");
     }
   }, [denied, setLocation]);

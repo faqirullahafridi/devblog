@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { confirmNewsletter } from "@/lib/api-extra";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 export default function NewsletterConfirmPage() {
@@ -32,7 +33,7 @@ export default function NewsletterConfirmPage() {
 
   return (
     <PublicLayout>
-      <SeoHead title="Confirm subscription — devblog" />
+      <SeoHead title={seoTitle("Confirm subscription")} />
       <div className="container mx-auto px-4 py-20 max-w-md text-center space-y-6">
         {status === "loading" && (
           <>

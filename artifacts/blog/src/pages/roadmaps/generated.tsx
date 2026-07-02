@@ -5,6 +5,7 @@ import { getRoadmap, updateRoadmapProgress } from "@/lib/platform-api";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SeoHead, siteUrl } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 
 export default function RoadmapGeneratedPage() {
   const params = useParams<{ id: string }>();
@@ -35,7 +36,7 @@ export default function RoadmapGeneratedPage() {
 
   return (
     <PlatformHubLayout title={p.title} description={p.summary} section="Roadmaps" backHref="/roadmaps/generator" backLabel="Generator">
-      <SeoHead title={`${p.title} — devblog`} description={p.summary} url={siteUrl(`/roadmaps/generated/${slug}`)} />
+      <SeoHead title={seoTitle(p.title)} description={p.summary} url={siteUrl(`/roadmaps/generated/${slug}`)} />
       <p className="text-sm text-muted-foreground mb-6">Estimated timeline: <strong>{p.totalWeeks} weeks</strong></p>
 
       <ol className="space-y-4 mb-10">

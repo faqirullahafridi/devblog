@@ -4,6 +4,7 @@ import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 export default function NewsletterUnsubscribePage() {
@@ -33,7 +34,7 @@ export default function NewsletterUnsubscribePage() {
 
   return (
     <PublicLayout>
-      <SeoHead title="Unsubscribe — devblog" />
+      <SeoHead title={seoTitle("Unsubscribe")} />
       <div className="container mx-auto px-4 py-20 max-w-md text-center space-y-6">
         {status === "loading" && (
           <>

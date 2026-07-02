@@ -36,9 +36,18 @@ if (!basePath) {
   );
 }
 
+function shouldProxyToApi(pathname: string): boolean {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 const apiProxy = {
   target: "http://localhost:8080",
   changeOrigin: true,
+  bypass(req) {
+    const pathname = req.url?.split("?")[0] ?? "";
+    if (shouldProxyToApi(pathname)) return null;
+    return pathname;
+  },
 } as const;
 
 const seoProxy = (path: string) => ({

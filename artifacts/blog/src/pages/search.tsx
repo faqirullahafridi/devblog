@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 
 const PAGE_SIZE = 10;
 
@@ -38,7 +39,7 @@ export default function Search() {
 
   return (
     <PublicLayout>
-      <SeoHead title="Search — devblog" description="Search articles on devblog." />
+      <SeoHead title={seoTitle("Search")} description="Search articles on TechVentry." />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight mb-6">Search</h1>

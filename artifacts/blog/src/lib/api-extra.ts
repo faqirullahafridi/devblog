@@ -78,6 +78,73 @@ export async function uploadImage(file: File): Promise<string> {
   return data.url;
 }
 
+export type AdminLoginResponse = {
+  authenticated: boolean;
+  username: string | null;
+  otpRequired?: boolean;
+  message?: string;
+  error?: string;
+};
+
+export type AdminAuthResponse = {
+  authenticated: boolean;
+  username: string | null;
+  expiresAt?: number | null;
+  error?: string;
+};
+
+export async function requestAdminLogin(username: string, password: string): Promise<AdminLoginResponse> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, password }),
+  });
+  const data = (await res.json()) as AdminLoginResponse;
+  if (!res.ok) throw new Error(data.error || "Invalid credentials");
+  return data;
+}
+
+export async function verifyAdminOtp(username: string, otp: string): Promise<AdminAuthResponse> {
+  const res = await fetch("/api/auth/verify-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, otp }),
+  });
+  const data = (await res.json()) as AdminAuthResponse;
+  if (!res.ok) throw new Error(data.error || "Invalid verification code");
+  return data;
+}
+
+export async function requestPasswordResetOtp(username: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username }),
+  });
+  const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
+  if (!res.ok) throw new Error(data.error || "Failed to request reset code");
+  return { success: Boolean(data.success), message: data.message };
+}
+
+export async function resetPasswordWithOtp(
+  username: string,
+  otp: string,
+  newPassword: string,
+): Promise<{ success: boolean }> {
+  const res = await fetch("/api/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, otp, newPassword }),
+  });
+  const data = (await res.json()) as { success?: boolean; error?: string };
+  if (!res.ok) throw new Error(data.error || "Failed to reset password");
+  return { success: Boolean(data.success) };
+}
+
 export async function sendNewsletter(data: { subject: string; html: string; postSlug?: string }) {
   const res = await fetch("/api/newsletter/send", {
     method: "POST",
@@ -94,5 +161,96 @@ export async function confirmNewsletter(token: string) {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Invalid token");
+  return res.json();
+}
+
+export type DevHeadline = {
+  id: string;
+  title: string;
+  url: string;
+  source: "hackernews" | "devto";
+  score?: number;
+  comments?: number;
+  author?: string;
+};
+
+export async function getDevHeadlines(limit = 8): Promise<{ items: DevHeadline[] }> {
+  const res = await fetch(`/api/feeds/dev-headlines?limit=${limit}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load dev headlines");
+  return res.json();
+}
+
+export type GitHubUser = {
+  authenticated: boolean;
+  user: {
+    id?: string;
+    login?: string;
+    name?: string;
+    avatar?: string;
+  } | null;
+};
+
+export async function getGitHubUser(): Promise<GitHubUser> {
+  const res = await fetch("/api/auth/github/me", { credentials: "include" });
+  if (!res.ok) return { authenticated: false, user: null };
+  return res.json();
+}
+
+export async function logoutGitHub(): Promise<void> {
+  await fetch("/api/auth/github/logout", { method: "POST", credentials: "include" });
+}
+
+export type SiteUserAuth = {
+  authenticated: boolean;
+  user: {
+    id: number;
+    username: string;
+    displayName: string;
+    email: string;
+  } | null;
+};
+
+export async function getSiteUser(): Promise<SiteUserAuth> {
+  const res = await fetch("/api/auth/user/me", { credentials: "include" });
+  if (!res.ok) return { authenticated: false, user: null };
+  return res.json();
+}
+
+export async function signupSiteUser(data: {
+  email: string;
+  username: string;
+  password: string;
+  displayName?: string;
+}): Promise<SiteUserAuth> {
+  const res = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  const body = (await res.json()) as SiteUserAuth & { error?: string };
+  if (!res.ok) throw new Error(body.error || "Could not create account");
+  return body;
+}
+
+export async function loginSiteUser(data: { login: string; password: string }): Promise<SiteUserAuth> {
+  const res = await fetch("/api/auth/user/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  const body = (await res.json()) as SiteUserAuth & { error?: string };
+  if (!res.ok) throw new Error(body.error || "Sign-in failed");
+  return body;
+}
+
+export async function logoutSiteUser(): Promise<void> {
+  await fetch("/api/auth/user/logout", { method: "POST", credentials: "include" });
+}
+
+export async function getIntegrationsStatus() {
+  const res = await fetch("/api/integrations/status", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load integrations status");
   return res.json();
 }

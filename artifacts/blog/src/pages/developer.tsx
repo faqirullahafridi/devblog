@@ -2,6 +2,7 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { useGetDeveloperProfile } from "@workspace/api-client-react";
 import { Mail, MapPin, Phone, ExternalLink } from "lucide-react";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 
 export default function DeveloperPage() {
   const { data: profile, isLoading, isError } = useGetDeveloperProfile();
@@ -21,7 +22,7 @@ export default function DeveloperPage() {
   if (isError || !profile) {
     return (
       <PublicLayout>
-        <SeoHead title="Developer Profile — devblog" />
+        <SeoHead title={seoTitle("Developer Profile")} />
         <div className="container mx-auto px-4 py-20 text-center">
           <h1 className="text-3xl font-bold">Profile not available</h1>
           <p className="text-muted-foreground mt-2">Check back soon.</p>

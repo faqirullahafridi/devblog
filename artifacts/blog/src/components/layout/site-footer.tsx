@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { SITE_NAME } from "@/lib/site-config";
 import { BrandLogo } from "@/components/brand-logo";
 import { isNonSpaPath } from "@/components/seo-document-reload";
 import {
@@ -62,7 +63,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 pt-6 border-t-2 border-foreground flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} devblog. Built with craft.</p>
+          <p>© {new Date().getFullYear()} {SITE_NAME}. Built with craft.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
             <Link href="/developer" className="hover:text-foreground transition-colors">Developer</Link>

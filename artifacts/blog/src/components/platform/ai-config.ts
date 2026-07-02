@@ -86,7 +86,7 @@ export const AI_MODES: AiModeConfig[] = [
 export const AI_SPECIAL_MODES: AiModeConfig[] = [
   {
     id: "optimize",
-    href: "/ai/chat?mode=optimize",
+    href: "/ai/optimize",
     label: "Optimize",
     description: "Improve performance and readability.",
     placeholder: "Paste code to optimize…",
@@ -97,7 +97,7 @@ export const AI_SPECIAL_MODES: AiModeConfig[] = [
   },
   {
     id: "sql",
-    href: "/ai/chat?mode=sql",
+    href: "/ai/sql",
     label: "SQL",
     description: "Write and explain PostgreSQL queries.",
     placeholder: "Describe the query you need…",
@@ -108,7 +108,7 @@ export const AI_SPECIAL_MODES: AiModeConfig[] = [
   },
   {
     id: "api",
-    href: "/ai/chat?mode=api",
+    href: "/ai/api",
     label: "API Design",
     description: "Design REST endpoints with examples.",
     placeholder: "Describe the resource or feature…",
@@ -119,7 +119,7 @@ export const AI_SPECIAL_MODES: AiModeConfig[] = [
   },
   {
     id: "errors",
-    href: "/ai/chat?mode=errors",
+    href: "/ai/errors",
     label: "Explain Errors",
     description: "Decode stack traces and error messages.",
     placeholder: "Paste the error or stack trace…",

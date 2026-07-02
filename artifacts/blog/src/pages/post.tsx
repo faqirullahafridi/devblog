@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getListCommentsQueryKey } from "@workspace/api-client-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { SeoHead, siteUrl } from "@/components/seo-head";
+import { SITE_NAME, seoTitle as formatPageTitle } from "@/lib/site-config";
 import { PostTags } from "@/components/post-tags";
 import { ShareButtons } from "@/components/share-buttons";
 import { TableOfContents } from "@/components/table-of-contents";
@@ -121,7 +122,7 @@ export default function PostPage() {
   return (
     <PublicLayout>
       <SeoHead
-        title={`${seoTitle} — devblog`}
+        title={formatPageTitle(seoTitle)}
         description={seoDesc}
         image={post.featuredImage || undefined}
         url={postUrl}
@@ -134,7 +135,7 @@ export default function PostPage() {
             description: seoDesc,
             image: post.featuredImage,
             datePublished: post.createdAt,
-            author: { "@type": "Person", name: "Dev Blog" },
+            author: { "@type": "Person", name: SITE_NAME },
           },
           {
             "@context": "https://schema.org",

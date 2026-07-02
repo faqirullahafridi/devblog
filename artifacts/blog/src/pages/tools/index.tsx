@@ -1,13 +1,14 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { TOOLS, getToolHref } from "@/lib/tools-config";
 
 export default function ToolsIndexPage() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Developer Tools — devblog"
+        title={seoTitle("Developer Tools")}
         description="Free online tools for developers: JSON formatter, JWT decoder, regex tester, and more."
       />
       <div className="container mx-auto px-4 py-12 max-w-5xl">

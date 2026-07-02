@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { TOOLS, getToolHref, getToolBySlug } from "@/lib/tools-config";
 import { ChevronLeft } from "lucide-react";
 import { ToolRelatedArticles } from "@/components/tools/tool-related-articles";
@@ -23,7 +24,7 @@ export function ToolPageLayout({
 
   return (
     <PublicLayout>
-      <SeoHead title={`${title} — devblog Tools`} description={description} />
+      <SeoHead title={seoTitle(`${title} Tools`)} description={description} />
       <div className="container mx-auto px-4 py-10 max-w-4xl">
         <Link
           href="/tools"

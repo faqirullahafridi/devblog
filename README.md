@@ -25,6 +25,7 @@ A full-stack developer platform and blog — content CMS, in-browser tools, AI a
 | **Challenges** | `/challenges` | Coding challenges and leaderboard |
 | **Jobs** | `/jobs` | Aggregated IT roles (RemoteOK, Remotive, The Muse, Jooble, etc.) |
 | **Community** | `/community` | Q&A with tags and profiles |
+| **Accounts** | `/signup`, `/login` | Public email/password signup and sign-in |
 
 ### Admin panel (`/admin`)
 - Session-based auth with PostgreSQL-backed sessions
@@ -118,11 +119,11 @@ Push the schema to Postgres:
 pnpm --filter @workspace/db run push
 ```
 
-Optional — enable platform features (AI, playground, jobs, community):
+Optional — enable platform features (AI, playground, jobs, community, public accounts):
 
 ```bash
-pnpm --filter @workspace/db run migrate:platform
-pnpm --filter @workspace/db run migrate:jobs
+pnpm --filter @workspace/db run migrate:all
+# or: migrate:platform, migrate:admin, migrate:jobs, migrate:site-users, migrate:storage
 pnpm --filter @workspace/db run seed:platform
 ```
 
@@ -166,13 +167,32 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 ## Deployment (Vercel)
 
 1. Connect the repo to Vercel.
-2. Add environment variables from `.env.example` (at minimum `DATABASE_URL`, `SESSION_SECRET`, `CRON_SECRET`).
-3. Use `DATABASE_POOLER_URL` (Supabase port 6543) for serverless connection pooling.
-4. Deploy — `vercel.json` configures build output, API rewrites, and daily job cron.
+2. Add environment variables from `.env.example`. **Minimum for production:**
+   - `DATABASE_URL` — Supabase Postgres connection string
+   - `DATABASE_POOLER_URL` — Supabase pooler (port 6543, `?pgbouncer=true`) — strongly recommended on Vercel
+   - `SESSION_SECRET` — signs admin and public user session cookies
+   - `CRON_SECRET` — authenticates `/api/jobs/sync/cron`
+   - `SITE_URL` — canonical site URL (e.g. `https://techventry.com`)
+   - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_EMAIL` — admin OTP and password reset email
+3. **Run database migrations** against the production database (from your machine or CI, with `DATABASE_URL` set):
+
+   ```bash
+   pnpm --filter @workspace/db run migrate:all
+   ```
+
+4. Deploy — `vercel.json` configures build output, API rewrites, auth no-cache headers, and daily job cron.
 
 ```bash
 pnpm run build:vercel   # same command Vercel runs
 ```
+
+### Post-deploy checklist
+
+- [ ] Migrations applied (`migrate:all` or individual `migrate:*` scripts)
+- [ ] Admin login works (`/admin/login`) — requires `migrate:admin` + Resend or dev OTP fallback
+- [ ] Public signup works (`/signup`) — requires `migrate:site-users`
+- [ ] GitHub community sign-in (optional) — `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, callback `{SITE_URL}/api/auth/github/callback`
+- [ ] Job cron — `CRON_SECRET` set; verify `/api/jobs/sync/cron` in Vercel Cron logs
 
 ## Scripts
 
@@ -183,6 +203,8 @@ pnpm run build:vercel   # same command Vercel runs
 | `pnpm --filter @workspace/blog run dev` | Start Vite dev server |
 | `pnpm --filter @workspace/api-server run dev` | Build + start API server |
 | `pnpm --filter @workspace/db run push` | Push Drizzle schema to database |
+| `pnpm --filter @workspace/db run migrate:all` | Apply all SQL migrations (deployment) |
+| `pnpm --filter @workspace/db run migrate:site-users` | Public signup accounts table |
 | `pnpm --filter @workspace/db run seed:platform` | Seed platform demo data |
 
 ## Project structure

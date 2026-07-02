@@ -4,6 +4,7 @@ import healthRouter from "./health";
 import postsRouter from "./posts";
 import categoriesRouter from "./categories";
 import authRouter from "./auth";
+import siteAuthRouter from "./site-auth";
 import statsRouter from "./stats";
 import commentsRouter from "./comments";
 import newsletterRouter from "./newsletter";
@@ -18,6 +19,7 @@ import roadmapsRouter from "./roadmaps";
 import challengesRouter from "./challenges";
 import jobsRouter from "./jobs";
 import communityRouter from "./community";
+import integrationsRouter from "./integrations";
 
 const router: IRouter = Router();
 
@@ -36,6 +38,7 @@ router.use(healthRouter);
 router.use(postsRouter);
 router.use(categoriesRouter);
 router.use(authRouter);
+router.use(siteAuthRouter);
 router.use(statsRouter);
 router.use(commentsRouter);
 router.use(newsletterRouter);
@@ -50,5 +53,6 @@ router.use(roadmapsRouter);
 router.use(challengesRouter);
 router.use(jobsRouter);
 router.use(communityRouter);
+router.use(integrationsRouter);
 
 export default router;

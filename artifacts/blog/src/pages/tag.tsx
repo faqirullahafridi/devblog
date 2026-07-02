@@ -4,6 +4,7 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { PostCard } from "@/components/post-card";
 import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { getPostsByTag } from "@/lib/api-extra";
 import type { Post } from "@workspace/api-client-react";
 
@@ -43,8 +44,8 @@ export default function TagPage() {
   return (
     <PublicLayout>
       <SeoHead
-        title={`${tagName} — devblog`}
-        description={`Articles tagged with ${tagName} on devblog.`}
+        title={seoTitle(tagName)}
+        description={`Articles tagged with ${tagName} on TechVentry.`}
       />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <header className="mb-10">

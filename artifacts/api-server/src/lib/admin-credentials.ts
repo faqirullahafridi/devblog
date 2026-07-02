@@ -118,3 +118,12 @@ export async function resetAdminPassword(username: string, recoveryToken: string
     .where(eq(adminCredentialsTable.id, creds.id));
   return { ok: true as const };
 }
+
+export async function resetAdminPasswordWithOtp(newPassword: string) {
+  const creds = await ensureAdminCredentials();
+  await db
+    .update(adminCredentialsTable)
+    .set({ passwordHash: hashPassword(newPassword), updatedAt: new Date() })
+    .where(eq(adminCredentialsTable.id, creds.id));
+  return { ok: true as const };
+}

@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
+import { forceUnlockBodyScroll } from "@/lib/body-scroll-lock";
+
+const PANEL_MS = 200;
 
 type MobileDrawerProps = {
   open: boolean;
@@ -11,58 +13,72 @@ type MobileDrawerProps = {
 };
 
 export function MobileDrawer({ open, onClose, children, className }: MobileDrawerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [render, setRender] = useState(open);
+  const [entered, setEntered] = useState(false);
 
+  // Stay mounted through the close animation, then tear down.
   useEffect(() => {
     if (open) {
-      lockBodyScroll();
-    } else {
-      unlockBodyScroll();
+      setRender(true);
+      return;
     }
+
+    const id = window.setTimeout(() => {
+      setRender(false);
+      setEntered(false);
+      forceUnlockBodyScroll();
+      document.documentElement.style.overflow = "";
+    }, PANEL_MS);
+
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  // Slide-in: mount off-screen first, then animate in on the next frame.
+  useEffect(() => {
+    if (!render || !open) return;
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, [render, open]);
+
+  // Light scroll lock — avoid position:fixed on body (causes iOS stuck scroll).
+  useEffect(() => {
+    if (!render) return;
+    const html = document.documentElement;
+    const prev = html.style.overflow;
+    html.style.overflow = "hidden";
     return () => {
-      if (open) unlockBodyScroll();
+      html.style.overflow = prev;
     };
-  }, [open]);
+  }, [render]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  if (typeof document === "undefined" || !render) return null;
 
-  useEffect(() => {
-    if (open) panelRef.current?.focus();
-  }, [open]);
-
-  if (typeof document === "undefined") return null;
+  const shown = open && entered;
 
   return createPortal(
     <>
-      {/* Backdrop — always in DOM; pointer-events toggled (no Radix animate-out stuck state) */}
       <div
-        aria-hidden={!open}
+        aria-hidden={!shown}
         className={cn(
-          "fixed left-0 right-0 bottom-0 top-14 z-[100] bg-black/55 transition-opacity duration-300 ease-out md:hidden",
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+          "fixed inset-x-0 bottom-0 top-14 z-[90] bg-black/50 md:hidden",
+          "transition-opacity duration-200 ease-out",
+          shown ? "opacity-100" : "opacity-0",
+          open ? "pointer-events-auto" : "pointer-events-none",
         )}
         onClick={onClose}
       />
 
-      {/* Panel */}
       <div
-        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        tabIndex={-1}
+        aria-hidden={!shown}
         className={cn(
-          "fixed inset-y-0 left-0 z-[101] flex w-[min(100vw-2rem,20rem)] max-w-[85vw] flex-col",
+          "fixed bottom-0 left-0 top-14 z-[95] flex w-[min(100vw-2rem,20rem)] max-w-[85vw] flex-col",
           "border-r-2 border-foreground bg-background outline-none md:hidden",
-          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform",
-          open ? "translate-x-0 pointer-events-auto" : "-translate-x-full pointer-events-none",
+          "transform-gpu transition-transform duration-200 ease-out",
+          shown ? "translate-x-0" : "-translate-x-full",
+          open ? "pointer-events-auto" : "pointer-events-none",
           className,
         )}
       >

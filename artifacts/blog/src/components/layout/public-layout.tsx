@@ -17,6 +17,7 @@ import {
 import { ChevronDown, Search } from "lucide-react";
 import { PAGE_LINKS, PLATFORM_LINKS, CONTENT_LINKS } from "@/lib/nav-config";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteAuthLinks } from "@/components/site-auth-links";
 
 const PRIMARY_NAV = [
   { href: "/search", label: "Articles" },
@@ -25,6 +26,7 @@ const PRIMARY_NAV = [
   { href: "/learn", label: "Learn" },
   { href: "/ai", label: "AI" },
   { href: "/jobs", label: "Jobs" },
+  { href: "/api-sources", label: "API Sources" },
 ] as const;
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -35,24 +37,26 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <Analytics />
       <AdSenseScript />
 
-      <header className="sticky top-0 z-50 w-full border-b-2 border-foreground bg-background">
+      <header className="sticky top-0 z-[110] isolate w-full border-b-2 border-foreground bg-background">
         {/* Top bar: brand + actions */}
-        <div className="container mx-auto flex h-14 items-center justify-between gap-4 px-4 border-b-2 border-foreground">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="container mx-auto flex h-14 items-center justify-between gap-2 px-4 border-b-2 border-foreground">
+          <div className="relative z-20 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
             <MobileNav categories={categories} />
-            <Link href="/" className="flex items-center shrink-0 hover:opacity-90 transition-opacity">
-              <BrandLogo />
+            <Link href="/" className="flex min-w-0 shrink items-center hover:opacity-90 transition-opacity">
+              <BrandLogo compact className="sm:hidden" />
+              <BrandLogo className="hidden sm:flex" />
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="relative z-20 flex shrink-0 items-center gap-1 sm:gap-2">
+            <SiteAuthLinks />
             <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex gap-2 font-bold">
               <Link href="/search">
                 <Search className="h-4 w-4" />
                 Search
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="sm:hidden" asChild>
+            <Button variant="ghost" size="icon" className="relative z-20 shrink-0 touch-manipulation sm:hidden" asChild>
               <Link href="/search" aria-label="Search">
                 <Search className="h-5 w-5" />
               </Link>

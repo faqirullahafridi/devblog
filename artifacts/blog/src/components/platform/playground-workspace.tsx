@@ -9,12 +9,13 @@ import { toast } from "sonner";
 import { Download, Link2, Loader2 } from "lucide-react";
 import { platformEvents } from "@/lib/analytics";
 import { runSqlQuery } from "@/lib/sql-playground";
+import { PLAYGROUND_IMPORT_KEY } from "@/lib/ai-preview";
 
 type PlaygroundLang = "html-css-js" | "python" | "sql";
 
 const DEFAULTS: Record<PlaygroundLang, Record<string, string>> = {
   "html-css-js": {
-    html: "<h1>Hello DevTool</h1>\n<p>Edit HTML, CSS, and JS live.</p>",
+    html: "<h1>Hello TechVentry</h1>\n<p>Edit HTML, CSS, and JS live.</p>",
     css: "body { font-family: system-ui; padding: 2rem; background: #0f172a; color: #e2e8f0; }\nh1 { color: #38bdf8; }",
     js: "console.log('Ready');",
   },
@@ -32,6 +33,23 @@ declare global {
   }
 }
 
+function readHtmlPlaygroundImport(): Record<string, string> | null {
+  try {
+    const raw = sessionStorage.getItem(PLAYGROUND_IMPORT_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(PLAYGROUND_IMPORT_KEY);
+    const parsed = JSON.parse(raw) as { html?: string; css?: string; js?: string };
+    if (!parsed.html && !parsed.css && !parsed.js) return null;
+    return {
+      html: parsed.html ?? DEFAULTS["html-css-js"].html,
+      css: parsed.css ?? DEFAULTS["html-css-js"].css,
+      js: parsed.js ?? DEFAULTS["html-css-js"].js,
+    };
+  } catch {
+    return null;
+  }
+}
+
 type Props = {
   language: PlaygroundLang;
   initialSlug?: string;
@@ -42,7 +60,13 @@ type Props = {
 
 export function PlaygroundWorkspace({ language, initialSlug, initialTitle, initialFiles, readOnly }: Props) {
   const defaults = initialFiles ?? DEFAULTS[language];
-  const [files, setFiles] = useState(defaults);
+  const [files, setFiles] = useState(() => {
+    if (language === "html-css-js" && !initialFiles) {
+      const imported = readHtmlPlaygroundImport();
+      if (imported) return imported;
+    }
+    return defaults;
+  });
   const [title, setTitle] = useState(initialTitle ?? "My snippet");
   const [slug, setSlug] = useState(initialSlug);
   const [output, setOutput] = useState("");

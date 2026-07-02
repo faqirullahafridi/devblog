@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED}>
       <p>
-        This Privacy Policy describes how devblog (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects,
+        This Privacy Policy describes how TechVentry (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects,
         uses, and shares information when you visit our website and use our services.
       </p>
 

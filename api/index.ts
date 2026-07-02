@@ -1,5 +1,5 @@
 import serverless from "serverless-http";
-import app from "../artifacts/api-server/src/app";
+import app from "../artifacts/api-server/dist/serverless.mjs";
 
 export const config = {
   maxDuration: 30,

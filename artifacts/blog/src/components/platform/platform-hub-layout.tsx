@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SeoHead } from "@/components/seo-head";
+import { seoTitle } from "@/lib/site-config";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ export function PlatformHubLayout({
 }) {
   return (
     <PublicLayout>
-      <SeoHead title={`${title} — devblog`} description={description} />
+      <SeoHead title={seoTitle(title)} description={description} />
       <div className={cn("container mx-auto px-4 py-10 max-w-6xl", className)}>
         <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
           <ChevronLeft className="h-4 w-4" />
