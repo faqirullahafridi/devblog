@@ -187,7 +187,7 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 | Setting | Value |
 |---------|--------|
 | **Root Directory** | *(empty — repository root)* |
-| **Install Command** | *(empty — uses `vercel.json`)* or `pnpm -w install --frozen-lockfile` |
+| **Install Command** | *(empty — uses `vercel.json`)* or `pnpm install --frozen-lockfile` |
 | **Build Command** | *(empty — uses `vercel.json`)* or `pnpm -w run build:vercel` |
 
 If Root Directory is set to `artifacts/api-server`, clear custom Install/Build overrides or use `pnpm run build:vercel` (delegates to the workspace root). For full SPA + API routing, keep Root Directory at the repo root.
