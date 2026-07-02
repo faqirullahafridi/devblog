@@ -182,6 +182,16 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 
 4. Deploy — `vercel.json` configures build output, API rewrites, auth no-cache headers, and daily job cron.
 
+**Vercel project settings** (Settings → General → Build & Development):
+
+| Setting | Value |
+|---------|--------|
+| **Root Directory** | *(empty — repository root)* |
+| **Install Command** | *(empty — uses `vercel.json`)* or `pnpm -w install --frozen-lockfile` |
+| **Build Command** | *(empty — uses `vercel.json`)* or `pnpm -w run build:vercel` |
+
+If Root Directory is set to `artifacts/api-server`, clear custom Install/Build overrides or use `pnpm run build:vercel` (delegates to the workspace root). For full SPA + API routing, keep Root Directory at the repo root.
+
 ```bash
 pnpm run build:vercel   # same command Vercel runs
 ```
