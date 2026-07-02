@@ -7,7 +7,7 @@ export const config = {
 let handler: ReturnType<typeof serverless>;
 
 try {
-  const app = (await import("../artifacts/api-server/dist/serverless.mjs")).default;
+  const app = (await import("../dist/serverless.mjs")).default;
   handler = serverless(app);
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
@@ -15,7 +15,7 @@ try {
   handler = serverless((_req, res) => {
     res.status(503).json({
       error: "API failed to start",
-      hint: "Run pnpm run build:vercel and set DATABASE_URL (or DATABASE_POOLER_URL) on Vercel.",
+      hint: "Run the api-server build and set DATABASE_URL (or DATABASE_POOLER_URL) on Vercel.",
       detail: message,
     });
   });

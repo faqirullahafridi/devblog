@@ -2,7 +2,30 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run build:vercel",
-  "outputDirectory": "../blog/dist/public",
-  "framework": null
+  "buildCommand": "pnpm run build",
+  "framework": null,
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "dist/**,node_modules/connect-pg-simple/**,node_modules/.pnpm/connect-pg-simple@*/node_modules/connect-pg-simple/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/sitemap.xml", "destination": "/api" },
+    { "source": "/robots.txt", "destination": "/api" },
+    { "source": "/feed.xml", "destination": "/api" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
 }

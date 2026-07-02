@@ -190,7 +190,16 @@ On Vercel, jobs sync via cron instead — set `CRON_SECRET` and use the schedule
 | **Install Command** | *(empty — uses `vercel.json`)* or `pnpm install --frozen-lockfile` |
 | **Build Command** | *(empty — uses `vercel.json`)* or `pnpm -w run build:vercel` |
 
-If Root Directory is set to `artifacts/api-server`, clear custom Install/Build overrides or use `pnpm run build:vercel` (delegates to the workspace root). For full SPA + API routing, keep Root Directory at the repo root.
+If Root Directory is set to `artifacts/api-server`, use that folder’s `vercel.json` (API-only serverless). Do **not** run `build:vercel` there — it deploys the blog SPA without a working API.
+
+**Split frontend + API (two Vercel projects):**
+
+| Project | Root Directory | Env vars |
+|---------|----------------|----------|
+| Frontend | *(repo root)* | `VITE_API_URL=https://your-api.vercel.app` |
+| API | `artifacts/api-server` | `DATABASE_URL`, `DATABASE_POOLER_URL`, `SESSION_SECRET`, `SITE_URL`, … |
+
+**500 / `FUNCTION_INVOCATION_FAILED` on `/api/*`:** almost always missing `DATABASE_URL` on the API project, or the API project was built with the wrong `outputDirectory` (static blog only). Redeploy the API project after setting env vars.
 
 ```bash
 pnpm run build:vercel   # same command Vercel runs
@@ -199,6 +208,8 @@ pnpm run build:vercel   # same command Vercel runs
 ### Post-deploy checklist
 
 - [ ] Migrations applied (`migrate:all` or individual `migrate:*` scripts)
+- [ ] **One Vercel project at repo root** (recommended) — SPA + `/api` serverless on the same domain; leave `VITE_API_URL` unset
+- [ ] If using a **separate API project** (`artifacts/api-server` root): set `VITE_API_URL` on the **frontend** build to that API origin; set `DATABASE_URL`, `DATABASE_POOLER_URL`, and `SESSION_SECRET` on the **API** project (not only the frontend)
 - [ ] Admin login works (`/admin/login`) — requires `migrate:admin` + Resend or dev OTP fallback
 - [ ] Public signup works (`/signup`) — requires `migrate:site-users`
 - [ ] GitHub community sign-in (optional) — `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, callback `{SITE_URL}/api/auth/github/callback`
