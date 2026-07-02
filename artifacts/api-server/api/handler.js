@@ -1,11 +1,13 @@
 import serverless from "serverless-http";
-import { tryFastRoute } from "./fast-routes.js";
+import { tryFastRoute, isAiBundlePath } from "./fast-routes.js";
+import { tryAdminRoute, isAdminRoutePath } from "./admin-routes.js";
 
 export const config = {
   maxDuration: 30,
 };
 
 let handlerPromise = null;
+let aiHandlerPromise = null;
 
 function requestPath(req) {
   const raw = req.url ?? "/";
@@ -38,6 +40,23 @@ function buildUnavailableHandler(message) {
       detail: message,
     });
   });
+}
+
+async function getAiHandler() {
+  if (!aiHandlerPromise) {
+    const started = Date.now();
+    aiHandlerPromise = import("../dist/ai-api.mjs")
+      .then((mod) => {
+        console.log(`[api] ai bundle loaded in ${Date.now() - started}ms`);
+        return serverless(mod.default);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[api] Failed to load AI bundle:", message);
+        return null;
+      });
+  }
+  return aiHandlerPromise;
 }
 
 async function getHandler() {
@@ -77,12 +96,22 @@ export default async function handler(req, res) {
     });
   }
 
-  // Homepage + anonymous auth — raw pg/fetch, no heavy bundle (fixes 504 cold starts)
   if (await tryFastRoute(path, req, res)) {
     return;
   }
 
+  if (isAdminRoutePath(path) && (await tryAdminRoute(path, req, res))) {
+    return;
+  }
+
   try {
+    if (isAiBundlePath(path, req.method)) {
+      const aiEntry = await getAiHandler();
+      if (aiEntry) {
+        applyFullAppPath(req, path);
+        return await aiEntry(req, res);
+      }
+    }
     const entry = await getHandler();
     applyFullAppPath(req, path);
     return await entry(req, res);

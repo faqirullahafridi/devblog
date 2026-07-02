@@ -132,6 +132,19 @@ async function buildAll() {
     outfile: path.join(distDir, "public-api.mjs"),
   });
 
+  // AI-only bundle (chat, models, streaming — without full admin app)
+  await esbuild({
+    platform: "node",
+    bundle: true,
+    format: "esm",
+    logLevel: "info",
+    external,
+    sourcemap: "linked",
+    banner,
+    entryPoints: [path.resolve(artifactDir, "src/ai-api.ts")],
+    outfile: path.join(distDir, "ai-api.mjs"),
+  });
+
   // Vercel serverless bundle — no pino-pretty plugin (avoids multi-file outfile conflict)
   await esbuild({
     platform: "node",

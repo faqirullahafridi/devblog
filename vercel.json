@@ -9,12 +9,12 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "api/handler.js,api/fast-routes.js,node_modules/pg/**,artifacts/api-server/dist/**,node_modules/connect-pg-simple/**"
+      "includeFiles": "api/handler.js,api/fast-routes.js,api/admin-routes.js,api/db-pool.js,node_modules/pg/**,artifacts/api-server/dist/**,node_modules/connect-pg-simple/**"
     },
     "api/[...path].js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "api/handler.js,api/fast-routes.js,node_modules/pg/**,artifacts/api-server/dist/**,node_modules/connect-pg-simple/**"
+      "includeFiles": "api/handler.js,api/fast-routes.js,api/admin-routes.js,api/db-pool.js,node_modules/pg/**,artifacts/api-server/dist/**,node_modules/connect-pg-simple/**"
     }
   },
   "redirects": [],
