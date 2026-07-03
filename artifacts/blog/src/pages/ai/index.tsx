@@ -79,10 +79,6 @@ export default function AiIndexPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-10 max-w-4xl">
-        <HubSeoIntro path="/ai" />
-      </section>
-
       {/* Mode bento */}
       <section className="container mx-auto max-w-6xl px-4 py-16 md:py-20">
         <div className="mb-10 text-center">
@@ -125,6 +121,10 @@ export default function AiIndexPage() {
             );
           })}
         </div>
+      </section>
+
+      <section className="container mx-auto max-w-6xl px-4 pb-16">
+        <HubSeoIntro path="/ai" />
       </section>
     </AiLandingShell>
   );

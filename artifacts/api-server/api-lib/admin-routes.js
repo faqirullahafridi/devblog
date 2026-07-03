@@ -1,6 +1,39 @@
 import { createHmac, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 import { query } from "./db-pool.js";
 import { hashPassword } from "./route-utils.js";
+import { sendResendEmail, wrapNewsletterHtml } from "./email.js";
+
+const PROFILE_JSON_FIELDS = new Set([
+  "workExperience",
+  "education",
+  "projects",
+  "technicalSkills",
+  "languages",
+]);
+
+async function safeQuery(text, params, fallbackRows = []) {
+  try {
+    return await query(text, params);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("does not exist") || message.includes("relation")) {
+      return { rows: fallbackRows };
+    }
+    throw err;
+  }
+}
+
+function serializeDbValue(key, value) {
+  if (value === undefined) return value;
+  if (key === "tags" || PROFILE_JSON_FIELDS.has(key)) {
+    return JSON.stringify(value ?? (key === "tags" ? [] : value));
+  }
+  return value;
+}
+
+function pgErrorCode(err) {
+  return err && typeof err === "object" && "code" in err ? err.code : null;
+}
 
 const ADMIN_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const OTP_LENGTH = 6;
@@ -351,6 +384,8 @@ export function isAdminRoutePath(path, method) {
   if (path === "/api/auth/forgot-password") return true;
   if (path === "/api/auth/reset-password") return true;
   if (path === "/api/newsletter/send") return true;
+  if (path === "/api/community/moderation/reports") return true;
+  if (/^\/api\/community\/moderation\/reports\/\d+$/.test(path)) return true;
   if (/^\/api\/jobs\/\d+$/.test(path)) return true;
   if (/^\/api\/challenges\/\d+$/.test(path)) return true;
   if (path === "/api/posts" && m === "POST") return true;
@@ -484,20 +519,22 @@ export async function tryAdminRoute(path, req, res) {
 
     const loaded = await loadSession(req);
     if (!isAdminValid(loaded?.sess)) {
-      return false;
+      setNoCache(res);
+      sendJson(res, 401, { error: "Unauthorized", authenticated: false });
+      return true;
     }
 
     if (method === "GET" && path === "/api/stats/overview") {
       setNoCache(res);
       const [postStats, categoryStats, subscriberStats, commentStats] = await Promise.all([
-        query(`
+        safeQuery(`
           SELECT COUNT(*)::int AS total,
                  COUNT(*) FILTER (WHERE status = 'published')::int AS published,
                  COUNT(*) FILTER (WHERE status = 'draft')::int AS draft,
                  COALESCE(SUM(views), 0)::int AS views FROM posts`),
-        query(`SELECT COUNT(*)::int AS count FROM categories`),
-        query(`SELECT COUNT(*)::int AS count FROM newsletter_subscribers`),
-        query(`SELECT COUNT(*)::int AS count FROM comments`),
+        safeQuery(`SELECT COUNT(*)::int AS count FROM categories`, [], [{ count: 0 }]),
+        safeQuery(`SELECT COUNT(*)::int AS count FROM newsletter_subscribers`, [], [{ count: 0 }]),
+        safeQuery(`SELECT COUNT(*)::int AS count FROM comments`, [], [{ count: 0 }]),
       ]);
       const ps = postStats.rows[0] ?? {};
       sendJson(res, 200, {
@@ -602,8 +639,8 @@ export async function tryAdminRoute(path, req, res) {
                     ? "meta_description"
                     : key.replace(/([A-Z])/g, "_$1").toLowerCase();
           if (key === "tags") {
-            updates.push(`${col} = $${idx++}`);
-            params.push(Array.isArray(val) ? val : []);
+            updates.push(`${col} = $${idx++}::jsonb`);
+            params.push(serializeDbValue("tags", Array.isArray(val) ? val : []));
           } else {
             updates.push(`${col} = $${idx++}`);
             params.push(val);
@@ -662,24 +699,34 @@ export async function tryAdminRoute(path, req, res) {
       }
       const finalSlug = body.slug?.trim() || slugify(body.title);
       const readingTime = calcReadingTime(body.content ?? "");
-      const { rows } = await query(
-        `INSERT INTO posts (title, slug, content, excerpt, featured_image, status, category_id, seo_title, meta_description, tags, publish_at, reading_time)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-        [
-          body.title,
-          finalSlug,
-          body.content ?? "",
-          body.excerpt ?? null,
-          body.featuredImage ?? null,
-          body.status ?? "draft",
-          body.categoryId ? Number(body.categoryId) : null,
-          body.seoTitle ?? null,
-          body.metaDescription ?? null,
-          Array.isArray(body.tags) ? body.tags : [],
-          body.publishAt ? new Date(body.publishAt) : null,
-          readingTime,
-        ],
-      );
+      let insertResult;
+      try {
+        insertResult = await query(
+          `INSERT INTO posts (title, slug, content, excerpt, featured_image, status, category_id, seo_title, meta_description, tags, publish_at, reading_time)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12) RETURNING id`,
+          [
+            body.title,
+            finalSlug,
+            body.content ?? "",
+            body.excerpt ?? null,
+            body.featuredImage ?? null,
+            body.status ?? "draft",
+            body.categoryId ? Number(body.categoryId) : null,
+            body.seoTitle ?? null,
+            body.metaDescription ?? null,
+            serializeDbValue("tags", Array.isArray(body.tags) ? body.tags : []),
+            body.publishAt ? new Date(body.publishAt) : null,
+            readingTime,
+          ],
+        );
+      } catch (err) {
+        if (pgErrorCode(err) === "23505") {
+          sendJson(res, 409, { error: "A post with this slug already exists. Choose a different slug." });
+          return true;
+        }
+        throw err;
+      }
+      const { rows } = insertResult;
       const { rows: detail } = await query(
         `SELECT ${POST_DETAIL_SELECT} FROM posts p
          LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = $1 LIMIT 1`,
@@ -742,8 +789,13 @@ export async function tryAdminRoute(path, req, res) {
       };
       for (const [key, col] of Object.entries(map)) {
         if (body[key] === undefined) continue;
-        updates.push(`${col} = $${idx++}`);
-        params.push(body[key]);
+        if (PROFILE_JSON_FIELDS.has(key)) {
+          updates.push(`${col} = $${idx++}::jsonb`);
+          params.push(serializeDbValue(key, body[key]));
+        } else {
+          updates.push(`${col} = $${idx++}`);
+          params.push(body[key]);
+        }
       }
       if (!updates.length) {
         sendJson(res, 400, { error: "No fields to update" });
@@ -919,23 +971,37 @@ export async function tryAdminRoute(path, req, res) {
     if (method === "GET" && path === "/api/playgrounds/stats") {
       setNoCache(res);
       const [totals, popular] = await Promise.all([
-        query(`SELECT COUNT(*)::int AS playgrounds, COALESCE(SUM(views), 0)::int AS views FROM playgrounds`),
-        query(
+        safeQuery(
+          `SELECT COUNT(*)::int AS playgrounds, COALESCE(SUM(views), 0)::int AS views FROM playgrounds`,
+          [],
+          [{ playgrounds: 0, views: 0 }],
+        ),
+        safeQuery(
           `SELECT slug, title, views FROM playgrounds ORDER BY views DESC NULLS LAST LIMIT 5`,
+          [],
         ),
       ]);
-      sendJson(res, 200, { totals: totals.rows[0] ?? { playgrounds: 0, views: 0 }, popular: popular.rows });
+      const count = totals.rows[0]?.playgrounds ?? 0;
+      sendJson(res, 200, {
+        totals: { total: count, playgrounds: count, views: totals.rows[0]?.views ?? 0 },
+        popular: popular.rows,
+      });
       return true;
     }
 
     if (method === "GET" && path === "/api/roadmaps/stats") {
       setNoCache(res);
       const [totalRoadmaps, completedSteps, topGoals] = await Promise.all([
-        query(`SELECT COUNT(*)::int AS count FROM roadmaps`),
-        query(`SELECT COUNT(*)::int AS count FROM roadmap_progress WHERE completed = true`),
-        query(
+        safeQuery(`SELECT COUNT(*)::int AS count FROM roadmaps`, [], [{ count: 0 }]),
+        safeQuery(
+          `SELECT COUNT(*)::int AS count FROM roadmap_progress WHERE completed = true`,
+          [],
+          [{ count: 0 }],
+        ),
+        safeQuery(
           `SELECT payload->>'goal' AS goal, COUNT(*)::int AS count FROM roadmaps
            GROUP BY payload->>'goal' ORDER BY count DESC LIMIT 5`,
+          [],
         ),
       ]);
       sendJson(res, 200, {
@@ -1165,6 +1231,41 @@ export async function tryAdminRoute(path, req, res) {
       return true;
     }
 
+    if (method === "GET" && path === "/api/community/moderation/reports") {
+      setNoCache(res);
+      const q = parseQuery(req.url);
+      const status = q.status?.trim() || "pending";
+      const { rows } = await safeQuery(
+        `SELECT id, target_type AS "targetType", target_id AS "targetId", reason, status,
+                visitor_id AS "visitorId", created_at AS "createdAt"
+         FROM community_reports
+         WHERE status = $1
+         ORDER BY created_at DESC
+         LIMIT 50`,
+        [status],
+      );
+      sendJson(
+        res,
+        200,
+        rows.map((r) => ({
+          ...r,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+        })),
+      );
+      return true;
+    }
+
+    const reportIdMatch = path.match(/^\/api\/community\/moderation\/reports\/(\d+)$/);
+    if (reportIdMatch && method === "PATCH") {
+      setNoCache(res);
+      const body = await readJsonBody(req);
+      const id = parseInt(reportIdMatch[1], 10);
+      const status = body.status?.trim() || "resolved";
+      await safeQuery(`UPDATE community_reports SET status = $1 WHERE id = $2`, [status, id]);
+      sendJson(res, 200, { ok: true });
+      return true;
+    }
+
     if (method === "POST" && path === "/api/newsletter/send") {
       setNoCache(res);
       const body = await readJsonBody(req);
@@ -1178,22 +1279,24 @@ export async function tryAdminRoute(path, req, res) {
         return true;
       }
       const { rows } = await query(`SELECT email FROM newsletter_subscribers WHERE status = 'confirmed'`);
+      const wrappedHtml = wrapNewsletterHtml(body.subject.trim(), body.html, body.postSlug);
       let sent = 0;
+      const failures = [];
       for (const row of rows) {
-        const resend = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: process.env.RESEND_FROM_EMAIL?.trim() || "TechVentry <info@techventry.com>",
-            to: [row.email],
-            subject: body.subject,
-            html: body.html,
-          }),
-          signal: AbortSignal.timeout(8_000),
+        const result = await sendResendEmail({
+          to: row.email,
+          subject: body.subject.trim(),
+          html: wrappedHtml,
         });
-        if (resend.ok) sent++;
+        if (result.ok) sent++;
+        else failures.push({ email: row.email, error: result.error });
       }
-      sendJson(res, 200, { sent, total: rows.length });
+      sendJson(res, 200, {
+        success: true,
+        sent,
+        total: rows.length,
+        failures: failures.length ? failures.slice(0, 5) : undefined,
+      });
       return true;
     }
 

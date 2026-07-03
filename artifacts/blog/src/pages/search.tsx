@@ -54,8 +54,6 @@ export default function Search() {
           />
         </div>
 
-        <HubSeoIntro path="/search" />
-
         <div className="space-y-8">
           {isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -85,6 +83,8 @@ export default function Search() {
             </>
           )}
         </div>
+
+        <HubSeoIntro path="/search" />
       </div>
     </PublicLayout>
   );

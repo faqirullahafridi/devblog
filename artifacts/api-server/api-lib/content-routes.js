@@ -11,6 +11,7 @@ import {
   setNoCache,
   routeError,
 } from "./route-utils.js";
+import { sendNewsletterWelcomeEmail } from "./email.js";
 
 const PUBLISHED = `p.status = 'published' AND (p.publish_at IS NULL OR p.publish_at <= NOW())`;
 
@@ -172,14 +173,17 @@ async function handleNewsletterConfirm(req, res) {
     return;
   }
   const { rows } = await query(
-    `UPDATE newsletter_subscribers SET status = 'confirmed', confirmed_at = NOW()
-     WHERE confirm_token = $1 RETURNING email`,
+    `UPDATE newsletter_subscribers
+     SET status = 'confirmed', confirmed_at = NOW(), confirm_token = NULL
+     WHERE confirm_token = $1
+     RETURNING email`,
     [token],
   );
   if (!rows[0]) {
     sendJson(res, 400, { error: "Invalid or expired confirmation link" });
     return;
   }
+  await sendNewsletterWelcomeEmail(rows[0].email);
   sendJson(res, 200, { message: "Subscription confirmed!", email: rows[0].email });
 }
 

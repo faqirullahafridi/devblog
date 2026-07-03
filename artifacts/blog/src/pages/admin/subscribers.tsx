@@ -38,13 +38,20 @@ export default function Subscribers() {
         subject,
         html,
         postSlug: postSlug.trim() || undefined,
-      }) as { sent?: number; total?: number };
-      toast.success(`Newsletter sent to ${result.sent ?? 0} of ${result.total ?? 0} subscribers`);
+      }) as { sent?: number; total?: number; failures?: Array<{ email: string; error?: string }> };
+      const failed = result.failures?.length ?? 0;
+      if (failed > 0) {
+        toast.warning(
+          `Sent to ${result.sent ?? 0} of ${result.total ?? 0}. ${failed} failed — check Resend domain and recipient limits.`,
+        );
+      } else {
+        toast.success(`Newsletter sent to ${result.sent ?? 0} of ${result.total ?? 0} subscribers`);
+      }
       setSubject("");
       setHtml("");
       setPostSlug("");
-    } catch {
-      toast.error("Failed to send newsletter — check Resend API key");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send newsletter — check Resend API key");
     } finally {
       setSending(false);
     }

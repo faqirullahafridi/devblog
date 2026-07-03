@@ -33,10 +33,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
-        <HubSeoIntro path="/about" />
-      </div>
-
       <div className="container mx-auto px-4 py-12 max-w-3xl space-y-14">
         <section className="space-y-4">
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -191,6 +187,8 @@ export default function AboutPage() {
             </Button>
           </div>
         </section>
+
+        <HubSeoIntro path="/about" />
       </div>
     </PublicLayout>
   );

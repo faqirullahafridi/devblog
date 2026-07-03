@@ -27,11 +27,29 @@ function canonicalFor(pathname) {
 }
 
 function buildStaticMain(page) {
-  const body = page.paragraphs.map((p) => `      <p>${escapeHtml(p)}</p>`).join("\n");
+  const sectionBlocks = page.sections
+    .map(
+      (section) =>
+        `        <section>
+          <h3>${escapeHtml(section.title)}</h3>
+${section.paragraphs.map((p) => `          <p>${escapeHtml(p)}</p>`).join("\n")}
+        </section>`,
+    )
+    .join("\n");
+
+  const sharedBlock =
+    page.sharedSection?.paragraphs?.length > 0
+      ? `        <section>
+          <h3>${escapeHtml(page.sharedSection.title)}</h3>
+${page.sharedSection.paragraphs.map((p) => `          <p>${escapeHtml(p)}</p>`).join("\n")}
+        </section>`
+      : "";
+
   return `      <main id="seo-static-content">
         <h1>${escapeHtml(page.h1)}</h1>
         <h2>${escapeHtml(page.h2)}</h2>
-${body}
+${sectionBlocks}
+${sharedBlock}
       </main>
 `;
 }

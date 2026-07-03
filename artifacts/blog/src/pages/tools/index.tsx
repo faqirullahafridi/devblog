@@ -20,7 +20,6 @@ export default function ToolsIndexPage() {
             Each tool includes a full guide explaining concepts, usage, and common mistakes.
           </p>
         </header>
-        <HubSeoIntro path="/tools" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((tool) => {
             const Icon = tool.icon;
@@ -43,6 +42,7 @@ export default function ToolsIndexPage() {
             );
           })}
         </div>
+        <HubSeoIntro path="/tools" />
       </div>
     </PublicLayout>
   );

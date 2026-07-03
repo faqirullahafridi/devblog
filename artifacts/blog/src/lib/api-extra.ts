@@ -161,8 +161,9 @@ export async function sendNewsletter(data: { subject: string; html: string; post
     credentials: "include",
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to send newsletter");
-  return res.json();
+  const body = (await res.json().catch(() => ({}))) as { error?: string; sent?: number; total?: number };
+  if (!res.ok) throw new Error(body.error || "Failed to send newsletter");
+  return body;
 }
 
 export async function confirmNewsletter(token: string) {

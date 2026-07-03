@@ -98,10 +98,6 @@ export default function TemplatesIndexPage() {
         </div>
       </section>
 
-      <div className="container mx-auto px-4 max-w-4xl">
-        <HubSeoIntro path="/templates" />
-      </div>
-
       <div className="container mx-auto px-4 py-12 space-y-14">
         {/* Categories grid */}
         <section>
@@ -147,6 +143,10 @@ export default function TemplatesIndexPage() {
             </div>
           </section>
         ))}
+      </div>
+
+      <div className="container mx-auto px-4 max-w-5xl pb-12">
+        <HubSeoIntro path="/templates" />
       </div>
     </TemplatesLayout>
   );

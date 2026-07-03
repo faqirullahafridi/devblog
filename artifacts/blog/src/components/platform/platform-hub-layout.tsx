@@ -36,8 +36,8 @@ export function PlatformHubLayout({
           <h1 className="text-3xl md:text-4xl font-black tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl leading-relaxed">{description}</p>
         </header>
-        <HubSeoIntro />
         {children}
+        <HubSeoIntro />
       </div>
     </PublicLayout>
   );

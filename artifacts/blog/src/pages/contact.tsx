@@ -49,8 +49,6 @@ export default function ContactPage() {
           </p>
         </header>
 
-        <HubSeoIntro path="/contact" className="mb-10" />
-
         <div className="grid gap-6 sm:grid-cols-2 mb-10">
           <div className="rounded-xl border bg-card p-5 flex items-start gap-3">
             <Mail className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -87,6 +85,8 @@ export default function ContactPage() {
             {sending ? "Sending…" : "Send message"}
           </Button>
         </form>
+
+        <HubSeoIntro path="/contact" />
 
         <p className="mt-10 text-center text-sm text-muted-foreground">
           <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { query } from "./db-pool.js";
 import { loadSession } from "./admin-routes.js";
+import { sendNewsletterConfirmEmail } from "./email.js";
 
 const JOB_SOURCES = [
   { id: "remoteok", label: "RemoteOK", description: "Remote developer jobs", region: "global", requiresKey: false },
@@ -438,9 +439,16 @@ async function handleNewsletterSubscribe(req, res) {
       [email, name, confirmToken, unsubscribeToken],
     );
   }
+  const mail = await sendNewsletterConfirmEmail(email, confirmToken);
+  if (!mail.ok) {
+    console.error("[newsletter] confirm email failed:", mail.error);
+  }
   sendJson(res, 200, {
-    message: "Check your email to confirm your subscription.",
+    message: mail.ok
+      ? "Check your email to confirm your subscription."
+      : "Subscription saved, but we could not send the confirmation email. Try again later or contact support.",
     status: "pending",
+    emailSent: mail.ok,
   });
 }
 
