@@ -473,12 +473,19 @@ async function handleCommunityProfile(req, res, username) {
   sendJson(res, 200, { user, questions });
 }
 
+const PLAYGROUND_RESERVED_SLUGS = new Set(["stats"]);
+const ROADMAP_RESERVED_SLUGS = new Set(["stats", "options", "generate", "me"]);
+
 export function isPlatformRoutePath(path, method) {
   const m = (method || "GET").toUpperCase();
   if (path === "/api/playgrounds" && m === "GET") return true;
   if (path === "/api/playgrounds" && m === "POST") return true;
   if (/^\/api\/playgrounds\/share\/[^/]+$/.test(path) && m === "GET") return true;
-  if (/^\/api\/playgrounds\/[^/]+$/.test(path) && (m === "GET" || m === "PATCH")) return true;
+  if (/^\/api\/playgrounds\/[^/]+$/.test(path) && (m === "GET" || m === "PATCH")) {
+    const slug = path.split("/").pop();
+    if (PLAYGROUND_RESERVED_SLUGS.has(slug)) return false;
+    return true;
+  }
   if (/^\/api\/playgrounds\/[^/]+\/share$/.test(path) && m === "POST") return true;
   if (path === "/api/challenges" && m === "GET") return true;
   if (path === "/api/challenges/daily" && m === "GET") return true;
@@ -489,7 +496,11 @@ export function isPlatformRoutePath(path, method) {
   if (path === "/api/roadmaps/generate" && m === "POST") return true;
   if (/^\/api\/roadmaps\/me\/list$/.test(path) && m === "GET") return true;
   if (/^\/api\/roadmaps\/[^/]+\/progress$/.test(path) && m === "POST") return true;
-  if (/^\/api\/roadmaps\/[^/]+$/.test(path) && m === "GET") return true;
+  if (/^\/api\/roadmaps\/[^/]+$/.test(path) && m === "GET") {
+    const slug = path.split("/").pop();
+    if (ROADMAP_RESERVED_SLUGS.has(slug)) return false;
+    return true;
+  }
   if (path === "/api/community/questions" && m === "GET") return true;
   if (path === "/api/community/questions" && m === "POST") return true;
   if (/^\/api\/community\/questions\/\d+\/answers$/.test(path) && m === "POST") return true;
@@ -513,7 +524,9 @@ export async function tryPlatformRoute(path, req, res) {
     }
     if (method === "GET" && /^\/api\/playgrounds\/[^/]+$/.test(path)) {
       const m = path.match(/^\/api\/playgrounds\/([^/]+)$/);
-      await handlePlaygroundGet(req, res, decodeURIComponent(m[1]));
+      const slug = decodeURIComponent(m[1]);
+      if (PLAYGROUND_RESERVED_SLUGS.has(slug)) return false;
+      await handlePlaygroundGet(req, res, slug);
       return true;
     }
     if (method === "POST" && path === "/api/playgrounds") {
@@ -570,7 +583,9 @@ export async function tryPlatformRoute(path, req, res) {
     }
     if (method === "GET" && /^\/api\/roadmaps\/[^/]+$/.test(path)) {
       const m = path.match(/^\/api\/roadmaps\/([^/]+)$/);
-      await handleRoadmapGet(req, res, decodeURIComponent(m[1]));
+      const slug = decodeURIComponent(m[1]);
+      if (ROADMAP_RESERVED_SLUGS.has(slug)) return false;
+      await handleRoadmapGet(req, res, slug);
       return true;
     }
     if (method === "POST" && /^\/api\/roadmaps\/[^/]+\/progress$/.test(path)) {

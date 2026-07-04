@@ -999,8 +999,8 @@ export async function tryAdminRoute(path, req, res) {
           [{ count: 0 }],
         ),
         safeQuery(
-          `SELECT payload->>'goal' AS goal, COUNT(*)::int AS count FROM roadmaps
-           GROUP BY payload->>'goal' ORDER BY count DESC LIMIT 5`,
+          `SELECT goal, COUNT(*)::int AS count FROM roadmaps
+           GROUP BY goal ORDER BY count DESC LIMIT 5`,
           [],
         ),
       ]);
