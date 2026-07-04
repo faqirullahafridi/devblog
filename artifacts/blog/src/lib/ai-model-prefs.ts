@@ -1,17 +1,15 @@
 /** Category-based model picker — users pick a type, server picks the best available model. */
-export type AiModelCategory = "chat" | "code" | "image";
+export type AiModelCategory = "chat" | "code";
 
 export const AI_MODEL_CATEGORY_PREFIX = "category::";
 
 export const AI_MODEL_CATEGORY_CHAT = `${AI_MODEL_CATEGORY_PREFIX}chat`;
 export const AI_MODEL_CATEGORY_CODE = `${AI_MODEL_CATEGORY_PREFIX}code`;
-export const AI_MODEL_CATEGORY_IMAGE = `${AI_MODEL_CATEGORY_PREFIX}image`;
 
 export const AI_MODEL_PICKER_OPTIONS = [
   { id: "auto", label: "Auto", short: "Auto", description: "Best available" },
   { id: AI_MODEL_CATEGORY_CHAT, label: "Text & reasoning", short: "Text", description: "Fast chat & explain" },
   { id: AI_MODEL_CATEGORY_CODE, label: "Code", short: "Code", description: "Generate & debug" },
-  { id: AI_MODEL_CATEGORY_IMAGE, label: "Images", short: "Img", description: "Create pictures" },
 ] as const;
 
 export function isCategoryModelId(id: string): boolean {
@@ -31,7 +29,7 @@ const STORAGE_KEY = "ai-model-id";
 function normalizeStoredId(id: string | null): string {
   if (!id) return AI_MODEL_AUTO;
   if (isValidPickerModelId(id)) return id;
-  if (id.includes("nvidia-image")) return AI_MODEL_CATEGORY_IMAGE;
+  if (id.includes("nvidia-image") || id === "category::image") return AI_MODEL_AUTO;
   if (/::.*(code|coder|deepseek-v4-flash|nemotron|qwen3)/i.test(id)) return AI_MODEL_CATEGORY_CODE;
   return AI_MODEL_AUTO;
 }

@@ -1,19 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { query } from "./db-pool.js";
 import { loadSession, isAdminValid } from "./admin-routes.js";
-import {
-  isImageGenerationRequest,
-  extractImagePrompt,
-  generateNimImage,
-  buildImageAssistantMarkdown,
-  isNvidiaImageConfigured,
-} from "./nvidia-nim-image.js";
 
 const BASE_RULES = `You are TechVentry's AI Developer Assistant — practical, direct, and accurate.
 
 Rules:
 - Fulfill the user's actual request first (answer, code, design, explanation). Do not dump API client boilerplate unless they explicitly ask how to integrate an API.
-- For image/logo/banner requests: describe the visual briefly; if you cannot output an image, offer SVG/HTML/CSS mockups — never replace an image request with Python/JS API integration code.
+- For image/logo/banner requests: offer SVG or HTML/CSS mockups in fenced blocks — image generation is not available yet.
 - Use markdown. Put code in fenced blocks with correct language tags.
 - Be concise. Lead with the solution, then optional detail.`;
 
@@ -187,40 +180,6 @@ function buildMessages(mode, history, userMessage) {
 
 function estimateTokens(text) {
   return Math.max(1, Math.ceil(String(text).length / 4));
-}
-
-/** When the user wants an image, generate via NVIDIA NIM instead of LLM API code. */
-async function tryImageGeneration(userMessage, onDelta) {
-  if (!isImageGenerationRequest(userMessage)) return null;
-  const prompt = extractImagePrompt(userMessage);
-  if (onDelta) onDelta("Generating your image…\n\n");
-
-  try {
-    const result = await generateNimImage({ prompt });
-    const content = buildImageAssistantMarkdown(prompt, result);
-    return {
-      content,
-      tokensIn: estimateTokens(userMessage),
-      tokensOut: estimateTokens(content),
-      provider: "nvidia-nim-image",
-      model: result.model,
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const hint = /404|not found/i.test(msg)
-      ? "Set `NVIDIA_IMAGE_MODEL=qwen-image` on the server (not `qwen/qwen-image`)."
-      : "Try a shorter prompt or check your NVIDIA API credits on [build.nvidia.com](https://build.nvidia.com/models).";
-    const content = isNvidiaImageConfigured()
-      ? `**Image generation failed:** ${msg}\n\n${hint}`
-      : `**Image generation isn't configured** on this server (add \`NVIDIA_API_KEY\` or \`NVIDIA_IMAGE_KEY\` from [build.nvidia.com](https://build.nvidia.com/models)).\n\nYou asked for: **${prompt}**\n\nI can still help with:\n- **SVG or HTML/CSS mockup** — ask "create an SVG logo for …"\n- **Design description** — colors, layout, typography\n\nI won't respond with API client code when you wanted a visual.`;
-    return {
-      content,
-      tokensIn: estimateTokens(userMessage),
-      tokensOut: estimateTokens(content),
-      provider: "techventry",
-      model: "image-fallback",
-    };
-  }
 }
 
 async function completeOpenAiChat(provider, messages) {
@@ -555,10 +514,7 @@ async function handleAiChat(req, res, modeSegment) {
     );
 
     try {
-      const imageResult = await tryImageGeneration(message, (delta) => send({ type: "delta", content: delta }));
-      const result =
-        imageResult ??
-        (await runAiChat(mode, history, message, (delta) => send({ type: "delta", content: delta })));
+      const result = await runAiChat(mode, history, message, (delta) => send({ type: "delta", content: delta }));
       const { rows: assistantRows } = await query(
         `INSERT INTO ai_messages (conversation_id, role, content, tokens_used)
          VALUES ($1, 'assistant', $2, $3)
@@ -590,8 +546,7 @@ async function handleAiChat(req, res, modeSegment) {
     `INSERT INTO ai_messages (conversation_id, role, content, tokens_used) VALUES ($1, 'user', $2, 0)`,
     [convId, message],
   );
-  const imageResult = await tryImageGeneration(message);
-  const result = imageResult ?? (await runAiChat(mode, history, message));
+  const result = await runAiChat(mode, history, message);
   const { rows: assistantRows } = await query(
     `INSERT INTO ai_messages (conversation_id, role, content, tokens_used)
      VALUES ($1, 'assistant', $2, $3)

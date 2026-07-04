@@ -1,8 +1,7 @@
 import http from "node:http";
 import https from "node:https";
 import tls from "node:tls";
-import { getNvidiaApiKey, getNvidiaApiKeyForMode, getNvidiaApiKeyForModel, getNimModelExtraBody, pickNimChatModels, listNimImageModels, NVIDIA_NIM_BASE, getNvidiaNimCatalog, isNvidiaNimConfigured } from "./integrations/nvidia-nim";
-import { generateAiImage } from "./integrations/media";
+import { getNvidiaApiKey, getNvidiaApiKeyForMode, getNvidiaApiKeyForModel, getNimModelExtraBody, pickNimChatModels, NVIDIA_NIM_BASE, getNvidiaNimCatalog, isNvidiaNimConfigured } from "./integrations/nvidia-nim";
 import { formatAiModelLabel, shortModelName } from "./model-labels";
 import { inferModelCategory, parseCategoryModelId, pickProvidersForAuto, resolveModelSelection, type AiModelCategory } from "./ai-model-categories";
 
@@ -18,7 +17,6 @@ export type AiProvider =
   | "gemini"
   | "cerebras"
   | "nvidia"
-  | "nvidia-image"
   | "deepseek"
   | "openai"
   | "sambanova"
@@ -59,7 +57,7 @@ type ProviderConfig = {
   url: string;
   apiKey: string;
   model: string;
-  kind?: "chat" | "image";
+  kind?: "chat";
   extraBody?: Record<string, unknown>;
   extraHeaders?: Record<string, string>;
 };
@@ -69,7 +67,7 @@ function buildProvider(
   url: string,
   apiKey: string,
   model: string,
-  opts?: { kind?: "chat" | "image"; extraBody?: Record<string, unknown>; extraHeaders?: Record<string, string> },
+  opts?: { kind?: "chat"; extraBody?: Record<string, unknown>; extraHeaders?: Record<string, string> },
 ): ProviderConfig {
   return { name, url, apiKey, model, kind: opts?.kind, extraBody: opts?.extraBody, extraHeaders: opts?.extraHeaders };
 }
@@ -200,15 +198,6 @@ const FREE_CHAT_PROVIDERS: SimpleProviderDef[] = [
   },
 ];
 
-/** NVIDIA NIM image models — text-to-image in chat when explicitly selected */
-function addNvidiaImageProviders(all: ProviderConfig[]) {
-  for (const model of listNimImageModels()) {
-    const apiKey = getNvidiaApiKeyForModel(model) ?? getNvidiaApiKey("image");
-    if (!apiKey) continue;
-    all.push(buildProvider("nvidia-image", "", apiKey, model, { kind: "image" }));
-  }
-}
-
 /** NVIDIA NIM — free open models from build.nvidia.com, mode-aware model picks */
 function addNvidiaProviders(all: ProviderConfig[], mode: AiMode) {
   const url = `${NVIDIA_NIM_BASE}/chat/completions`;
@@ -239,7 +228,6 @@ function buildConfiguredProviders(mode: AiMode = "chat"): ProviderConfig[] {
   const all: ProviderConfig[] = [];
   addZaiProviders(all);
   addNvidiaProviders(all, mode);
-  addNvidiaImageProviders(all);
   for (const def of FREE_CHAT_PROVIDERS) {
     const apiKey = envKey(def.keyEnv);
     if (!apiKey) continue;
@@ -291,7 +279,6 @@ export function listAiModelOptions(mode: AiMode = "chat"): AiModelOption[] {
     { id: "auto", provider: "auto", model: "auto", label: "Auto", category: "chat" },
     { id: "category::chat", provider: "category", model: "chat", label: "Text & reasoning", category: "chat" },
     { id: "category::code", provider: "category", model: "code", label: "Code", category: "code" },
-    { id: "category::image", provider: "category", model: "image", label: "Images", category: "image" },
   ];
 }
 
@@ -306,7 +293,7 @@ function resolveProviders(mode: AiMode = "chat", modelId?: string | null): Provi
     return match ? [match] : [];
   }
 
-  const chatProviders = all.filter((p) => p.kind !== "image");
+  const chatProviders = all;
 
   const preferred = (process.env.AI_PROVIDER || "auto").toLowerCase();
   if (preferred !== "auto") {
@@ -404,37 +391,6 @@ function buildChatMessages(
     ],
     temperature: 0.3,
     max_tokens: 2048,
-  };
-}
-
-function formatImageChatResponse(result: Awaited<ReturnType<typeof generateAiImage>>): string {
-  const src = result.dataUrl ?? result.url;
-  if (!src) throw new Error("Image model returned no image data");
-  const lines = [`![Generated image](${src})`, "", `*Model: \`${result.model}\`*`];
-  if (result.revisedPrompt && result.revisedPrompt !== result.prompt) {
-    lines.push("", `*Revised prompt: ${result.revisedPrompt}*`);
-  }
-  return lines.join("\n");
-}
-
-async function completeImageChat(
-  provider: ProviderConfig,
-  userMessage: string,
-  onDelta?: (text: string) => void,
-): Promise<{ content: string; tokensIn: number; tokensOut: number; provider: string; model: string }> {
-  const prelude = `Generating image with ${shortModelName(provider.model)}…\n\n`;
-  onDelta?.(prelude);
-
-  const result = await generateAiImage({ prompt: userMessage, model: provider.model });
-  const imageMd = formatImageChatResponse(result);
-  onDelta?.(imageMd);
-
-  return {
-    content: prelude + imageMd,
-    tokensIn: estimateTokens(userMessage),
-    tokensOut: 0,
-    provider: provider.name,
-    model: result.model,
   };
 }
 
@@ -576,16 +532,6 @@ export async function streamAiChat(opts: {
   const errors: string[] = [];
 
   for (const provider of providers) {
-    if (provider.kind === "image") {
-      try {
-        return await completeImageChat(provider, opts.userMessage, opts.onDelta);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Image generation failed";
-        errors.push(`${provider.name}: ${msg}`);
-        continue;
-      }
-    }
-
     let content = "";
     const body = { ...chatBody, model: provider.model, ...provider.extraBody };
     try {
@@ -654,16 +600,6 @@ export async function completeAiChat(opts: {
   const errors: string[] = [];
 
   for (const provider of providers) {
-    if (provider.kind === "image") {
-      try {
-        return await completeImageChat(provider, opts.userMessage);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Image generation failed";
-        errors.push(`${provider.name}: ${msg}`);
-        continue;
-      }
-    }
-
     const body = { ...chatBody, model: provider.model, ...provider.extraBody };
     try {
       const response = await postJson(provider.url, provider.apiKey, body, provider.extraHeaders);

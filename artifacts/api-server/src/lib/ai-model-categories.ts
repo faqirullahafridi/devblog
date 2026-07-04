@@ -2,14 +2,13 @@
 
 export type AiModelSelection = { provider: string; model: string };
 
-export type AiModelCategory = "chat" | "code" | "image";
+export type AiModelCategory = "chat" | "code";
 
 export const AI_MODEL_CATEGORY_PREFIX = "category::";
 
 export const AI_MODEL_CATEGORIES: Array<{ id: AiModelCategory; label: string; short: string }> = [
   { id: "chat", label: "Text & reasoning", short: "Text" },
   { id: "code", label: "Code", short: "Code" },
-  { id: "image", label: "Images", short: "Img" },
 ];
 
 const CODE_MODEL_IDS = new Set([
@@ -51,20 +50,9 @@ const CATEGORY_PICK_ORDER: Record<
     { provider: "openai" },
     { provider: "zai", model: "glm-4.7-flash" },
   ],
-  image: [
-    { provider: "nvidia-image", model: "black-forest-labs/flux.1-schnell" },
-    { provider: "nvidia-image", model: "qwen/qwen-image" },
-    { provider: "nvidia-image" },
-  ],
 };
 
-export function inferModelCategory(
-  provider: string,
-  model: string,
-  kind?: "chat" | "image",
-): AiModelCategory {
-  if (kind === "image" || provider === "nvidia-image") return "image";
-
+export function inferModelCategory(provider: string, model: string): AiModelCategory {
   const id = model.toLowerCase();
   if (CODE_MODEL_IDS.has(model) || /coder|codegemma|usdcode/i.test(id)) return "code";
   if (REASONING_MODEL_IDS.has(model) || /qwq|reasoning|thinking|kimi-k2/i.test(id)) return "chat";
@@ -76,7 +64,6 @@ export function inferModelCategory(
 type ProviderLike = {
   name: string;
   model: string;
-  kind?: "chat" | "image";
 };
 
 export function pickBestModelForCategory(
@@ -93,17 +80,12 @@ export function pickProvidersForCategory(
   providers: ProviderLike[],
   max = 3,
 ): AiModelSelection[] {
-  const eligible =
-    category === "image"
-      ? providers.filter((p) => p.kind === "image")
-      : providers.filter((p) => p.kind !== "image");
-
   const picks: AiModelSelection[] = [];
   const prefs = CATEGORY_PICK_ORDER[category];
 
   for (const pref of prefs) {
     if (picks.length >= max) break;
-    const match = eligible.find(
+    const match = providers.find(
       (p) => p.name === pref.provider && (!pref.model || p.model === pref.model),
     );
     if (match) {
@@ -115,11 +97,7 @@ export function pickProvidersForCategory(
   }
 
   if (!picks.length) {
-    const fallback = eligible.find((p) =>
-      category === "image"
-        ? true
-        : inferModelCategory(p.name, p.model, p.kind) === category,
-    );
+    const fallback = providers.find((p) => inferModelCategory(p.name, p.model) === category);
     if (fallback) picks.push({ provider: fallback.name, model: fallback.model });
   }
 
@@ -133,7 +111,7 @@ export function pickProvidersForAuto(providers: ProviderLike[], max = 3): AiMode
 export function parseCategoryModelId(id: string): AiModelCategory | null {
   if (!id.startsWith(AI_MODEL_CATEGORY_PREFIX)) return null;
   const cat = id.slice(AI_MODEL_CATEGORY_PREFIX.length) as AiModelCategory;
-  return cat === "chat" || cat === "code" || cat === "image" ? cat : null;
+  return cat === "chat" || cat === "code" ? cat : null;
 }
 
 export function resolveModelSelection(

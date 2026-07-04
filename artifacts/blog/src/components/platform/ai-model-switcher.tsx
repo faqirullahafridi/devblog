@@ -1,10 +1,9 @@
 import { forwardRef, useCallback, useState, type ComponentPropsWithoutRef } from "react";
-import { Check, ChevronDown, Code2, Cpu, ImageIcon, MessageSquare, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Code2, Cpu, MessageSquare, Sparkles } from "lucide-react";
 import {
   AI_MODEL_AUTO,
   AI_MODEL_CATEGORY_CHAT,
   AI_MODEL_CATEGORY_CODE,
-  AI_MODEL_CATEGORY_IMAGE,
   AI_MODEL_PICKER_OPTIONS,
   getStoredAiModelId,
   isValidPickerModelId,
@@ -24,7 +23,6 @@ const OPTION_ICONS = {
   auto: Sparkles,
   [AI_MODEL_CATEGORY_CHAT]: MessageSquare,
   [AI_MODEL_CATEGORY_CODE]: Code2,
-  [AI_MODEL_CATEGORY_IMAGE]: ImageIcon,
 } as const;
 
 type AiModelSwitcherProps = {

@@ -191,7 +191,6 @@ const PICKER_CATEGORY: Record<string, AiModelCategory> = {
   auto: "chat",
   "category::chat": "chat",
   "category::code": "code",
-  "category::image": "image",
 };
 
 function pickerOptionsAsModels(): AiModelOption[] {
