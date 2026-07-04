@@ -8,6 +8,7 @@
     "build": "node ./build.mjs",
     "build:vercel": "pnpm -w run build:vercel",
     "start": "node --enable-source-maps ./dist/index.mjs",
+    "sync:resend-templates": "node ./scripts/sync-resend-templates.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

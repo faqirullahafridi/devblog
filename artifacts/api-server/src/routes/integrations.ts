@@ -4,11 +4,28 @@ import { getDevHeadlines, getTechNews } from "../lib/integrations/feeds";
 import { getCountries, getExchangeRates, getGeoForIp, getNpmPackage, getCryptoPrices } from "../lib/integrations/utils";
 import { picsumPlaceholderUrl, searchStockImages, generateAiImage, getAiImageProviders } from "../lib/integrations/media";
 import { getIntegrationsSummary } from "../lib/integrations/status";
+import { syncResendTemplates } from "../lib/resend-templates";
+import { requireAuth } from "../middleware/require-auth";
 
 const router = Router();
 
 router.get("/integrations/status", cachePublic(300), (_req, res) => {
   res.json(getIntegrationsSummary());
+});
+
+router.post("/integrations/resend/sync-templates", requireAuth, async (req, res) => {
+  try {
+    const templates = await syncResendTemplates();
+    return res.json({
+      success: true,
+      templates,
+      hint: "Set RESEND_USE_TEMPLATES=1 in .env to send via hosted templates.",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to sync Resend templates");
+    const message = err instanceof Error ? err.message : "Failed to sync templates";
+    return res.status(502).json({ error: message });
+  }
 });
 
 router.get("/feeds/dev-headlines", cachePublic(600), async (req, res) => {
