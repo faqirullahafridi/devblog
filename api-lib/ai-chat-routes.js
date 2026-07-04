@@ -207,8 +207,11 @@ async function tryImageGeneration(userMessage, onDelta) {
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    const hint = /404|not found/i.test(msg)
+      ? "Set `NVIDIA_IMAGE_MODEL=qwen-image` on the server (not `qwen/qwen-image`)."
+      : "Try a shorter prompt or check your NVIDIA API credits on [build.nvidia.com](https://build.nvidia.com/models).";
     const content = isNvidiaImageConfigured()
-      ? `**Image generation failed:** ${msg}\n\nTry a shorter prompt or check your NVIDIA API credits on [build.nvidia.com](https://build.nvidia.com/models).`
+      ? `**Image generation failed:** ${msg}\n\n${hint}`
       : `**Image generation isn't configured** on this server (add \`NVIDIA_API_KEY\` or \`NVIDIA_IMAGE_KEY\` from [build.nvidia.com](https://build.nvidia.com/models)).\n\nYou asked for: **${prompt}**\n\nI can still help with:\n- **SVG or HTML/CSS mockup** — ask "create an SVG logo for …"\n- **Design description** — colors, layout, typography\n\nI won't respond with API client code when you wanted a visual.`;
     return {
       content,

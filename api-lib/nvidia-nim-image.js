@@ -1,11 +1,35 @@
 const NVIDIA_NIM_BASE = "https://integrate.api.nvidia.com/v1";
 
-const IMAGE_MODELS = [
-  "qwen/qwen-image",
-  "qwen/qwen-image-edit",
-  "black-forest-labs/flux.1-schnell",
-  "black-forest-labs/flux.1-dev",
-  "stabilityai/stable-diffusion-3.5-large",
+/** NVIDIA Visual GenAI API model IDs (NOT build.nvidia.com URL slugs). */
+const API_IMAGE_MODELS = {
+  qwen: "qwen-image",
+  qwen2512: "qwen-image-2512",
+  qwenEdit: "qwen-image-edit",
+  fluxSchnell: "flux.1-schnell",
+  fluxDev: "flux.1-dev",
+  sd35: "stable-diffusion-3.5-large",
+};
+
+/** Map catalog / env aliases → API model id sent in the request body. */
+const MODEL_ALIASES = {
+  "qwen/qwen-image": API_IMAGE_MODELS.qwen,
+  "qwen-image": API_IMAGE_MODELS.qwen,
+  "qwen/qwen-image-2512": API_IMAGE_MODELS.qwen2512,
+  "qwen-image-2512": API_IMAGE_MODELS.qwen2512,
+  "qwen/qwen-image-edit": API_IMAGE_MODELS.qwenEdit,
+  "qwen-image-edit": API_IMAGE_MODELS.qwenEdit,
+  "black-forest-labs/flux.1-schnell": API_IMAGE_MODELS.fluxSchnell,
+  "flux.1-schnell": API_IMAGE_MODELS.fluxSchnell,
+  "black-forest-labs/flux.1-dev": API_IMAGE_MODELS.fluxDev,
+  "flux.1-dev": API_IMAGE_MODELS.fluxDev,
+  "stabilityai/stable-diffusion-3.5-large": API_IMAGE_MODELS.sd35,
+  "stable-diffusion-3.5-large": API_IMAGE_MODELS.sd35,
+};
+
+const GENERATE_FALLBACK_MODELS = [
+  API_IMAGE_MODELS.qwen,
+  API_IMAGE_MODELS.qwen2512,
+  API_IMAGE_MODELS.fluxSchnell,
 ];
 
 let modelKeyMapCache = null;
@@ -18,6 +42,16 @@ function readEnvKey(...names) {
   return undefined;
 }
 
+function normalizeModelId(raw) {
+  const id = String(raw ?? "").trim();
+  if (!id || id.startsWith("nvapi-")) return API_IMAGE_MODELS.qwen;
+  return MODEL_ALIASES[id] ?? id;
+}
+
+function isEditModel(apiModelId) {
+  return apiModelId === API_IMAGE_MODELS.qwenEdit;
+}
+
 function getModelKeyMap() {
   if (modelKeyMapCache) return modelKeyMapCache;
   modelKeyMapCache = {};
@@ -28,67 +62,56 @@ function getModelKeyMap() {
       const parsed = JSON.parse(raw);
       for (const [model, key] of Object.entries(parsed)) {
         const k = String(key).trim();
-        if (k.startsWith("nvapi-")) modelKeyMapCache[model] = k;
+        if (!k.startsWith("nvapi-")) continue;
+        const apiId = normalizeModelId(model);
+        modelKeyMapCache[apiId] = k;
+        modelKeyMapCache[model] = k;
       }
     } catch {
       /* invalid JSON */
     }
   }
 
-  // Vercel-friendly per-model keys (no JSON required)
   const imageKey = readEnvKey("NVIDIA_IMAGE_KEY", "NVIDIA_API_KEY");
   const editKey = readEnvKey("NVIDIA_IMAGE_EDIT_KEY", "NVIDIA_IMAGE_KEY1");
-  if (imageKey && !modelKeyMapCache["qwen/qwen-image"]) {
+  if (imageKey) {
+    modelKeyMapCache[API_IMAGE_MODELS.qwen] = imageKey;
+    modelKeyMapCache[API_IMAGE_MODELS.qwen2512] = imageKey;
     modelKeyMapCache["qwen/qwen-image"] = imageKey;
   }
-  if (editKey && !modelKeyMapCache["qwen/qwen-image-edit"]) {
+  if (editKey) {
+    modelKeyMapCache[API_IMAGE_MODELS.qwenEdit] = editKey;
     modelKeyMapCache["qwen/qwen-image-edit"] = editKey;
   }
 
   return modelKeyMapCache;
 }
 
-function readNvidiaImageKey(model) {
+function readNvidiaImageKey(apiModelId) {
   const map = getModelKeyMap();
-  if (model && map[model]) return map[model];
-  if (model === "qwen/qwen-image-edit") {
-    return readEnvKey("NVIDIA_IMAGE_EDIT_KEY", "NVIDIA_IMAGE_KEY1") ?? map["qwen/qwen-image-edit"];
+  const normalized = normalizeModelId(apiModelId);
+  if (map[normalized]) return map[normalized];
+  if (isEditModel(normalized)) {
+    return readEnvKey("NVIDIA_IMAGE_EDIT_KEY", "NVIDIA_IMAGE_KEY1") ?? map[API_IMAGE_MODELS.qwenEdit];
   }
   return (
-    readEnvKey("NVIDIA_IMAGE_KEY", "NVIDIA_API_KEY", "NVIDIA_CHAT_KEY") ??
-    map["qwen/qwen-image"] ??
+    readEnvKey("NVIDIA_IMAGE_KEY", "NVIDIA_API_KEY") ??
+    map[API_IMAGE_MODELS.qwen] ??
     Object.values(map)[0]
   );
 }
 
 export function isNvidiaImageConfigured() {
-  return !!readNvidiaImageKey() || !!readEnvKey("NVIDIA_IMAGE_EDIT_KEY", "NVIDIA_IMAGE_KEY1");
+  return !!readNvidiaImageKey(API_IMAGE_MODELS.qwen) || !!readEnvKey("NVIDIA_IMAGE_EDIT_KEY", "NVIDIA_IMAGE_KEY1");
 }
 
 function pickImageModel() {
   const env = process.env.NVIDIA_IMAGE_MODEL?.trim();
-  if (env) return env;
-  if (getModelKeyMap()["qwen/qwen-image"]) return "qwen/qwen-image";
-  return IMAGE_MODELS[0];
+  if (env) return normalizeModelId(env);
+  return API_IMAGE_MODELS.qwen;
 }
 
-export async function generateNimImage({ prompt, model, size = "1024x1024" }) {
-  const chosenModel = model?.trim() || pickImageModel();
-  const apiKey = readNvidiaImageKey(chosenModel);
-  if (!apiKey) {
-    throw new Error(
-      "NVIDIA image API not configured. Set NVIDIA_IMAGE_KEY (+ NVIDIA_IMAGE_MODEL=qwen/qwen-image) on Vercel.",
-    );
-  }
-
-  const body = JSON.stringify({
-    model: chosenModel,
-    prompt,
-    n: 1,
-    size,
-    response_format: "b64_json",
-  });
-
+async function requestImage(apiModelId, apiKey, prompt, size) {
   const res = await fetch(`${NVIDIA_NIM_BASE}/images/generations`, {
     method: "POST",
     headers: {
@@ -96,19 +119,29 @@ export async function generateNimImage({ prompt, model, size = "1024x1024" }) {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body,
+    body: JSON.stringify({
+      model: apiModelId,
+      prompt,
+      n: 1,
+      size,
+      response_format: "b64_json",
+    }),
   });
 
   const text = await res.text();
   if (!res.ok) {
-    let msg = `NVIDIA image API error (${res.status})`;
+    let msg = `HTTP ${res.status}`;
     try {
       const json = JSON.parse(text);
-      if (json.error?.message) msg = json.error.message;
+      if (json.detail) msg = String(json.detail);
+      else if (json.error?.message) msg = json.error.message;
+      else if (json.title) msg = `${json.title}: ${json.detail ?? text.slice(0, 120)}`;
     } catch {
-      msg = `${msg}: ${text.slice(0, 200)}`;
+      msg = text.slice(0, 200) || msg;
     }
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
 
   const data = JSON.parse(text);
@@ -118,12 +151,46 @@ export async function generateNimImage({ prompt, model, size = "1024x1024" }) {
   }
 
   return {
-    model: chosenModel,
+    model: apiModelId,
     b64Json: first.b64_json,
     url: first.url,
     revisedPrompt: first.revised_prompt,
     dataUrl: first.b64_json ? `data:image/png;base64,${first.b64_json}` : first.url,
   };
+}
+
+export async function generateNimImage({ prompt, model, size = "1024x1024" }) {
+  const primary = normalizeModelId(model?.trim() || pickImageModel());
+  const candidates = isEditModel(primary)
+    ? [primary]
+    : [primary, ...GENERATE_FALLBACK_MODELS.filter((m) => m !== primary)];
+
+  const errors = [];
+
+  for (const apiModelId of candidates) {
+    const apiKey = readNvidiaImageKey(apiModelId);
+    if (!apiKey) continue;
+    try {
+      return await requestImage(apiModelId, apiKey, prompt, size);
+    } catch (err) {
+      const status = err?.status ?? 0;
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`${apiModelId}: ${message}`);
+      if (status !== 404 && status !== 400) break;
+    }
+  }
+
+  if (!readNvidiaImageKey(API_IMAGE_MODELS.qwen)) {
+    throw new Error(
+      "NVIDIA image API not configured. Set NVIDIA_IMAGE_KEY and NVIDIA_IMAGE_MODEL=qwen-image on Vercel.",
+    );
+  }
+
+  throw new Error(
+    errors.length
+      ? `Image generation failed (${errors.join("; ")}). Set NVIDIA_IMAGE_MODEL=qwen-image on Vercel.`
+      : "Image generation failed. Set NVIDIA_IMAGE_MODEL=qwen-image on Vercel.",
+  );
 }
 
 export function isImageGenerationRequest(text) {
@@ -164,6 +231,5 @@ export function buildImageAssistantMarkdown(prompt, result) {
 }
 
 export function listConfiguredImageModels() {
-  const map = getModelKeyMap();
-  return IMAGE_MODELS.filter((id) => !!map[id]);
+  return Object.values(API_IMAGE_MODELS).filter((id) => !!readNvidiaImageKey(id));
 }

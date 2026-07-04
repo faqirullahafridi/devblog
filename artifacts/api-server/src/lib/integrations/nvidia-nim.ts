@@ -52,14 +52,32 @@ export const NVIDIA_NIM_CHAT_MODELS = {
   ],
 } as const;
 
-/** Free image models — https://docs.nvidia.com/nim/visual-genai/latest/api/openai-image-generation.html */
+/** Free image models — NVIDIA Visual GenAI API ids (not build.nvidia.com URL slugs). */
 export const NVIDIA_NIM_IMAGE_MODELS = [
-  "qwen/qwen-image",
-  "qwen/qwen-image-edit",
-  "black-forest-labs/flux.1-schnell",
-  "black-forest-labs/flux.1-dev",
-  "stabilityai/stable-diffusion-3.5-large",
+  "qwen-image",
+  "qwen-image-2512",
+  "qwen-image-edit",
+  "flux.1-schnell",
+  "flux.1-dev",
+  "stable-diffusion-3.5-large",
 ] as const;
+
+const IMAGE_MODEL_ALIASES: Record<string, string> = {
+  "qwen/qwen-image": "qwen-image",
+  "qwen/qwen-image-2512": "qwen-image-2512",
+  "qwen/qwen-image-edit": "qwen-image-edit",
+  "black-forest-labs/flux.1-schnell": "flux.1-schnell",
+  "black-forest-labs/flux.1-dev": "flux.1-dev",
+  "stabilityai/stable-diffusion-3.5-large": "stable-diffusion-3.5-large",
+};
+
+const IMAGE_GENERATE_FALLBACKS = ["qwen-image", "qwen-image-2512", "flux.1-schnell"];
+
+export function normalizeNimImageModelId(raw: string | undefined): string {
+  const id = String(raw ?? "").trim();
+  if (!id || id.startsWith("nvapi-")) return "qwen-image";
+  return IMAGE_MODEL_ALIASES[id] ?? id;
+}
 
 /** Optional per-model request body (from build.nvidia.com model cards). */
 const NVIDIA_NIM_MODEL_EXTRAS: Record<string, Record<string, unknown>> = {
@@ -79,7 +97,10 @@ function getModelKeyMap(): Record<string, string> {
       const parsed = JSON.parse(raw) as Record<string, string>;
       for (const [model, key] of Object.entries(parsed)) {
         const k = key?.trim();
-        if (k?.startsWith("nvapi-")) modelKeyMapCache[model] = k;
+        if (!k?.startsWith("nvapi-")) continue;
+        const apiId = normalizeNimImageModelId(model);
+        modelKeyMapCache[apiId] = k;
+        modelKeyMapCache[model] = k;
       }
     } catch {
       /* invalid JSON */
@@ -155,6 +176,14 @@ export function getNvidiaApiKeyForModel(model: string): string | undefined {
   ) {
     return getNvidiaApiKey("code");
   }
+  if (
+    id.includes("flux") ||
+    id.includes("stable-diffusion") ||
+    id.includes("qwen-image") ||
+    id.endsWith("/image")
+  ) {
+    return getNvidiaApiKey("image");
+  }
   if (id.includes("qwq") || id.includes("reasoning") || id.includes("thinking") || id.includes("kimi-k2")) {
     return getNvidiaApiKey("reasoning");
   }
@@ -222,11 +251,9 @@ export function pickNimChatModels(mode: NimAiMode): string[] {
 }
 
 export function pickNimImageModel(): string {
-  return (
-    readEnvModel("NVIDIA_IMAGE_MODEL", "NVIDIA_IMAGE_MODEL_DEFAULT") ||
-    listNimImageModels()[0] ||
-    NVIDIA_NIM_IMAGE_MODELS[0]
-  );
+  const env = readEnvModel("NVIDIA_IMAGE_MODEL", "NVIDIA_IMAGE_MODEL_DEFAULT");
+  if (env) return normalizeNimImageModelId(env);
+  return listNimImageModels()[0] ?? NVIDIA_NIM_IMAGE_MODELS[0];
 }
 
 export function nimPostJson(
@@ -281,45 +308,67 @@ export async function generateNimImage(opts: {
   size?: string;
   n?: number;
 }): Promise<{ images: NimGeneratedImage[]; model: string }> {
-  const model = opts.model?.trim() || pickNimImageModel();
-  const response = await nimPostJson(
-    "/images/generations",
-    {
-      model,
-      prompt: opts.prompt,
-      n: opts.n ?? 1,
-      size: opts.size ?? "1024x1024",
-      response_format: "b64_json",
-    },
-    getNvidiaApiKeyForModel(model) ?? getNvidiaApiKey("image"),
-  );
+  const primary = normalizeNimImageModelId(opts.model?.trim() || pickNimImageModel());
+  const isEdit = primary === "qwen-image-edit";
+  const candidates = isEdit
+    ? [primary]
+    : [primary, ...IMAGE_GENERATE_FALLBACKS.filter((m) => m !== primary)];
 
-  if (response.status < 200 || response.status >= 300) {
-    let msg = `NVIDIA image API error (${response.status})`;
-    try {
-      const json = JSON.parse(response.text) as { error?: { message?: string } };
-      if (json.error?.message) msg = json.error.message;
-    } catch {
-      msg = `${msg}: ${response.text.slice(0, 200)}`;
+  const errors: string[] = [];
+
+  for (const model of candidates) {
+    const apiKey = getNvidiaApiKeyForModel(model) ?? getNvidiaApiKey("image");
+    if (!apiKey) continue;
+
+    const response = await nimPostJson(
+      "/images/generations",
+      {
+        model,
+        prompt: opts.prompt,
+        n: opts.n ?? 1,
+        size: opts.size ?? "1024x1024",
+        response_format: "b64_json",
+      },
+      apiKey,
+    );
+
+    if (response.status < 200 || response.status >= 300) {
+      let msg = `HTTP ${response.status}`;
+      try {
+        const json = JSON.parse(response.text) as { error?: { message?: string }; detail?: string };
+        if (json.detail) msg = String(json.detail);
+        else if (json.error?.message) msg = json.error.message;
+      } catch {
+        msg = response.text.slice(0, 200) || msg;
+      }
+      errors.push(`${model}: ${msg}`);
+      if (response.status !== 404 && response.status !== 400) break;
+      continue;
     }
-    throw new Error(msg);
+
+    const data = JSON.parse(response.text) as {
+      data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string }>;
+    };
+
+    const images: NimGeneratedImage[] = (data.data ?? []).map((item) => ({
+      url: item.url,
+      b64Json: item.b64_json,
+      revisedPrompt: item.revised_prompt,
+    }));
+
+    if (!images.length) {
+      errors.push(`${model}: no image data`);
+      continue;
+    }
+
+    return { images, model };
   }
 
-  const data = JSON.parse(response.text) as {
-    data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string }>;
-  };
-
-  const images: NimGeneratedImage[] = (data.data ?? []).map((item) => ({
-    url: item.url,
-    b64Json: item.b64_json,
-    revisedPrompt: item.revised_prompt,
-  }));
-
-  if (!images.length) {
-    throw new Error("NVIDIA image API returned no images");
-  }
-
-  return { images, model };
+  throw new Error(
+    errors.length
+      ? `Image generation failed (${errors.join("; ")}). Set NVIDIA_IMAGE_MODEL=qwen-image on the server.`
+      : "Image generation failed. Set NVIDIA_IMAGE_MODEL=qwen-image on the server.",
+  );
 }
 
 export function getNvidiaNimCatalog() {
