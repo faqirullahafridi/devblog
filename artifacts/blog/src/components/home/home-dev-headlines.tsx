@@ -64,7 +64,13 @@ export function HomeDevHeadlines({ embedded = false }: { embedded?: boolean }) {
             </Button>
           </div>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">No headlines right now.</p>
+          <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground text-center">
+            <p>Headlines load from Hacker News and Dev.to — nothing came back this time.</p>
+            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isFetching && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
         ) : (
           <ul className="rounded-xl border border-border bg-card divide-y divide-border shadow-sm overflow-hidden">
             {items.map((item) => (

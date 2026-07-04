@@ -6,6 +6,7 @@ import { publishedVisibleCondition } from "../lib/post-filters";
 import { requireAuth } from "../middleware/require-auth";
 import { cachePublic, setPublicCache } from "../lib/cache";
 import { cached } from "../lib/memory-cache";
+import { withDbRetry } from "../lib/db-retry";
 
 const router = Router();
 
@@ -119,34 +120,40 @@ router.get("/posts", async (req, res) => {
 
 router.get("/posts/home-feed", cachePublic(120), async (_req, res) => {
   try {
-    const listFrom = () =>
-      db
-        .select(postListSelect)
-        .from(postsTable)
-        .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id));
+    const feed = await cached("posts:home-feed", 120_000, () =>
+      withDbRetry(async () => {
+        const listFrom = () =>
+          db
+            .select(postListSelect)
+            .from(postsTable)
+            .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id));
 
-    const [featuredRows, recentRows, popularRows] = await Promise.all([
-      listFrom()
-        .where(and(eq(postsTable.isFeatured, true), publishedVisibleCondition()))
-        .orderBy(desc(postsTable.createdAt))
-        .limit(4),
-      listFrom().where(publishedVisibleCondition()).orderBy(desc(postsTable.createdAt)).limit(6),
-      listFrom()
-        .where(publishedVisibleCondition())
-        .orderBy(desc(postsTable.views), desc(postsTable.createdAt))
-        .limit(6),
-    ]);
+        const [featuredRows, recentRows, popularRows] = await Promise.all([
+          listFrom()
+            .where(and(eq(postsTable.isFeatured, true), publishedVisibleCondition()))
+            .orderBy(desc(postsTable.createdAt))
+            .limit(4),
+          listFrom().where(publishedVisibleCondition()).orderBy(desc(postsTable.createdAt)).limit(6),
+          listFrom()
+            .where(publishedVisibleCondition())
+            .orderBy(desc(postsTable.views), desc(postsTable.createdAt))
+            .limit(6),
+        ]);
 
-    let featured = featuredRows;
-    if (featured.length === 0) {
-      featured = recentRows.slice(0, 4);
-    }
+        let featured = featuredRows;
+        if (featured.length === 0) {
+          featured = recentRows.slice(0, 4);
+        }
 
-    res.json({
-      featured: featured.map(formatPost as any),
-      recent: recentRows.map(formatPost as any),
-      popular: popularRows.map(formatPost as any),
-    });
+        return {
+          featured: featured.map(formatPost as any),
+          recent: recentRows.map(formatPost as any),
+          popular: popularRows.map(formatPost as any),
+        };
+      }),
+    );
+
+    res.json(feed);
   } catch (err) {
     res.status(500).json({ error: "Failed to load home feed" });
   }

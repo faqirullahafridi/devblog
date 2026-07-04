@@ -4,6 +4,7 @@ import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { TOOLS, getToolHref } from "@/lib/tools-config";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { HubShell } from "@/components/hub/hub-shell";
 
 export default function ToolsIndexPage() {
   return (
@@ -12,7 +13,7 @@ export default function ToolsIndexPage() {
         title={seoTitle("Developer Tools")}
         description="Free online tools for developers: JSON formatter, JWT decoder, regex tester, and more."
       />
-      <div className="container mx-auto px-4 py-12 max-w-5xl">
+      <HubShell>
         <header className="mb-10 text-center max-w-2xl mx-auto">
           <h1 className="text-4xl font-extrabold tracking-tight">Developer Tools</h1>
           <p className="text-muted-foreground mt-3 text-lg">
@@ -43,7 +44,7 @@ export default function ToolsIndexPage() {
           })}
         </div>
         <HubSeoIntro path="/tools" />
-      </div>
+      </HubShell>
     </PublicLayout>
   );
 }

@@ -3,7 +3,13 @@ import https from "node:https";
 import tls from "node:tls";
 import { getNvidiaApiKey, getNvidiaApiKeyForMode, getNvidiaApiKeyForModel, getNimModelExtraBody, pickNimChatModels, NVIDIA_NIM_BASE, getNvidiaNimCatalog, isNvidiaNimConfigured } from "./integrations/nvidia-nim";
 import { formatAiModelLabel, shortModelName } from "./model-labels";
-import { inferModelCategory, parseCategoryModelId, pickProvidersForAuto, resolveModelSelection, type AiModelCategory } from "./ai-model-categories";
+import { inferModelCategory, parseCategoryModelId, pickProvidersForAuto, pickProvidersForCategory, pickProvidersForMode, resolveModelSelection, type AiModelCategory } from "./ai-model-categories";
+import {
+  buildSystemPrompt,
+  MODE_HINTS,
+  STATIC_SITE_USER_ENFORCEMENT,
+  isStaticSiteRequest,
+} from "./ai-instructions";
 
 const httpsAgent = new https.Agent({ ca: tls.rootCertificates as unknown as string[] });
 
@@ -25,17 +31,12 @@ export type AiProvider =
   | "modelscope"
   | "siliconflow";
 
-const SYSTEM_PROMPTS: Record<AiMode, string> = {
-  chat: "You are TechVentry's AI Developer Assistant. Help developers with code, architecture, and best practices. Use markdown and code blocks. For landing pages or complete sites, use separate ```html, ```css, and ```javascript fences so the user can preview the result.",
-  debug: "You are an expert debugger. Analyze code, find bugs, explain root causes, and suggest minimal fixes. Use markdown.",
-  explain: "You are a patient senior engineer. Explain code clearly for developers at all levels. Use markdown and examples.",
-  generate: "You generate clean, production-ready code with brief comments. Output code in fenced blocks with language tags. For landing pages, full sites, or UI layouts, use separate ```html, ```css, and ```javascript blocks so the user can preview them in the chat.",
-  convert: "You convert code between programming languages accurately, preserving logic. Show converted code in fenced blocks.",
-  optimize: "You optimize code for performance, readability, and maintainability. Show before/after with explanations.",
-  sql: "You write correct SQL for PostgreSQL. Explain queries briefly. Use sql fenced blocks.",
-  api: "You design REST API endpoints with request/response examples. Use OpenAPI-style descriptions and JSON examples.",
-  errors: "You explain error messages and stack traces. Provide root cause and step-by-step fixes.",
-};
+const SYSTEM_PROMPTS: Record<AiMode, string> = Object.fromEntries(
+  (Object.keys(MODE_HINTS) as AiMode[]).map((mode) => [
+    mode,
+    buildSystemPrompt(MODE_HINTS[mode] ?? "", mode),
+  ]),
+) as Record<AiMode, string>;
 
 export function modeFromPath(segment: string): AiMode {
   const map: Record<string, AiMode> = {
@@ -224,11 +225,21 @@ function addOllamaProvider(all: ProviderConfig[]) {
   }
 }
 
+function shouldUseDirectDeepseek(): boolean {
+  const flag = process.env.DEEPSEEK_DISABLED?.trim().toLowerCase();
+  if (flag === "1" || flag === "true" || flag === "yes") return false;
+  if (!envKey("DEEPSEEK_API_KEY")) return false;
+  // Prefer free NVIDIA NIM — avoids paid api.deepseek.com "Insufficient Balance" errors.
+  if (isNvidiaNimConfigured()) return false;
+  return true;
+}
+
 function buildConfiguredProviders(mode: AiMode = "chat"): ProviderConfig[] {
   const all: ProviderConfig[] = [];
   addZaiProviders(all);
   addNvidiaProviders(all, mode);
   for (const def of FREE_CHAT_PROVIDERS) {
+    if (def.id === "deepseek" && !shouldUseDirectDeepseek()) continue;
     const apiKey = envKey(def.keyEnv);
     if (!apiKey) continue;
     all.push(
@@ -286,6 +297,15 @@ const STREAM_FIRST_TOKEN_MS = Number(process.env.AI_STREAM_FIRST_TOKEN_MS ?? 8_0
 
 function resolveProviders(mode: AiMode = "chat", modelId?: string | null): ProviderConfig[] {
   const all = buildConfiguredProviders(mode);
+  const category = modelId ? parseCategoryModelId(modelId) : null;
+
+  if (category) {
+    const max = category === "code" ? 6 : 3;
+    return pickProvidersForCategory(category, all, max)
+      .map((sel) => all.find((p) => p.name === sel.provider && p.model === sel.model))
+      .filter((p): p is ProviderConfig => p != null);
+  }
+
   const selection = resolveModelSelection(modelId ?? undefined, all);
 
   if (selection) {
@@ -301,7 +321,8 @@ function resolveProviders(mode: AiMode = "chat", modelId?: string | null): Provi
     if (picked) return [picked];
   }
 
-  return pickProvidersForAuto(all, 3)
+  const autoMax = mode === "generate" ? 6 : mode === "convert" || mode === "optimize" ? 4 : 3;
+  return pickProvidersForMode(mode, all, autoMax)
     .map((sel) => all.find((p) => p.name === sel.provider && p.model === sel.model))
     .filter((p): p is ProviderConfig => p != null);
 }
@@ -382,16 +403,42 @@ function buildChatMessages(
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>,
   userMessage: string,
 ) {
-  const system = SYSTEM_PROMPTS[mode];
+  let system = SYSTEM_PROMPTS[mode];
+  let message = userMessage;
+  if (isStaticSiteRequest(mode, userMessage)) {
+    system = `${system}\n\n${STATIC_SITE_USER_ENFORCEMENT}`;
+    message = `${userMessage}\n\n---\nDeliver: exactly \`\`\`html + \`\`\`css + \`\`\`javascript fences. Full static HTML body (hero, features, testimonials, CTA, footer). No React. No index.js/App.js/Hero.js. No #### file headers. Close every fence with \`\`\`.`;
+  }
   return {
     messages: [
       { role: "system" as const, content: system },
       ...messages.filter((m) => m.role !== "system"),
-      { role: "user" as const, content: userMessage },
+      { role: "user" as const, content: message },
     ],
-    temperature: 0.3,
-    max_tokens: 2048,
+    temperature: temperatureForRequest(mode, userMessage),
+    max_tokens: maxTokensForRequest(mode, userMessage),
   };
+}
+
+function temperatureForRequest(mode: AiMode, userMessage: string): number {
+  return isStaticSiteRequest(mode, userMessage) ? 0.15 : 0.3;
+}
+
+function isBuildHeavyRequest(mode: AiMode, userMessage: string): boolean {
+  const t = userMessage.toLowerCase();
+  if (mode === "generate") return true;
+  return /\b(landing|website|saas|full page|complete site|portfolio|web page|homepage)\b/.test(t);
+}
+
+function maxTokensForRequest(mode: AiMode, userMessage: string): number {
+  if (isBuildHeavyRequest(mode, userMessage)) {
+    return Number(process.env.AI_BUILD_MAX_TOKENS ?? 8192);
+  }
+  return Number(process.env.AI_MAX_TOKENS ?? 4096);
+}
+
+function streamTimeoutMs(mode: AiMode, userMessage: string): number {
+  return isBuildHeavyRequest(mode, userMessage) ? 120_000 : 45_000;
 }
 
 function parseSseDelta(line: string): string {
@@ -529,6 +576,9 @@ export async function streamAiChat(opts: {
   }
 
   const chatBody = buildChatMessages(opts.mode, opts.messages, opts.userMessage);
+  const firstTokenMs = isBuildHeavyRequest(opts.mode, opts.userMessage)
+    ? Number(process.env.AI_BUILD_STREAM_FIRST_TOKEN_MS ?? 30_000)
+    : STREAM_FIRST_TOKEN_MS;
   const errors: string[] = [];
 
   for (const provider of providers) {
@@ -544,7 +594,7 @@ export async function streamAiChat(opts: {
           opts.onDelta(delta);
         },
         provider.extraHeaders,
-        { firstTokenMs: STREAM_FIRST_TOKEN_MS },
+        { firstTokenMs },
       );
 
       if (response.status >= 200 && response.status < 300) {
@@ -645,14 +695,17 @@ export function getAiStatus(): {
   configured: boolean;
   provider: string;
   providers: Array<{ name: AiProvider; model: string }>;
+  generateProviders?: Array<{ name: AiProvider; model: string }>;
   models: AiModelOption[];
   nvidia?: ReturnType<typeof getNvidiaNimCatalog>;
 } {
   const providers = resolveProviders("chat");
+  const generateProviders = resolveProviders("generate");
   return {
     configured: providers.length > 0,
     provider: providers[0]?.name ?? "none",
     providers: providers.map((p) => ({ name: p.name, model: p.model })),
+    generateProviders: generateProviders.map((p) => ({ name: p.name, model: p.model })),
     models: listAiModelOptions("chat"),
     ...(isNvidiaNimConfigured() ? { nvidia: getNvidiaNimCatalog() } : {}),
   };

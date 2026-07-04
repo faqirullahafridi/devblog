@@ -1,9 +1,9 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { ContentShell } from "@/components/layout/content-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { SeoHead } from "@/components/seo-head";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { HubShell } from "@/components/hub/hub-shell";
 import { seoTitle } from "@/lib/site-config";
 
 export function PlatformHubLayout({
@@ -23,20 +23,23 @@ export function PlatformHubLayout({
   children: React.ReactNode;
   className?: string;
 }) {
+  const showBack = backHref !== "/";
+
   return (
     <PublicLayout>
       <SeoHead title={seoTitle(title)} description={description} />
-      <ContentShell width="wide" showAdSidebar className={className}>
+      <HubShell className={className}>
         <PageHeader
           title={title}
           description={description}
           section={section}
-          backHref={backHref}
+          backHref={showBack ? backHref : undefined}
           backLabel={backLabel}
+          align={showBack ? "left" : "center"}
         />
         {children}
-        <HubSeoIntro />
-      </ContentShell>
+        <HubSeoIntro className="mt-10" />
+      </HubShell>
     </PublicLayout>
   );
 }

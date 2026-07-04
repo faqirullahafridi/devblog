@@ -1,10 +1,10 @@
 import { Link } from "wouter";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { ALL_AI_MODES, type AiModeConfig } from "@/components/platform/ai-config";
+import { VISIBLE_AI_MODES, type AiModeConfig } from "@/components/platform/ai-config";
 import { cn } from "@/lib/utils";
 
 /** Top modes for mobile — Chat + 2 essentials, no orphan grid cell. */
-const MOBILE_MODES = ALL_AI_MODES.slice(0, 3);
+const MOBILE_MODES = VISIBLE_AI_MODES.slice(0, 3);
 
 function ModeCard({
   mode,
@@ -49,7 +49,7 @@ function ModeCard({
 }
 
 export function HomeAiShowcase() {
-  const [chat, ...others] = ALL_AI_MODES;
+  const [chat, ...others] = VISIBLE_AI_MODES;
   const lastIndex = others.length - 1;
 
   return (
@@ -62,7 +62,7 @@ export function HomeAiShowcase() {
           </div>
           <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">
             <span className="sm:hidden">AI modes for dev work</span>
-            <span className="hidden sm:inline">Nine modes, one assistant</span>
+            <span className="hidden sm:inline">Six modes, one assistant</span>
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground max-w-lg">
             <span className="sm:hidden">Chat, debug, and explain — tap below for more.</span>
@@ -86,7 +86,7 @@ export function HomeAiShowcase() {
       </div>
       <p className="mt-3 text-center sm:hidden">
         <Link href="/ai" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-          View all 9 modes
+          View all 6 modes
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </p>

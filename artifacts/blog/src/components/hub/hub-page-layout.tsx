@@ -1,8 +1,8 @@
 import { PublicLayout } from "@/components/layout/public-layout";
-import { ContentShell } from "@/components/layout/content-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { SeoHead } from "@/components/seo-head";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { HubShell } from "@/components/hub/hub-shell";
 import { seoTitle } from "@/lib/site-config";
 
 export function HubPageLayout({
@@ -25,7 +25,7 @@ export function HubPageLayout({
   return (
     <PublicLayout>
       <SeoHead title={seoTitle(`${title} ${section}`)} description={description} />
-      <ContentShell width="default" showAdSidebar>
+      <HubShell>
         <PageHeader
           title={title}
           description={description}
@@ -34,9 +34,9 @@ export function HubPageLayout({
           backLabel={backLabel}
         />
         {children}
-        <HubSeoIntro />
+        <HubSeoIntro className="mt-10" />
         {footer}
-      </ContentShell>
+      </HubShell>
     </PublicLayout>
   );
 }
@@ -55,11 +55,11 @@ export function HubIndexLayout({
   return (
     <PublicLayout>
       <SeoHead title={seoTitle(title)} description={description} />
-      <ContentShell width="wide" showAdSidebar showTopAd>
+      <HubShell>
         <PageHeader title={title} description={description} section={section} align="center" />
         {children}
-        <HubSeoIntro className="max-w-4xl mx-auto" />
-      </ContentShell>
+        <HubSeoIntro className="mt-10" />
+      </HubShell>
     </PublicLayout>
   );
 }

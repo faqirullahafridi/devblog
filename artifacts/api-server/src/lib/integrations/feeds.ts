@@ -71,7 +71,7 @@ async function fetchDevTo(limit = 8): Promise<DevHeadline[]> {
 }
 
 export async function getDevHeadlines(limit = 8): Promise<DevHeadline[]> {
-  return cached(`feeds:dev-headlines:v2:${limit}`, 10 * 60_000, async () => {
+  return cached(`feeds:dev-headlines:v3:${limit}`, 10 * 60_000, async () => {
     const perSource = Math.ceil(limit / 2);
     const [hn, devto] = await Promise.allSettled([fetchHackerNews(perSource), fetchDevTo(perSource)]);
     const items: DevHeadline[] = [];

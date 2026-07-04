@@ -73,7 +73,6 @@ const PLATFORM_PAGES = [
   "/ai/chat",
   "/ai/debug",
   "/ai/explain",
-  "/ai/generate",
   "/ai/convert",
   "/playground",
   "/playground/html-css-js",

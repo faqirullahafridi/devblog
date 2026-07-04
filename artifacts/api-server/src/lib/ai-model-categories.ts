@@ -29,6 +29,19 @@ const REASONING_MODEL_IDS = new Set([
   "moonshotai/kimi-k2-thinking",
 ]);
 
+const CODE_AI_MODES = new Set([
+  "generate",
+  "convert",
+  "optimize",
+  "sql",
+  "api",
+  "debug",
+]);
+
+export function categoryForAiMode(mode: string): AiModelCategory {
+  return CODE_AI_MODES.has(mode) ? "code" : "chat";
+}
+
 const CATEGORY_PICK_ORDER: Record<
   AiModelCategory,
   Array<{ provider: string; model?: string }>
@@ -37,18 +50,20 @@ const CATEGORY_PICK_ORDER: Record<
     { provider: "groq" },
     { provider: "zai", model: "glm-4.7-flash" },
     { provider: "gemini" },
-    { provider: "deepseek" },
     { provider: "openai" },
     { provider: "nvidia", model: "meta/llama-3.3-70b-instruct" },
     { provider: "ollama" },
   ],
   code: [
-    { provider: "groq" },
+    { provider: "nvidia", model: "qwen/qwen3.5-122b-a10b" },
     { provider: "nvidia", model: "deepseek-ai/deepseek-v4-flash" },
     { provider: "nvidia", model: "qwen/qwen3-next-80b-a3b-instruct" },
-    { provider: "nvidia", model: "nvidia/nemotron-3-nano-30b-a3b" },
+    { provider: "nvidia", model: "deepseek-ai/deepseek-v4-pro" },
+    { provider: "groq" },
     { provider: "openai" },
     { provider: "zai", model: "glm-4.7-flash" },
+    { provider: "siliconflow" },
+    { provider: "nvidia", model: "nvidia/nemotron-3-nano-30b-a3b" },
   ],
 };
 
@@ -106,6 +121,11 @@ export function pickProvidersForCategory(
 
 export function pickProvidersForAuto(providers: ProviderLike[], max = 3): AiModelSelection[] {
   return pickProvidersForCategory("chat", providers, max);
+}
+
+/** Auto-pick chain for a mode — generate/debug/etc. use code-tier models. */
+export function pickProvidersForMode(mode: string, providers: ProviderLike[], max = 3): AiModelSelection[] {
+  return pickProvidersForCategory(categoryForAiMode(mode), providers, max);
 }
 
 export function parseCategoryModelId(id: string): AiModelCategory | null {

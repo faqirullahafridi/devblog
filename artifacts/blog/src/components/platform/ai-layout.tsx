@@ -35,7 +35,7 @@ export function AiStudioShell({
         <AiAmbientBg />
 
         <div className="relative z-10 border-b border-border/50 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
-          <div className="mx-auto max-w-3xl min-w-0 px-4 py-3">
+          <div className="mx-auto max-w-[min(100%,1600px)] min-w-0 px-4 py-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Link
                 href="/ai"
@@ -50,7 +50,7 @@ export function AiStudioShell({
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto w-full min-w-0 max-w-3xl px-3 pb-8 pt-4 sm:px-4 sm:pb-10 sm:pt-6 overflow-x-clip">
+        <div className="relative z-10 mx-auto w-full min-w-0 max-w-[min(100%,1600px)] px-2 pb-24 pt-3 sm:px-4 sm:pb-8 sm:pt-5">
           {children}
         </div>
       </div>

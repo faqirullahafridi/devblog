@@ -1,26 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { query } from "./db-pool.js";
 import { loadSession, isAdminValid } from "./admin-routes.js";
+import { buildSystemPrompt, MODE_HINTS, STATIC_SITE_USER_ENFORCEMENT, isStaticSiteRequest } from "./ai-instructions.js";
 
-const BASE_RULES = `You are TechVentry's AI Developer Assistant — practical, direct, and accurate.
-
-Rules:
-- Fulfill the user's actual request first (answer, code, design, explanation). Do not dump API client boilerplate unless they explicitly ask how to integrate an API.
-- For image/logo/banner requests: offer SVG or HTML/CSS mockups in fenced blocks — image generation is not available yet.
-- Use markdown. Put code in fenced blocks with correct language tags.
-- Be concise. Lead with the solution, then optional detail.`;
-
-const SYSTEM_PROMPTS = {
-  chat: `${BASE_RULES}\n\nMode: General developer Q&A — architecture, patterns, reviews, and how-tos.`,
-  debug: `${BASE_RULES}\n\nMode: Debugging — find root cause, minimal fix, and why it broke. Show fixed code in fenced blocks.`,
-  explain: `${BASE_RULES}\n\nMode: Explain code clearly with step-by-step breakdowns and small examples.`,
-  generate: `${BASE_RULES}\n\nMode: Generate production-ready code from descriptions. Output complete runnable code in fenced blocks — not API setup scripts unless asked.\nFor UI/logo/image requests: output SVG or HTML/CSS the user can open in Preview, not image API code.`,
-  convert: `${BASE_RULES}\n\nMode: Convert code between languages preserving behavior. Show the converted code in fenced blocks.`,
-  optimize: `${BASE_RULES}\n\nMode: Optimize for performance and readability. Show before/after with brief notes.`,
-  sql: `${BASE_RULES}\n\nMode: PostgreSQL — write correct queries in sql fenced blocks with short explanations.`,
-  api: `${BASE_RULES}\n\nMode: REST API design with routes, request/response JSON examples, and status codes.`,
-  errors: `${BASE_RULES}\n\nMode: Decode errors and stack traces with root cause and fix steps.`,
-};
+const SYSTEM_PROMPTS = Object.fromEntries(
+  Object.entries(MODE_HINTS).map(([mode, hint]) => [mode, buildSystemPrompt(mode, hint)]),
+);
 
 const VISITOR_COOKIE = "visitor_id";
 const VISITOR_MAX_AGE_SEC = 365 * 24 * 60 * 60;
@@ -117,7 +102,21 @@ function envKey(...keys) {
   return undefined;
 }
 
-function resolveProviders() {
+function nvidiaConfigured() {
+  return Boolean(
+    envKey("NVIDIA_CODE_KEY", "NVIDIA_API_KEY", "NVIDIA_CHAT_KEY", "NVIDIA_MODEL_API_KEYS"),
+  );
+}
+
+function shouldUseDirectDeepseek() {
+  const flag = process.env.DEEPSEEK_DISABLED?.trim().toLowerCase();
+  if (flag === "1" || flag === "true" || flag === "yes") return false;
+  if (!envKey("DEEPSEEK_API_KEY")) return false;
+  if (nvidiaConfigured()) return false;
+  return true;
+}
+
+function buildAllProviders() {
   const providers = [];
   const groqKey = envKey("GROQ_API_KEY");
   if (groqKey) {
@@ -148,13 +147,43 @@ function resolveProviders() {
     });
   }
   const deepseekKey = envKey("DEEPSEEK_API_KEY");
-  if (deepseekKey) {
+  if (deepseekKey && shouldUseDirectDeepseek()) {
     providers.push({
       name: "deepseek",
-      url: "https://api.deepseek.com/chat/completions",
+      url: "https://api.deepseek.com/v1/chat/completions",
       apiKey: deepseekKey,
       model: process.env.DEEPSEEK_MODEL?.trim() || "deepseek-chat",
     });
+  }
+  const siliconKey = envKey("SILICONFLOW_API_KEY");
+  if (siliconKey) {
+    providers.push({
+      name: "siliconflow",
+      url: "https://api.siliconflow.com/v1/chat/completions",
+      apiKey: siliconKey,
+      model: process.env.SILICONFLOW_MODEL?.trim() || "deepseek-ai/DeepSeek-V3",
+    });
+  }
+  const nvidiaKey = envKey("NVIDIA_CODE_KEY", "NVIDIA_API_KEY", "NVIDIA_CHAT_KEY");
+  if (nvidiaKey) {
+    const codeModels = [
+      process.env.NVIDIA_CODE_MODEL?.trim(),
+      "qwen/qwen3.5-122b-a10b",
+      "deepseek-ai/deepseek-v4-flash",
+      "qwen/qwen3-next-80b-a3b-instruct",
+      "deepseek-ai/deepseek-v4-pro",
+    ].filter(Boolean);
+    const seen = new Set();
+    for (const model of codeModels) {
+      if (seen.has(model)) continue;
+      seen.add(model);
+      providers.push({
+        name: "nvidia",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        apiKey: nvidiaKey,
+        model,
+      });
+    }
   }
   const geminiKey = envKey("GEMINI_API_KEY");
   if (geminiKey) {
@@ -169,20 +198,85 @@ function resolveProviders() {
   return providers;
 }
 
+const CODE_MODES = new Set(["generate", "convert", "optimize", "sql", "api", "debug"]);
+
+const CODE_PROVIDER_ORDER = [
+  { name: "nvidia", model: "qwen/qwen3.5-122b-a10b" },
+  { name: "nvidia", model: "deepseek-ai/deepseek-v4-flash" },
+  { name: "nvidia", model: "qwen/qwen3-next-80b-a3b-instruct" },
+  { name: "nvidia", model: "deepseek-ai/deepseek-v4-pro" },
+  { name: "groq" },
+  { name: "openai" },
+  { name: "zai" },
+  { name: "siliconflow" },
+];
+
+function orderProvidersForMode(all, mode) {
+  if (!CODE_MODES.has(mode)) return all;
+  const picks = [];
+  const used = new Set();
+  for (const pref of CODE_PROVIDER_ORDER) {
+    const match = all.find(
+      (p) => p.name === pref.name && (!pref.model || p.model === pref.model) && !used.has(p),
+    );
+    if (match) {
+      picks.push(match);
+      used.add(match);
+    }
+  }
+  for (const p of all) {
+    if (!used.has(p)) picks.push(p);
+  }
+  return picks.slice(0, 6);
+}
+
+function resolveProviders(mode = "chat") {
+  return orderProvidersForMode(buildAllProviders(), mode);
+}
+
 function buildMessages(mode, history, userMessage) {
-  const system = SYSTEM_PROMPTS[mode] ?? SYSTEM_PROMPTS.chat;
+  let system = SYSTEM_PROMPTS[mode] ?? SYSTEM_PROMPTS.chat;
+  let message = userMessage;
+  if (isStaticSiteRequest(mode, userMessage)) {
+    system = `${system}\n\n${STATIC_SITE_USER_ENFORCEMENT}`;
+    message = `${userMessage}\n\n---\nDeliver: exactly \`\`\`html + \`\`\`css + \`\`\`javascript fences. Full static HTML body (hero, features, testimonials, CTA, footer). No React. No index.js/App.js/Hero.js. No #### file headers. Close every fence with \`\`\`.`;
+  }
   return [
     { role: "system", content: system },
     ...history.filter((m) => m.role !== "system"),
-    { role: "user", content: userMessage },
+    { role: "user", content: message },
   ];
+}
+
+function temperatureForRequest(mode, userMessage) {
+  return isStaticSiteRequest(mode, userMessage) ? 0.15 : 0.3;
 }
 
 function estimateTokens(text) {
   return Math.max(1, Math.ceil(String(text).length / 4));
 }
 
-async function completeOpenAiChat(provider, messages) {
+function isBuildHeavyRequest(mode, userMessage) {
+  const t = String(userMessage ?? "").toLowerCase();
+  if (mode === "generate") return true;
+  return /\b(landing|website|saas|full page|complete site|portfolio|web page|homepage)\b/.test(t);
+}
+
+function maxTokensForRequest(mode, userMessage) {
+  if (isBuildHeavyRequest(mode, userMessage)) {
+    return Number(process.env.AI_BUILD_MAX_TOKENS ?? 8192);
+  }
+  return Number(process.env.AI_MAX_TOKENS ?? 4096);
+}
+
+function requestTimeoutMs(mode, userMessage) {
+  return isBuildHeavyRequest(mode, userMessage) ? 120_000 : 28_000;
+}
+
+async function completeOpenAiChat(provider, messages, requestOpts) {
+  const maxTokens = requestOpts?.maxTokens ?? 4096;
+  const timeoutMs = requestOpts?.timeoutMs ?? 28_000;
+  const temperature = requestOpts?.temperature ?? 0.3;
   const res = await fetch(provider.url, {
     method: "POST",
     headers: {
@@ -192,10 +286,10 @@ async function completeOpenAiChat(provider, messages) {
     body: JSON.stringify({
       model: provider.model,
       messages,
-      temperature: 0.3,
-      max_tokens: 2048,
+      temperature,
+      max_tokens: maxTokens,
     }),
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
@@ -209,7 +303,10 @@ async function completeOpenAiChat(provider, messages) {
   return { content, tokensIn, tokensOut, provider: provider.name, model: provider.model };
 }
 
-async function completeGeminiChat(provider, messages) {
+async function completeGeminiChat(provider, messages, requestOpts) {
+  const maxTokens = requestOpts?.maxTokens ?? 4096;
+  const timeoutMs = requestOpts?.timeoutMs ?? 28_000;
+  const temperature = requestOpts?.temperature ?? 0.3;
   const contents = messages
     .filter((m) => m.role !== "system")
     .map((m) => ({
@@ -223,9 +320,9 @@ async function completeGeminiChat(provider, messages) {
     body: JSON.stringify({
       systemInstruction: system ? { parts: [{ text: system }] } : undefined,
       contents,
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+      generationConfig: { temperature, maxOutputTokens: maxTokens },
     }),
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
@@ -256,7 +353,10 @@ function parseSseDelta(line) {
   }
 }
 
-async function streamOpenAiChat(provider, messages, onDelta) {
+async function streamOpenAiChat(provider, messages, onDelta, requestOpts) {
+  const maxTokens = requestOpts?.maxTokens ?? 4096;
+  const timeoutMs = requestOpts?.timeoutMs ?? 28_000;
+  const temperature = requestOpts?.temperature ?? 0.3;
   const res = await fetch(provider.url, {
     method: "POST",
     headers: {
@@ -267,11 +367,11 @@ async function streamOpenAiChat(provider, messages, onDelta) {
     body: JSON.stringify({
       model: provider.model,
       messages,
-      temperature: 0.3,
-      max_tokens: 2048,
+      temperature,
+      max_tokens: maxTokens,
       stream: true,
     }),
-    signal: AbortSignal.timeout(28_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
@@ -306,22 +406,27 @@ async function streamOpenAiChat(provider, messages, onDelta) {
 }
 
 async function runAiChat(mode, history, userMessage, onDelta) {
-  const providers = resolveProviders();
+  const providers = resolveProviders(mode);
   if (!providers.length) {
     throw new Error(
       "No AI provider configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY on Vercel.",
     );
   }
   const messages = buildMessages(mode, history, userMessage);
+  const requestOpts = {
+    maxTokens: maxTokensForRequest(mode, userMessage),
+    timeoutMs: requestTimeoutMs(mode, userMessage),
+    temperature: temperatureForRequest(mode, userMessage),
+  };
   const errors = [];
   for (const provider of providers) {
     try {
       if (provider.kind === "gemini") {
         if (onDelta) throw new Error("gemini streaming skipped");
-        return await completeGeminiChat(provider, messages);
+        return await completeGeminiChat(provider, messages, requestOpts);
       }
-      if (onDelta) return await streamOpenAiChat(provider, messages, onDelta);
-      return await completeOpenAiChat(provider, messages);
+      if (onDelta) return await streamOpenAiChat(provider, messages, onDelta, requestOpts);
+      return await completeOpenAiChat(provider, messages, requestOpts);
     } catch (err) {
       errors.push(err instanceof Error ? err.message : String(err));
     }
@@ -330,7 +435,7 @@ async function runAiChat(mode, history, userMessage, onDelta) {
 }
 
 function listModelOptions(mode) {
-  return resolveProviders().map((p) => ({
+  return resolveProviders(mode).map((p) => ({
     id: `${p.name}::${p.model}`,
     provider: p.name,
     model: p.model,

@@ -1,10 +1,17 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { AiMarkdown } from "@/components/platform/ai-markdown";
+import { AiBuildWorkspace } from "@/components/platform/ai-build-workspace";
 import { AiCodePreview } from "@/components/platform/ai-code-preview";
-import { extractChatPreview } from "@/lib/ai-preview";
-import { ALL_AI_MODES, getAiMode, type AiModeId } from "@/components/platform/ai-config";
+import {
+  buildPreviewFromBlocks,
+  extractChatCodeBlocks,
+  extractChatPreviewPartial,
+  isLowQualityReactOutput,
+  stripChatCodeFences,
+} from "@/lib/ai-preview";
+import { VISIBLE_AI_MODES, getAiMode, type AiModeId } from "@/components/platform/ai-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +50,7 @@ import {
 
 type AiChatPanelProps = {
   initialMode?: AiModeId;
-  modes?: typeof ALL_AI_MODES;
+  modes?: typeof VISIBLE_AI_MODES;
   variant?: "default" | "brutal";
   /** Immersive studio — minimal chrome, floating composer */
   layout?: "default" | "workspace" | "studio";
@@ -68,6 +75,7 @@ function ChatMessage({
   copiedId,
   isStreaming = false,
   displayContent,
+  splitLayout = false,
 }: {
   message: AiMessage;
   meta: ReturnType<typeof getAiMode>;
@@ -76,10 +84,13 @@ function ChatMessage({
   copiedId: number | null;
   isStreaming?: boolean;
   displayContent?: string;
+  splitLayout?: boolean;
 }) {
   const isUser = message.role === "user";
   const content = displayContent ?? message.content;
-  const preview = !isUser && !isStreaming ? extractChatPreview(content) : null;
+  const preview = !isUser && !isStreaming && !splitLayout ? extractChatPreviewPartial(content) : null;
+  const proseContent =
+    splitLayout && !isUser ? stripChatCodeFences(content) || content : content;
   const [view, setView] = useState<"answer" | "preview">("answer");
 
   useEffect(() => {
@@ -97,27 +108,109 @@ function ChatMessage({
     };
   }, [isPreviewOpen]);
 
+  if (splitLayout) {
+    return (
+      <article className="w-full min-w-0">
+        <header
+          className={cn(
+            "mb-2 flex items-center gap-2.5",
+            isUser ? "flex-row-reverse" : "flex-row",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 ring-border/60",
+              isUser ? "bg-primary text-primary-foreground" : meta.iconBg,
+            )}
+          >
+            {isUser ? (
+              <User className="h-4 w-4" />
+            ) : (
+              <Bot className={cn("h-4 w-4", meta.accent)} />
+            )}
+          </div>
+          <div className={cn("min-w-0 flex-1", isUser && "text-right")}>
+            <p className="text-xs font-semibold text-foreground">
+              {isUser ? "You" : "TechVentry AI"}
+            </p>
+            {message.createdAt && (
+              <p className="text-[11px] text-muted-foreground">{formatTime(message.createdAt)}</p>
+            )}
+          </div>
+        </header>
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3.5 text-[15px] leading-relaxed shadow-sm sm:px-5 sm:py-4",
+            isUser
+              ? "ml-2 border-primary/20 bg-primary/5 sm:ml-6"
+              : "border-border/60 bg-card",
+          )}
+        >
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{content}</p>
+          ) : proseContent ? (
+            <>
+              <AiMarkdown
+                content={proseContent}
+                className="prose-base sm:prose-sm prose-p:text-[15px] sm:prose-p:text-sm"
+              />
+              {isStreaming && (
+                <span
+                  className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-middle"
+                  aria-hidden
+                />
+              )}
+            </>
+          ) : isStreaming ? (
+            <span className="inline-flex py-1" aria-label="Generating">
+              <span className="inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary" />
+            </span>
+          ) : null}
+        </div>
+        {!isUser && !isStreaming && proseContent && (
+          <div className="mt-2 flex justify-start">
+            <button
+              type="button"
+              onClick={() => onCopy(message.id, content)}
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              {copiedId === message.id ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-600" /> Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "group flex w-full min-w-0 max-w-full gap-3",
+        "group flex w-full min-w-0 max-w-full gap-3 sm:gap-4",
         isUser ? "flex-row-reverse" : "flex-row",
       )}
     >
       <div
         className={cn(
-          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center shadow-sm sm:mt-1 sm:h-9 sm:w-9",
+          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10",
           brutal ? "border border-border" : "rounded-full ring-1 ring-border/80",
           isUser ? "bg-primary text-primary-foreground" : meta.iconBg,
         )}
       >
-        {isUser ? <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Bot className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", meta.accent)} />}
+        {isUser ? <User className="h-4 w-4" /> : <Bot className={cn("h-4 w-4", meta.accent)} />}
       </div>
 
-      <div className={cn("min-w-0 flex-1 max-w-[min(100%,36rem)] sm:max-w-[min(100%,42rem)]", isUser ? "items-end" : "items-start")}>
+      <div className={cn("min-w-0 flex-1 max-w-[min(100%,40rem)]", isUser ? "items-end" : "items-start")}>
         <p
           className={cn(
-            "mb-1.5 text-[10px] font-bold  text-muted-foreground",
+            "mb-2 text-xs font-semibold text-muted-foreground",
             isUser ? "text-right" : "text-left",
           )}
         >
@@ -125,53 +218,43 @@ function ChatMessage({
         </p>
         <div
           className={cn(
-            "relative px-3 py-2.5 text-sm shadow-sm [overflow-wrap:anywhere] sm:px-4 sm:py-3",
+            "relative px-4 py-3.5 text-[15px] leading-relaxed shadow-sm [overflow-wrap:anywhere] sm:px-5 sm:py-4 sm:text-sm",
             isPreviewOpen && "overflow-hidden",
             brutal ? "border border-border" : "rounded-2xl",
             isUser
-              ? cn(
-                  "bg-primary text-primary-foreground",
-                  !brutal && "rounded-br-md",
-                )
+              ? cn("bg-primary text-primary-foreground", !brutal && "rounded-br-md")
               : cn(
-                  "bg-muted/50 text-foreground",
-                  !brutal && "rounded-bl-md border border-border/50 border-l-[3px] border-l-primary/70",
+                  "bg-card text-foreground",
+                  !brutal && "rounded-bl-md border border-border/60",
                 ),
           )}
         >
           {preview && (
-            <div
-              className={cn(
-                "mb-3 flex flex-wrap gap-1 border-b border-border/40 pb-2",
-                brutal && "border-foreground",
-              )}
-            >
+            <div className="mb-3 flex flex-wrap gap-1.5 border-b border-border/40 pb-2">
               <button
                 type="button"
                 onClick={() => setView("answer")}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors",
+                  "inline-flex min-h-[32px] items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold transition-colors",
                   view === "answer"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  brutal && view === "answer" && "rounded-none border border-border",
                 )}
               >
-                <FileText className="h-3 w-3" />
+                <FileText className="h-3.5 w-3.5" />
                 Answer
               </button>
               <button
                 type="button"
                 onClick={() => setView("preview")}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors",
+                  "inline-flex min-h-[32px] items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold transition-colors",
                   view === "preview"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  brutal && view === "preview" && "rounded-none border border-border",
                 )}
               >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-3.5 w-3.5" />
                 Preview
               </button>
             </div>
@@ -179,10 +262,10 @@ function ChatMessage({
           {isPreviewOpen ? (
             <AiCodePreview preview={preview} brutal={brutal} className="-mx-1 sm:-mx-0" />
           ) : isUser ? (
-            <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
-          ) : content ? (
+            <p className="whitespace-pre-wrap">{content}</p>
+          ) : proseContent ? (
             <>
-              <AiMarkdown content={content} />
+              <AiMarkdown content={proseContent} />
               {isStreaming && (
                 <span
                   className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-middle"
@@ -198,32 +281,27 @@ function ChatMessage({
         </div>
         <div
           className={cn(
-            "mt-1.5 flex items-center gap-2 px-0.5",
+            "mt-2 flex items-center gap-2",
             isUser ? "justify-end" : "justify-start",
           )}
         >
           {message.createdAt && (
-            <span className="text-[10px] text-muted-foreground/80">{formatTime(message.createdAt)}</span>
+            <span className="text-[11px] text-muted-foreground">{formatTime(message.createdAt)}</span>
           )}
           {!isUser && !isStreaming && (
             <button
               type="button"
               onClick={() => onCopy(message.id, content)}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all",
-                copiedId === message.id
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-muted-foreground opacity-100 hover:bg-muted/80 hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100",
-              )}
+              className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-label="Copy response"
             >
               {copiedId === message.id ? (
                 <>
-                  <Check className="h-3 w-3" /> Copied
+                  <Check className="h-3.5 w-3.5" /> Copied
                 </>
               ) : (
                 <>
-                  <Copy className="h-3 w-3" /> Copy
+                  <Copy className="h-3.5 w-3.5" /> Copy
                 </>
               )}
             </button>
@@ -238,7 +316,7 @@ const MemoChatMessage = memo(ChatMessage);
 
 export function AiChatPanel({
   initialMode = "chat",
-  modes = ALL_AI_MODES,
+  modes = VISIBLE_AI_MODES,
   variant = "default",
   layout = "default",
   className,
@@ -266,6 +344,7 @@ export function AiChatPanel({
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollOnNextRef = useRef(false);
+  const [mobileStudioTab, setMobileStudioTab] = useState<"chat" | "code">("chat");
 
   const persistConversation = useCallback((modeId: AiModeId, id: number) => {
     setConversationId(id);
@@ -516,6 +595,27 @@ export function AiChatPanel({
   const activeModelLabel = modelId !== AI_MODEL_AUTO ? pickerLabel(modelId, true) : null;
   const isReady = aiStatus?.configured !== false;
 
+  const latestBuildContent = useMemo(() => {
+    if (isStreaming && streamingContent) return streamingContent;
+    const assistants = messages.filter((m) => m.role === "assistant");
+    return assistants[assistants.length - 1]?.content ?? "";
+  }, [messages, isStreaming, streamingContent]);
+
+  const activeCodeBlocks = useMemo(
+    () => (studio ? extractChatCodeBlocks(latestBuildContent) : []),
+    [studio, latestBuildContent],
+  );
+
+  const activeBuildPreview = useMemo(() => {
+    if (!studio) return null;
+    return buildPreviewFromBlocks(activeCodeBlocks) ?? extractChatPreviewPartial(latestBuildContent);
+  }, [studio, activeCodeBlocks, latestBuildContent]);
+
+  const lowQualityReactOutput = useMemo(
+    () => studio && isLowQualityReactOutput(latestBuildContent),
+    [studio, latestBuildContent],
+  );
+
   const headerActions = (
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
       <AiChatHistory
@@ -567,10 +667,42 @@ export function AiChatPanel({
     </div>
   );
 
+  const studioComposer = (
+    <div className="border-t border-border/60 bg-background/95 px-1 py-3 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-0">
+      {composerToolbar}
+      <div className="min-w-0 rounded-2xl border border-border/60 bg-card p-2 shadow-sm focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15">
+        <div className="flex items-end gap-2">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            spellCheck={false}
+            rows={1}
+            placeholder={meta.placeholder}
+            disabled={isStreaming}
+            aria-label="Message"
+            className="min-h-[48px] max-h-[140px] flex-1 resize-none border-0 bg-transparent px-3 py-3 text-base leading-relaxed shadow-none focus-visible:ring-0 sm:min-h-[52px] sm:text-sm"
+          />
+          <Button
+            type="button"
+            onClick={submit}
+            disabled={!input.trim() || isStreaming || !isReady || historyLoading}
+            size="icon"
+            className="mb-0.5 h-11 w-11 shrink-0 rounded-xl"
+            aria-label="Send message"
+          >
+            {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (studio) {
     return (
-      <div className={cn("flex min-w-0 max-w-full flex-col overflow-x-clip", className)}>
-        <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className={cn("min-w-0 max-w-full", className)}>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <span className={cn("h-2 w-2 rounded-full", isReady ? "bg-emerald-500" : "bg-amber-500")} />
@@ -586,87 +718,116 @@ export function AiChatPanel({
           {headerActions}
         </div>
 
-        <div className="min-w-0 max-h-[min(70vh,720px)] overflow-y-auto overscroll-contain">
-          {historyLoading ? (
-            <div className="flex items-center justify-center px-1 py-12 text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading chat…
-            </div>
-          ) : messages.length === 0 && !isStreaming ? (
-            <div className="px-1 py-4 text-center md:py-8">
-              <div className={cn("mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ring-border/50 sm:mb-5 sm:h-16 sm:w-16", meta.iconBg)}>
-                <meta.icon className={cn("h-7 w-7 sm:h-8 sm:w-8", meta.accent)} />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{meta.label} mode</h2>
-              <p className="mx-auto mt-2 max-w-md px-2 text-sm text-muted-foreground leading-relaxed">{meta.description}</p>
-              <div className="mx-auto mt-6 flex max-w-xl flex-col gap-2 px-1 sm:mt-8">
-                {meta.prompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => {
-                      setInput(prompt);
-                      textareaRef.current?.focus({ preventScroll: true });
-                    }}
-                    className="rounded-xl border border-border/50 bg-card/80 px-4 py-3 text-left text-sm text-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-muted/50 hover:shadow-md"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="min-w-0 space-y-5 px-0.5 pb-2 sm:space-y-6">
-              {messages.map((m) => (
-                <MemoChatMessage
-                  key={m.id}
-                  message={m}
-                  meta={meta}
-                  brutal={false}
-                  onCopy={copyMessage}
-                  copiedId={copiedId}
-                  isStreaming={isStreaming && m.id === streamingMessageId}
-                  displayContent={
-                    isStreaming && m.id === streamingMessageId ? streamingContent : undefined
-                  }
-                />
-              ))}
-              <div ref={messagesEndRef} className="h-px shrink-0" aria-hidden />
-            </div>
-          )}
+        <div className="mb-3 flex gap-1 rounded-xl border border-border/60 bg-muted/40 p-1 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileStudioTab("chat")}
+            className={cn(
+              "flex-1 min-h-[40px] rounded-lg text-sm font-semibold transition-colors",
+              mobileStudioTab === "chat"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground",
+            )}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStudioTab("code")}
+            className={cn(
+              "flex-1 min-h-[40px] rounded-lg text-sm font-semibold transition-colors",
+              mobileStudioTab === "code"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground",
+            )}
+          >
+            Code
+            {activeCodeBlocks.length > 0 && (
+              <span className="ml-1.5 text-[10px] text-muted-foreground">({activeCodeBlocks.length})</span>
+            )}
+          </button>
         </div>
 
-        <div className="mt-6 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {composerToolbar}
-          <div className="min-w-0 rounded-2xl border border-border/60 bg-card p-2 shadow-lg ring-1 ring-black/5 focus-within:border-primary/40 focus-within:ring-primary/20">
-            <div className="flex items-end gap-2">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                spellCheck={false}
-                rows={1}
-                placeholder={meta.placeholder}
-                disabled={isStreaming}
-                aria-label="Message"
-                className="min-h-[52px] max-h-[168px] flex-1 resize-none border-0 bg-transparent px-3 py-3.5 text-sm leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-              <Button
-                type="button"
-                onClick={submit}
-                disabled={!input.trim() || isStreaming || !isReady || historyLoading}
-                size="icon"
-                className="mb-1 mr-1 h-10 w-10 shrink-0 rounded-xl shadow-md shadow-primary/20"
-                aria-label="Send message"
-              >
-                {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
+        <div className="grid gap-4 lg:min-h-[min(calc(100dvh-13rem),760px)] lg:grid-cols-2 lg:items-stretch lg:gap-5">
+          <div
+            className={cn(
+              "min-w-0 lg:flex lg:min-h-0 lg:flex-col",
+              mobileStudioTab !== "chat" && "hidden lg:flex",
+            )}
+          >
+            <div className="min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-y-contain lg:pr-0.5 lg:[-webkit-overflow-scrolling:touch]">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading chat…
+              </div>
+            ) : messages.length === 0 && !isStreaming ? (
+              <div className="py-6 text-center">
+                <div className={cn("mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ring-border/50", meta.iconBg)}>
+                  <meta.icon className={cn("h-7 w-7", meta.accent)} />
+                </div>
+                <h2 className="text-xl font-bold tracking-tight">{meta.label}</h2>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground leading-relaxed">{meta.description}</p>
+                <div className="mx-auto mt-6 flex max-w-xl flex-col gap-2">
+                  {meta.prompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => {
+                        setInput(prompt);
+                        textareaRef.current?.focus({ preventScroll: true });
+                      }}
+                      className="rounded-xl border border-border/50 bg-card px-4 py-3.5 text-left text-sm leading-snug shadow-sm hover:border-primary/30 hover:bg-muted/40"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6 sm:space-y-8 pb-2">
+                {messages.map((m) => (
+                  <MemoChatMessage
+                    key={m.id}
+                    message={m}
+                    meta={meta}
+                    brutal={false}
+                    onCopy={copyMessage}
+                    copiedId={copiedId}
+                    splitLayout
+                    isStreaming={isStreaming && m.id === streamingMessageId}
+                    displayContent={
+                      isStreaming && m.id === streamingMessageId ? streamingContent : undefined
+                    }
+                  />
+                ))}
+                <div ref={messagesEndRef} className="h-px shrink-0" aria-hidden />
+              </div>
+            )}
             </div>
           </div>
-          <p className="mt-2 hidden text-center text-[10px] text-muted-foreground sm:block">
-            Enter to send · Shift+Enter for new line
-          </p>
+
+          <div
+            className={cn(
+              "min-w-0 lg:flex lg:min-h-0 lg:flex-col",
+              mobileStudioTab !== "code" && "hidden lg:flex",
+            )}
+          >
+            <p className="mb-2 hidden shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:block">
+              Generated code
+            </p>
+            <AiBuildWorkspace
+              blocks={activeCodeBlocks}
+              preview={activeBuildPreview}
+              isStreaming={isStreaming}
+              lowQualityReact={lowQualityReactOutput}
+              className="min-h-0 flex-1"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 lg:sticky lg:bottom-0 lg:z-20 lg:-mx-0 sm:mx-0">
+          {studioComposer}
         </div>
       </div>
     );
@@ -755,8 +916,8 @@ export function AiChatPanel({
 
         <div
           className={cn(
-            "relative max-h-[min(65vh,640px)] overflow-y-auto overscroll-contain",
-            !brutal && "bg-gradient-to-b from-muted/15 via-background to-background",
+            "relative",
+            !brutal && "bg-gradient-to-b from-muted/10 via-background to-background",
           )}
         >
           {historyLoading ? (

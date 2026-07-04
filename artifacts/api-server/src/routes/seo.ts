@@ -124,7 +124,6 @@ router.get("/sitemap.xml", cachePublic(3600), async (req, res) => {
       "/ai/chat",
       "/ai/debug",
       "/ai/explain",
-      "/ai/generate",
       "/ai/convert",
       "/playground",
       "/playground/html-css-js",

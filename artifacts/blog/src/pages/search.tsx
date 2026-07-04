@@ -1,7 +1,6 @@
 import { PublicLayout } from "@/components/layout/public-layout";
-import { ListingShell } from "@/components/layout/content-shell";
-import { ContentSidebar } from "@/components/layout/content-sidebar";
 import { PageHeader } from "@/components/layout/page-header";
+import { HubShell } from "@/components/hub/hub-shell";
 import { PostCard } from "@/components/post-card";
 import { useListPosts } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,6 @@ import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
-import { AdSlot } from "@/components/site-scripts";
 
 const PAGE_SIZE = 10;
 
@@ -45,23 +43,12 @@ export default function Search() {
   return (
     <PublicLayout>
       <SeoHead title={seoTitle("Search")} description="Search articles on TechVentry." />
-      <ListingShell
-        sidebar={
-          <ContentSidebar showAd>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm text-sm text-muted-foreground leading-relaxed">
-              <p className="font-medium text-foreground mb-2">Search tips</p>
-              <ul className="space-y-1.5 list-disc pl-4">
-                <li>Use specific tech terms (e.g. React, Docker)</li>
-                <li>Try shorter keywords if nothing matches</li>
-              </ul>
-            </div>
-          </ContentSidebar>
-        }
-      >
+      <HubShell>
         <PageHeader
           title="Search articles"
           description="Find tutorials, guides, and developer notes across TechVentry."
           section="Articles"
+          align="center"
         />
 
         <div className="mb-8">
@@ -74,8 +61,6 @@ export default function Search() {
             autoFocus
           />
         </div>
-
-        <AdSlot variant="banner" className="mb-8 md:hidden" />
 
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -105,7 +90,7 @@ export default function Search() {
         )}
 
         <HubSeoIntro className="mt-12" />
-      </ListingShell>
+      </HubShell>
     </PublicLayout>
   );
 }

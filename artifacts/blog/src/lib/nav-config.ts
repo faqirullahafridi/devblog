@@ -26,7 +26,6 @@ export const CONTENT_LINKS = [
   { href: "/snippets", label: "Snippets" },
   { href: "/learn", label: "Learning Paths" },
   { href: "/interview", label: "Interview Prep" },
-  { href: "/api-sources", label: "API Sources" },
 ] as const;
 
 export const RESOURCE_LINKS = [

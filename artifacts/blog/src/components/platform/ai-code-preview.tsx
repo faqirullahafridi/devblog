@@ -7,9 +7,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { ExternalLink, Maximize2, Monitor, RefreshCw, Smartphone } from "lucide-react";
+import { Download, ExternalLink, Maximize2, Monitor, RefreshCw, Smartphone } from "lucide-react";
 import type { ChatPreviewBundle } from "@/lib/ai-preview";
-import { savePlaygroundImport } from "@/lib/ai-preview";
+import { downloadPreviewZip, savePlaygroundImport } from "@/lib/ai-preview";
 
 type AiCodePreviewProps = {
   preview: ChatPreviewBundle;
@@ -45,8 +45,10 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
   const frame = (
     <iframe
       ref={iframeRef}
+      key={`preview-${preview.srcDoc.length}`}
       title={preview.label}
       sandbox="allow-scripts allow-forms allow-modals allow-popups"
+      srcDoc={preview.srcDoc}
       className={cn(
         "h-full min-h-0 w-full border-0 bg-white",
         viewport === "mobile" && "mx-auto max-w-[390px] shadow-lg",
@@ -107,6 +109,18 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             aria-label="Fullscreen preview"
           >
             <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border border-border")}
+            onClick={() => {
+              void downloadPreviewZip(preview, "generated-site");
+            }}
+          >
+            <Download className="h-3 w-3" />
+            <span className="hidden sm:inline">ZIP</span>
           </Button>
           <Button
             type="button"

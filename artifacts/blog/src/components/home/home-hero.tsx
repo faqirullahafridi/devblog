@@ -2,23 +2,20 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
-  Bug,
-  Lightbulb,
+  Briefcase,
   MessageSquare,
+  Server,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import { SITE_NAME } from "@/lib/site-config";
 
 const PROMPT_CHIPS = [
-  { label: "Debug my code", href: "/ai/debug", icon: Bug },
-  { label: "Explain this snippet", href: "/ai/explain", icon: Lightbulb },
-  { label: "Generate a component", href: "/ai/generate", icon: Sparkles },
-  { label: "Optimize performance", href: "/ai/optimize", icon: Zap },
+  { label: "Jobs", href: "/jobs", icon: Briefcase },
+  { label: "APIs", href: "/api-sources", icon: Server },
 ] as const;
 
 const STATS = [
-  { value: "9", label: "AI modes" },
+  { value: "6", label: "AI modes" },
   { value: "Free", label: "to start" },
   { value: "Dev", label: "tuned prompts" },
 ] as const;
@@ -72,14 +69,14 @@ export function HomeHero() {
             </div>
 
             {/* Prompt chips */}
-            <div className="mt-8 flex flex-wrap gap-2 justify-center lg:justify-start">
+            <div className="mt-8 flex flex-wrap gap-3 justify-center lg:justify-start">
               {PROMPT_CHIPS.map(({ label, href, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3.5 py-2 text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:border-primary/40"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-white/80 hover:text-white hover:border-primary/40 hover:bg-white/15 transition-colors"
                 >
-                  <Icon className="h-3.5 w-3.5 text-primary" />
+                  <Icon className="h-4 w-4 sm:h-[1.125rem] sm:w-[1.125rem] text-primary shrink-0" />
                   {label}
                 </Link>
               ))}

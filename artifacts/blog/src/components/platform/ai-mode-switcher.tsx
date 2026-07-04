@@ -1,5 +1,12 @@
 import { Link } from "wouter";
-import { AI_MODES, AI_SPECIAL_MODES, ALL_AI_MODES, getAiMode, type AiModeConfig } from "@/components/platform/ai-config";
+import {
+  ALL_AI_MODES,
+  VISIBLE_AI_MODES,
+  VISIBLE_AI_MODES_MAIN,
+  VISIBLE_AI_SPECIAL_MODES,
+  getAiMode,
+  type AiModeConfig,
+} from "@/components/platform/ai-config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +71,7 @@ function CoreTab({ mode, active }: { mode: AiModeConfig; active: boolean }) {
 export function AiModeSwitcher({ activeHref }: { activeHref: string }) {
   const current = ALL_AI_MODES.find((m) => m.href === activeHref) ?? getAiMode("chat");
   const CurrentIcon = current.icon;
-  const isSpecial = AI_SPECIAL_MODES.some((m) => m.href === activeHref);
+  const isSpecial = VISIBLE_AI_SPECIAL_MODES.some((m) => m.href === activeHref);
 
   return (
     <div className="min-w-0 flex-1">
@@ -76,7 +83,7 @@ export function AiModeSwitcher({ activeHref }: { activeHref: string }) {
       {/* Desktop: core tabs + More menu */}
       <div className="hidden md:flex md:items-center md:gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-          {AI_MODES.map((mode) => (
+          {VISIBLE_AI_MODES_MAIN.map((mode) => (
             <CoreTab key={mode.id} mode={mode} active={mode.href === activeHref} />
           ))}
         </div>
@@ -97,7 +104,7 @@ export function AiModeSwitcher({ activeHref }: { activeHref: string }) {
             )}
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
-          <ModeDropdownContent activeHref={activeHref} modes={AI_SPECIAL_MODES} label="Specialized" />
+          <ModeDropdownContent activeHref={activeHref} modes={VISIBLE_AI_SPECIAL_MODES} label="Specialized" />
         </DropdownMenu>
       </div>
     </div>
@@ -132,7 +139,7 @@ function ModeDropdownContent({
             Core modes
           </DropdownMenuLabel>
           <DropdownMenuGroup>
-            {AI_MODES.map((mode) => (
+            {VISIBLE_AI_MODES_MAIN.map((mode) => (
               <ModeMenuItem key={mode.id} mode={mode} active={mode.href === activeHref} compact={compact} />
             ))}
           </DropdownMenuGroup>
@@ -145,7 +152,7 @@ function ModeDropdownContent({
         </DropdownMenuLabel>
       )}
       <DropdownMenuGroup>
-        {(modes ?? [...AI_MODES, ...AI_SPECIAL_MODES]).map((mode) => (
+        {(modes ?? VISIBLE_AI_MODES).map((mode) => (
           <ModeMenuItem key={mode.id} mode={mode} active={mode.href === activeHref} compact={compact} />
         ))}
       </DropdownMenuGroup>
@@ -181,7 +188,7 @@ function ModeDropdown({
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
-      <ModeDropdownContent activeHref={activeHref} includeCore label="Specialized" modes={AI_SPECIAL_MODES} compact />
+      <ModeDropdownContent activeHref={activeHref} includeCore label="Specialized" modes={VISIBLE_AI_SPECIAL_MODES} compact />
     </DropdownMenu>
   );
 }
