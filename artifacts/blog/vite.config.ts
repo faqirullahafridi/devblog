@@ -95,9 +95,12 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
-          if (id.includes("react-dom") || id.includes("/react/")) return "vendor-react";
-          if (id.includes("@tanstack/react-query")) return "vendor-query";
+          // Order matters: @radix-ui/react-* paths contain "/react/" — match those first.
           if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("@tanstack/react-query")) return "vendor-query";
+          if (id.includes("/node_modules/react-dom/") || id.includes("/node_modules/react/")) {
+            return "vendor-react";
+          }
           if (id.includes("lucide-react")) return "vendor-icons";
           if (id.includes("date-fns")) return "vendor-date";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
