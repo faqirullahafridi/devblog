@@ -15,8 +15,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MarkdownContent } from "@/components/markdown-content";
-import { uploadImage } from "@/lib/api-extra";
-import { normalizeImageUrl } from "@/lib/image-url";
+import { uploadImage, resolveImageUrl as resolveImageUrlApi } from "@/lib/api-extra";
+import { isDirectImageUrl, isUnsplashPageUrl, normalizeImageUrl } from "@/lib/image-url";
 import { SafeImage } from "@/components/safe-image";
 
 const postSchema = z.object({
@@ -281,19 +281,29 @@ export default function PostEditor() {
                           <Input
                             placeholder="https://images.unsplash.com/photo-..."
                             {...field}
-                            onBlur={(e) => {
+                            onBlur={async (e) => {
                               field.onBlur();
-                              const normalized = normalizeImageUrl(e.target.value);
-                              if (normalized && normalized !== e.target.value) {
-                                field.onChange(normalized);
+                              const raw = e.target.value.trim();
+                              if (!raw) return;
+                              try {
+                                const resolved = await resolveImageUrlApi(raw);
+                                if (resolved !== field.value) field.onChange(resolved);
+                                if (isUnsplashPageUrl(resolved) && !isDirectImageUrl(resolved)) {
+                                  toast.error(
+                                    "Unsplash page link detected. Right-click the photo → Copy image address, or add UNSPLASH_ACCESS_KEY on Vercel.",
+                                  );
+                                }
+                              } catch {
+                                const normalized = normalizeImageUrl(raw);
+                                if (normalized !== field.value) field.onChange(normalized);
                               }
                             }}
                           />
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
-                          Use a direct image link (starts with{" "}
-                          <code className="text-xs bg-muted px-1 rounded">https://images.unsplash.com/</code>
-                          ), not an Unsplash photo page URL. Or upload below.
+                          Paste an Unsplash photo page URL, a direct{" "}
+                          <code className="text-xs bg-muted px-1 rounded">images.unsplash.com</code> link, or upload
+                          below. Page links auto-resolve when UNSPLASH_ACCESS_KEY is set on Vercel.
                         </p>
                         {field.value ? (
                           <div className="mt-2 overflow-hidden rounded-lg border aspect-video max-h-40">

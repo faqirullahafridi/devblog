@@ -24,11 +24,13 @@ export function SafeImage({
   priority = false,
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
+  const [useOriginal, setUseOriginal] = useState(false);
   const normalizedSrc = useMemo(() => normalizeImageUrl(src), [src]);
   const optimizedSrc = useMemo(
     () => (width ? optimizeImageUrl(normalizedSrc, width) : normalizedSrc),
     [normalizedSrc, width],
   );
+  const displaySrc = useOriginal ? normalizedSrc : optimizedSrc;
 
   if (failed || !normalizedSrc) {
     return (
@@ -47,7 +49,7 @@ export function SafeImage({
 
   return (
     <img
-      src={optimizedSrc}
+      src={displaySrc}
       alt={alt}
       className={className}
       width={width}
@@ -55,8 +57,14 @@ export function SafeImage({
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
-      referrerPolicy="no-referrer-when-downgrade"
-      onError={() => setFailed(true)}
+      referrerPolicy="origin"
+      onError={() => {
+        if (!useOriginal && optimizedSrc && optimizedSrc !== normalizedSrc) {
+          setUseOriginal(true);
+          return;
+        }
+        setFailed(true);
+      }}
     />
   );
 }

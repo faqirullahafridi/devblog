@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomInt, scryptSync, timingSafeEqual } from 
 import { query } from "./db-pool.js";
 import { hashPassword } from "./route-utils.js";
 import { sendResendEmail, wrapNewsletterHtml } from "./email.js";
-import { normalizeImageUrl, uploadBlogImage } from "./image-upload.js";
+import { normalizeImageUrl, uploadBlogImage, resolveImageUrl, resolveMarkdownImageUrls } from "./image-upload.js";
 
 const PROFILE_JSON_FIELDS = new Set([
   "workExperience",
@@ -374,6 +374,7 @@ export function isAdminRoutePath(path, method) {
   if (path === "/api/comments") return true;
   if (path === "/api/newsletter/subscribers") return true;
   if (path === "/api/uploads/image" && m === "POST") return true;
+  if (path === "/api/media/resolve-image" && m === "POST") return true;
   if (path === "/api/playgrounds/stats") return true;
   if (path === "/api/roadmaps/stats") return true;
   if (path === "/api/challenges/stats") return true;
@@ -538,6 +539,19 @@ export async function tryAdminRoute(path, req, res) {
       return true;
     }
 
+    if (method === "POST" && path === "/api/media/resolve-image") {
+      setNoCache(res);
+      const body = await readJsonBody(req);
+      const raw = body.url?.trim();
+      if (!raw) {
+        sendJson(res, 400, { error: "url is required" });
+        return true;
+      }
+      const resolved = await resolveImageUrl(raw);
+      sendJson(res, 200, { url: resolved });
+      return true;
+    }
+
     if (method === "GET" && path === "/api/stats/overview") {
       setNoCache(res);
       const [postStats, categoryStats, subscriberStats, commentStats] = await Promise.all([
@@ -626,16 +640,22 @@ export async function tryAdminRoute(path, req, res) {
       if (method === "PATCH") {
         setNoCache(res);
         const body = await readJsonBody(req);
+        if (body.content !== undefined) {
+          body.content = await resolveMarkdownImageUrls(body.content);
+        }
         const updates = [];
         const params = [];
         let idx = 1;
+        let featuredImageValue;
+        if (body.featuredImage !== undefined) {
+          featuredImageValue = body.featuredImage ? await resolveImageUrl(body.featuredImage) : null;
+        }
         const fields = {
           title: body.title,
           slug: body.slug,
           content: body.content,
           excerpt: body.excerpt,
-          featuredImage:
-            body.featuredImage !== undefined ? normalizeImageUrl(body.featuredImage) || null : undefined,
+          featuredImage: featuredImageValue,
           status: body.status,
           seoTitle: body.seoTitle,
           metaDescription: body.metaDescription,
@@ -713,7 +733,9 @@ export async function tryAdminRoute(path, req, res) {
         return true;
       }
       const finalSlug = body.slug?.trim() || slugify(body.title);
-      const readingTime = calcReadingTime(body.content ?? "");
+      const content = await resolveMarkdownImageUrls(body.content ?? "");
+      const readingTime = calcReadingTime(content);
+      const featuredImage = body.featuredImage ? await resolveImageUrl(body.featuredImage) : null;
       let insertResult;
       try {
         insertResult = await query(
@@ -722,9 +744,9 @@ export async function tryAdminRoute(path, req, res) {
           [
             body.title,
             finalSlug,
-            body.content ?? "",
+            content,
             body.excerpt ?? null,
-            body.featuredImage ? normalizeImageUrl(body.featuredImage) : null,
+            featuredImage,
             body.status ?? "draft",
             body.categoryId ? Number(body.categoryId) : null,
             body.seoTitle ?? null,

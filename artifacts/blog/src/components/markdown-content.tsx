@@ -6,7 +6,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
 import { CodeBlockCopyButton } from "@/components/code-block-copy";
-import { IMAGE_WIDTHS, normalizeImageUrl, optimizeImageUrl } from "@/lib/image-url";
+import { MarkdownImage } from "@/components/markdown-image";
 
 type MarkdownContentProps = {
   content: string;
@@ -76,15 +76,7 @@ const markdownComponents: Components = {
   tr: ({ children }) => <tr className="markdown-tr">{children}</tr>,
   th: ({ children }) => <th className="markdown-th">{children}</th>,
   td: ({ children }) => <td className="markdown-td">{children}</td>,
-  img: ({ src, alt }) => (
-    <img
-      src={optimizeImageUrl(normalizeImageUrl(src), IMAGE_WIDTHS.article)}
-      alt={alt ?? ""}
-      className="markdown-img"
-      loading="lazy"
-      decoding="async"
-    />
-  ),
+  img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
   pre: ({ children }) => <pre className="markdown-pre">{children}</pre>,
   code: ({ className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className ?? "");

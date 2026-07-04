@@ -67,21 +67,59 @@ export async function getPostsByTag(tagSlug: string, page = 1, limit = 10) {
 }
 
 export async function uploadImage(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  const maxBytes = 4 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    throw new Error("Image must be under 4 MB. Resize it or use an external image URL.");
+  }
+
+  const data = await readFileAsBase64(file);
   const res = await fetch("/api/uploads/image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({
       filename: file.name,
-      contentType: file.type,
-      data: base64,
+      contentType: file.type || "application/octet-stream",
+      data,
     }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error || "Upload failed");
+  }
+  const json = (await res.json()) as { url: string };
+  return json.url;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Failed to read image file"));
+        return;
+      }
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function resolveImageUrl(url: string): Promise<string> {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  const res = await fetch("/api/media/resolve-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ url: trimmed }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Could not resolve image URL");
   }
   const data = (await res.json()) as { url: string };
   return data.url;
