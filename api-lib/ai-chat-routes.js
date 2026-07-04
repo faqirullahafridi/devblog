@@ -1,17 +1,32 @@
 import { randomBytes } from "node:crypto";
 import { query } from "./db-pool.js";
 import { loadSession, isAdminValid } from "./admin-routes.js";
+import {
+  isImageGenerationRequest,
+  extractImagePrompt,
+  generateNimImage,
+  buildImageAssistantMarkdown,
+  isNvidiaImageConfigured,
+} from "./nvidia-nim-image.js";
+
+const BASE_RULES = `You are TechVentry's AI Developer Assistant — practical, direct, and accurate.
+
+Rules:
+- Fulfill the user's actual request first (answer, code, design, explanation). Do not dump API client boilerplate unless they explicitly ask how to integrate an API.
+- For image/logo/banner requests: describe the visual briefly; if you cannot output an image, offer SVG/HTML/CSS mockups — never replace an image request with Python/JS API integration code.
+- Use markdown. Put code in fenced blocks with correct language tags.
+- Be concise. Lead with the solution, then optional detail.`;
 
 const SYSTEM_PROMPTS = {
-  chat: "You are TechVentry's AI Developer Assistant. Help developers with code, architecture, and best practices. Use markdown and code blocks.",
-  debug: "You are an expert debugger. Analyze code, find bugs, explain root causes, and suggest minimal fixes. Use markdown.",
-  explain: "You are a patient senior engineer. Explain code clearly for developers at all levels. Use markdown and examples.",
-  generate: "You generate clean, production-ready code with brief comments. Output code in fenced blocks with language tags.",
-  convert: "You convert code between programming languages accurately, preserving logic. Show converted code in fenced blocks.",
-  optimize: "You optimize code for performance, readability, and maintainability. Show before/after with explanations.",
-  sql: "You write correct SQL for PostgreSQL. Explain queries briefly. Use sql fenced blocks.",
-  api: "You design REST API endpoints with request/response examples. Use OpenAPI-style descriptions and JSON examples.",
-  errors: "You explain error messages and stack traces. Provide root cause and step-by-step fixes.",
+  chat: `${BASE_RULES}\n\nMode: General developer Q&A — architecture, patterns, reviews, and how-tos.`,
+  debug: `${BASE_RULES}\n\nMode: Debugging — find root cause, minimal fix, and why it broke. Show fixed code in fenced blocks.`,
+  explain: `${BASE_RULES}\n\nMode: Explain code clearly with step-by-step breakdowns and small examples.`,
+  generate: `${BASE_RULES}\n\nMode: Generate production-ready code from descriptions. Output complete runnable code in fenced blocks — not API setup scripts unless asked.\nFor UI/logo/image requests: output SVG or HTML/CSS the user can open in Preview, not image API code.`,
+  convert: `${BASE_RULES}\n\nMode: Convert code between languages preserving behavior. Show the converted code in fenced blocks.`,
+  optimize: `${BASE_RULES}\n\nMode: Optimize for performance and readability. Show before/after with brief notes.`,
+  sql: `${BASE_RULES}\n\nMode: PostgreSQL — write correct queries in sql fenced blocks with short explanations.`,
+  api: `${BASE_RULES}\n\nMode: REST API design with routes, request/response JSON examples, and status codes.`,
+  errors: `${BASE_RULES}\n\nMode: Decode errors and stack traces with root cause and fix steps.`,
 };
 
 const VISITOR_COOKIE = "visitor_id";
@@ -172,6 +187,37 @@ function buildMessages(mode, history, userMessage) {
 
 function estimateTokens(text) {
   return Math.max(1, Math.ceil(String(text).length / 4));
+}
+
+/** When the user wants an image, generate via NVIDIA NIM instead of LLM API code. */
+async function tryImageGeneration(userMessage, onDelta) {
+  if (!isImageGenerationRequest(userMessage)) return null;
+  const prompt = extractImagePrompt(userMessage);
+  if (onDelta) onDelta("Generating your image…\n\n");
+
+  try {
+    const result = await generateNimImage({ prompt });
+    const content = buildImageAssistantMarkdown(prompt, result);
+    return {
+      content,
+      tokensIn: estimateTokens(userMessage),
+      tokensOut: estimateTokens(content),
+      provider: "nvidia-nim-image",
+      model: result.model,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const content = isNvidiaImageConfigured()
+      ? `**Image generation failed:** ${msg}\n\nTry a shorter prompt or check your NVIDIA API credits on [build.nvidia.com](https://build.nvidia.com/models).`
+      : `**Image generation isn't configured** on this server (add \`NVIDIA_API_KEY\` or \`NVIDIA_IMAGE_KEY\` from [build.nvidia.com](https://build.nvidia.com/models)).\n\nYou asked for: **${prompt}**\n\nI can still help with:\n- **SVG or HTML/CSS mockup** — ask "create an SVG logo for …"\n- **Design description** — colors, layout, typography\n\nI won't respond with API client code when you wanted a visual.`;
+    return {
+      content,
+      tokensIn: estimateTokens(userMessage),
+      tokensOut: estimateTokens(content),
+      provider: "techventry",
+      model: "image-fallback",
+    };
+  }
 }
 
 async function completeOpenAiChat(provider, messages) {
@@ -506,7 +552,10 @@ async function handleAiChat(req, res, modeSegment) {
     );
 
     try {
-      const result = await runAiChat(mode, history, message, (delta) => send({ type: "delta", content: delta }));
+      const imageResult = await tryImageGeneration(message, (delta) => send({ type: "delta", content: delta }));
+      const result =
+        imageResult ??
+        (await runAiChat(mode, history, message, (delta) => send({ type: "delta", content: delta })));
       const { rows: assistantRows } = await query(
         `INSERT INTO ai_messages (conversation_id, role, content, tokens_used)
          VALUES ($1, 'assistant', $2, $3)
@@ -538,7 +587,8 @@ async function handleAiChat(req, res, modeSegment) {
     `INSERT INTO ai_messages (conversation_id, role, content, tokens_used) VALUES ($1, 'user', $2, 0)`,
     [convId, message],
   );
-  const result = await runAiChat(mode, history, message);
+  const imageResult = await tryImageGeneration(message);
+  const result = imageResult ?? (await runAiChat(mode, history, message));
   const { rows: assistantRows } = await query(
     `INSERT INTO ai_messages (conversation_id, role, content, tokens_used)
      VALUES ($1, 'assistant', $2, $3)

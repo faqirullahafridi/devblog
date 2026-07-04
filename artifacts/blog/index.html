@@ -68,6 +68,9 @@
     <meta name="twitter:description" content="Articles, free dev tools, templates, and learning paths on TechVentry. Tutorials and utilities for web, Python, and JavaScript developers." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="alternate" type="application/rss+xml" title="TechVentry RSS Feed" href="/feed.xml" />
     <!-- seo-head-injection -->
     <style>
@@ -87,30 +90,6 @@
         display: none !important;
       }
     </style>
-    <script>
-      (function () {
-        var p = location.pathname.replace(/\/$/, "") || "/";
-        if (p !== "/") return;
-        var lq = document.createElement("link");
-        lq.rel = "preload";
-        lq.as = "image";
-        lq.href = "/hero-devblog-lqip.jpg";
-        document.head.appendChild(lq);
-        var specs = [
-          { href: "/hero-devblog-480.webp", media: "(max-width: 1023px)", type: "image/webp" },
-          { href: "/hero-devblog-768.webp", media: "(min-width: 1024px)", type: "image/webp" },
-        ];
-        for (var i = 0; i < specs.length; i++) {
-          var l = document.createElement("link");
-          l.rel = "preload";
-          l.as = "image";
-          l.href = specs[i].href;
-          l.media = specs[i].media;
-          if (specs[i].type) l.type = specs[i].type;
-          document.head.appendChild(l);
-        }
-      })();
-    </script>
     <script>
       (function () {
         try {

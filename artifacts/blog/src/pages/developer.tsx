@@ -39,10 +39,10 @@ export default function DeveloperPage() {
       />
       <div className="border-b-2 border-foreground bg-muted">
         <div className="container mx-auto px-4 py-14 md:py-20 max-w-4xl">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">
             Developer profile
           </p>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight">{profile.name}</h1>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">{profile.name}</h1>
           {profile.headline && (
             <p className="text-xl text-muted-foreground mt-3">{profile.headline}</p>
           )}

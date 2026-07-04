@@ -20,10 +20,10 @@ export default function AboutPage() {
       <SeoHead title={seoTitle("About")} description={SITE_DESCRIPTION} />
       <div className="border-b-2 border-foreground bg-muted">
         <div className="container mx-auto px-4 py-14 md:py-20 max-w-3xl text-center">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">
             About this site
           </p>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
             A home for developers who care about craft
           </h1>
           <p className="text-lg text-muted-foreground mt-5 leading-relaxed">

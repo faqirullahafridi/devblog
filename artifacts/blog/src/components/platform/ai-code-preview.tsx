@@ -59,7 +59,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
       <div
         className={cn(
           "mb-2 flex flex-wrap items-center justify-between gap-2",
-          brutal && "border-b-2 border-foreground pb-2",
+          brutal && "border-b border-border pb-2",
         )}
       >
         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -70,7 +70,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             type="button"
             variant={viewport === "desktop" ? "secondary" : "ghost"}
             size="sm"
-            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border-2 border-foreground")}
+            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border border-border")}
             onClick={() => setViewport("desktop")}
             aria-label="Desktop preview"
           >
@@ -81,7 +81,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             type="button"
             variant={viewport === "mobile" ? "secondary" : "ghost"}
             size="sm"
-            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border-2 border-foreground")}
+            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border border-border")}
             onClick={() => setViewport("mobile")}
             aria-label="Mobile preview"
           >
@@ -92,7 +92,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             type="button"
             variant="ghost"
             size="sm"
-            className={cn("h-7 w-7 p-0", brutal && "rounded-none border-2 border-foreground")}
+            className={cn("h-7 w-7 p-0", brutal && "rounded-none border border-border")}
             onClick={refresh}
             aria-label="Refresh preview"
           >
@@ -102,7 +102,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             type="button"
             variant="ghost"
             size="sm"
-            className={cn("h-7 w-7 p-0", brutal && "rounded-none border-2 border-foreground")}
+            className={cn("h-7 w-7 p-0", brutal && "rounded-none border border-border")}
             onClick={() => setFullscreen(true)}
             aria-label="Fullscreen preview"
           >
@@ -112,7 +112,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
             type="button"
             variant="ghost"
             size="sm"
-            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border-2 border-foreground")}
+            className={cn("h-7 gap-1 px-2 text-[10px]", brutal && "rounded-none border border-border")}
             onClick={openPlayground}
           >
             <ExternalLink className="h-3 w-3" />
@@ -124,7 +124,7 @@ export function AiCodePreview({ preview, className, brutal }: AiCodePreviewProps
       <div
         className={cn(
           "relative isolate w-full overflow-hidden",
-          brutal ? "border-2 border-foreground bg-muted/30" : "rounded-xl border border-border/70 bg-muted/20 ring-1 ring-border/40",
+          brutal ? "border border-border bg-muted/30" : "rounded-xl border border-border/70 bg-muted/20 ring-1 ring-border/40",
         )}
       >
         <div

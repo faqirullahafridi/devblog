@@ -30,7 +30,7 @@ export function SiteAuthLinks() {
             <span className="max-w-[8rem] truncate">{data.user.displayName || data.user.username}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="border-2 border-foreground">
+        <DropdownMenuContent align="end" className="border border-border">
           <DropdownMenuLabel className="font-normal">
             <p className="font-bold">{data.user.displayName}</p>
             <p className="text-xs text-muted-foreground">@{data.user.username}</p>
@@ -60,14 +60,14 @@ export function SiteAuthLinks() {
         asChild
         variant="outline"
         size="sm"
-        className="font-bold border-foreground brutal-shadow-sm"
+        className="font-bold border-foreground shadow-sm"
       >
         <Link href="/login">Sign in</Link>
       </Button>
       <Button
         asChild
         size="sm"
-        className="font-bold border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
+        className="font-bold border border-border bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
       >
         <Link href="/signup">Sign up</Link>
       </Button>

@@ -91,7 +91,7 @@ export function MobileDrawer({ open, onClose, children, className }: MobileDrawe
 
 export function MobileDrawerTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-base font-black uppercase tracking-wider">
+    <h2 className="text-base font-semibold ">
       {children}
     </h2>
   );

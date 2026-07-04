@@ -91,7 +91,7 @@ const ModelPickerTrigger = forwardRef<
       "disabled:cursor-not-allowed disabled:opacity-50",
       "touch-manipulation",
       compact ? "h-8 max-w-[9.5rem] rounded-md px-2 text-[11px]" : "h-8 max-w-[11rem] rounded-md px-2.5 text-[11px]",
-      brutal ? "rounded-none border-2 border-foreground font-semibold" : "border-border/70",
+      brutal ? "rounded-none border border-border font-semibold" : "border-border/70",
       className,
     )}
     aria-label="Choose AI mode"
@@ -144,7 +144,7 @@ export function AiModelSwitcher({
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "duration-150",
-          brutal && "rounded-none border-2 border-foreground",
+          brutal && "rounded-none border border-border",
         )}
       >
         <DropdownMenuLabel className="px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">

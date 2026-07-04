@@ -4,19 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  // @replit
-  // Whitespace-nowrap: Badges should never wrap.
-  "whitespace-nowrap inline-flex items-center rounded-none border-2 px-2.5 py-0.5 text-xs font-bold transition-[transform,box-shadow,opacity] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover-elevate",
+  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default:
-          "border-foreground bg-primary text-primary-foreground",
-        secondary:
-          "border-foreground bg-secondary text-secondary-foreground",
-        destructive:
-          "border-foreground bg-destructive text-destructive-foreground",
-        outline: "text-foreground border-foreground bg-background",
+        default: "border-transparent bg-primary text-primary-foreground shadow-sm",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground shadow-sm",
+        outline: "text-foreground border-border",
       },
     },
     defaultVariants: {

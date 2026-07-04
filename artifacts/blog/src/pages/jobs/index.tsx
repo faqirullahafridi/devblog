@@ -129,7 +129,7 @@ export default function JobsIndexPage() {
       </div>
 
       {isLoading && page === 1 ? (
-        <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-muted animate-pulse border-2 border-foreground" />)}</div>
+        <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-muted animate-pulse border border-border" />)}</div>
       ) : (
         <>
           <p className="text-xs text-muted-foreground mb-4">
@@ -138,7 +138,7 @@ export default function JobsIndexPage() {
           </p>
           <div className="space-y-3">
             {allJobs.map((job) => (
-              <Link key={job.slug} href={`/jobs/${job.slug}`} className="block border-2 border-foreground bg-card p-4 brutal-shadow-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow transition-all">
+              <Link key={job.slug} href={`/jobs/${job.slug}`} className="block border border-border bg-card p-4 shadow-sm hover:shadow-md transition-all">
                 <div className="flex flex-wrap gap-2 mb-1">
                   <Badge variant="outline">{job.category}</Badge>
                   {job.remote && <Badge variant="secondary">Remote</Badge>}
@@ -209,7 +209,7 @@ export function JobDetailPage() {
   if (isLoading || !job) {
     return (
       <PlatformHubLayout title="Loading…" description="" section="Jobs" backHref="/jobs" backLabel="Jobs">
-        <div className="h-40 bg-muted animate-pulse border-2 border-foreground" />
+        <div className="h-40 bg-muted animate-pulse border border-border" />
       </PlatformHubLayout>
     );
   }

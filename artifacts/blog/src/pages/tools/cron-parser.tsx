@@ -57,7 +57,7 @@ export default function CronParserPage() {
               key={ex.expr}
               type="button"
               onClick={() => parse(ex.expr)}
-              className="text-xs px-3 py-1.5 border-2 border-foreground bg-muted/30 text-foreground hover:bg-muted transition-colors"
+              className="text-xs px-3 py-1.5 border border-border bg-muted/30 text-foreground hover:bg-muted transition-colors"
             >
               {ex.label}
             </button>

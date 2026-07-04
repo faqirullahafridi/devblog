@@ -18,7 +18,7 @@ export function HomeTemplatesSection() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2">
               Templates library
             </p>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">

@@ -31,7 +31,7 @@ export function HubSeoIntro({ path, className }: HubSeoIntroProps) {
       aria-label="Page overview"
     >
       <div className="mb-6 max-w-2xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary mb-2">Guide</p>
+        <p className="section-label mb-2">Guide</p>
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">{page.h2}</h2>
       </div>
 

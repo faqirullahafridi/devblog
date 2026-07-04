@@ -3,7 +3,14 @@ import { cn } from "@/lib/utils";
 
 type Heading = { id: string; text: string; level: number };
 
-export function TableOfContents({ content }: { content: string }) {
+type TableOfContentsProps = {
+  content: string;
+  /** `inline` — in article flow (mobile). `sidebar` — compact sticky nav. */
+  variant?: "inline" | "sidebar";
+  className?: string;
+};
+
+export function TableOfContents({ content, variant = "inline", className }: TableOfContentsProps) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [active, setActive] = useState("");
 
@@ -40,16 +47,28 @@ export function TableOfContents({ content }: { content: string }) {
 
   if (headings.length < 3) return null;
 
+  const isSidebar = variant === "sidebar";
+
   return (
-    <nav className="rounded-xl border bg-muted/30 p-4 mb-8">
-      <p className="text-sm font-semibold mb-3">On this page</p>
-      <ul className="space-y-2 text-sm">
+    <nav
+      className={cn(
+        isSidebar
+          ? "rounded-lg border border-border bg-card p-4 shadow-sm"
+          : "rounded-xl border border-border bg-muted/30 p-4 mb-8",
+        className,
+      )}
+      aria-label="Table of contents"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        On this page
+      </p>
+      <ul className={cn("space-y-1.5", isSidebar ? "text-xs" : "text-sm")}>
         {headings.map((h) => (
-          <li key={h.id} className={cn(h.level === 3 && "pl-4")}>
+          <li key={h.id} className={cn(h.level === 3 && "pl-3")}>
             <a
               href={`#${h.id}`}
               className={cn(
-                "text-muted-foreground hover:text-primary transition-colors",
+                "block py-0.5 text-muted-foreground hover:text-primary transition-colors line-clamp-2",
                 active === h.id && "text-primary font-medium",
               )}
             >

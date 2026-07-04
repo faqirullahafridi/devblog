@@ -38,7 +38,7 @@ export default function LoginPage() {
     <PublicLayout>
       <SeoHead title={seoTitle("Sign in")} description="Sign in to your account." />
       <div className="container mx-auto px-4 py-12 max-w-md">
-        <div className="border-2 border-foreground bg-card p-6 md:p-8 brutal-shadow">
+        <div className="border border-border bg-card p-6 md:p-8 brutal-shadow">
           <header className="mb-8 text-center">
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Sign in</h1>
             <p className="text-sm text-muted-foreground mt-2">
@@ -56,7 +56,7 @@ export default function LoginPage() {
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
                 placeholder="you@example.com or username"
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <div className="space-y-2">
@@ -68,12 +68,12 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <Button
               type="submit"
-              className="w-full border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm font-bold hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
+              className="w-full border border-border bg-primary text-primary-foreground shadow-sm font-bold hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
               disabled={loading}
             >
               {loading ? "Signing in…" : "Sign in"}

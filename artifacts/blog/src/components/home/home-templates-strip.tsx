@@ -1,56 +1,45 @@
 import { Link } from "wouter";
-import { getFeaturedTemplates } from "@/lib/templates-config";
-import { getTemplateHref } from "@/lib/templates-config";
+import { getFeaturedTemplates, getTemplateHref } from "@/lib/templates-config";
 import { SafeImage } from "@/components/safe-image";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Download } from "lucide-react";
+import { HomeSectionHeader } from "@/components/home/home-section-header";
+import { cn } from "@/lib/utils";
 
-export function HomeTemplatesStrip() {
+export function HomeTemplatesStrip({ embedded = false }: { embedded?: boolean }) {
   const templates = getFeaturedTemplates(4);
 
   return (
-    <section className="container mx-auto px-4 py-14 md:py-16">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary mb-1">Templates</p>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight">Ship faster with free templates</h2>
-          <p className="text-sm text-muted-foreground mt-2 max-w-lg">
-            Landing pages, portfolios, and SaaS kits — preview live, copy code, or download ZIP.
-          </p>
-        </div>
-        <Button asChild variant="outline" className="shrink-0 gap-2">
-          <Link href="/templates">
-            Browse library <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+    <section className={cn(!embedded && "container mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-16")}>
+      <HomeSectionHeader
+        label="Templates"
+        title="Free starter templates"
+        description="Preview live, copy code, or download — landing pages, portfolios, and SaaS kits."
+        href="/templates"
+        linkText="Browse all"
+      />
 
-      <div className="grid gap-[2px] bg-foreground border-2 border-foreground brutal-shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+      {/* Mobile: horizontal scroll; desktop: grid */}
+      <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0 lg:grid-cols-4">
         {templates.map((template) => (
           <Link
             key={template.slug}
             href={getTemplateHref(template.slug)}
-            className="group relative flex flex-col overflow-hidden bg-card hover:bg-muted/40 transition-colors"
+            className="group flex w-[72vw] max-w-[280px] sm:w-auto sm:max-w-none flex-col shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card"
           >
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
               <SafeImage
                 src={template.previewImage}
                 alt=""
-                className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+                className="h-full w-full object-cover object-top"
                 wrapperClassName="h-full w-full"
               />
-              <span className="absolute top-3 left-3 border-2 border-foreground bg-background px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+              <span className="absolute top-2 left-2 rounded-md bg-background/90 backdrop-blur px-2 py-0.5 text-[10px] sm:text-xs font-medium">
                 {template.categoryTitle}
               </span>
             </div>
-            <div className="p-4 flex flex-col gap-2 flex-1 border-t-2 border-foreground">
-              <h3 className="font-black text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+            <div className="p-3 sm:p-4 flex flex-col gap-1 min-h-[4.5rem]">
+              <h3 className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary">
                 {template.title}
               </h3>
-              <p className="text-[11px] text-muted-foreground line-clamp-2 flex-1">{template.shortDescription}</p>
-              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-primary mt-auto">
-                <Download className="h-3 w-3" /> Free download
-              </span>
             </div>
           </Link>
         ))}

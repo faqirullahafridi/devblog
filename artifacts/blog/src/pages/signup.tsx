@@ -50,7 +50,7 @@ export default function SignupPage() {
     <PublicLayout>
       <SeoHead title={seoTitle("Sign up")} description="Create a free account to participate in the community." />
       <div className="container mx-auto px-4 py-12 max-w-md">
-        <div className="border-2 border-foreground bg-card p-6 md:p-8 brutal-shadow">
+        <div className="border border-border bg-card p-6 md:p-8 brutal-shadow">
           <header className="mb-8 text-center">
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Create account</h1>
             <p className="text-sm text-muted-foreground mt-2">
@@ -69,7 +69,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <div className="space-y-2">
@@ -81,7 +81,7 @@ export default function SignupPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="dev_reader"
-                className="border-2 border-foreground"
+                className="border border-border"
               />
               <p className="text-xs text-muted-foreground">3–32 characters: letters, numbers, underscore</p>
             </div>
@@ -93,7 +93,7 @@ export default function SignupPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="How others see you"
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <div className="space-y-2">
@@ -106,7 +106,7 @@ export default function SignupPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <div className="space-y-2">
@@ -119,12 +119,12 @@ export default function SignupPage() {
                 minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-2 border-foreground"
+                className="border border-border"
               />
             </div>
             <Button
               type="submit"
-              className="w-full border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm font-bold hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
+              className="w-full border border-border bg-primary text-primary-foreground shadow-sm font-bold hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
               disabled={loading}
             >
               {loading ? "Creating account…" : "Sign up"}

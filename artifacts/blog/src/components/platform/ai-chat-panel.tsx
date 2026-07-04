@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { AiMarkdown } from "@/components/platform/ai-markdown";
@@ -58,7 +58,7 @@ function formatTime(iso: string): string {
   }
 }
 
-const STREAM_UI_MS = 100;
+const STREAM_UI_MS = 48;
 
 function ChatMessage({
   message,
@@ -100,14 +100,14 @@ function ChatMessage({
   return (
     <div
       className={cn(
-        "group flex w-full min-w-0 max-w-full gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both",
+        "group flex w-full min-w-0 max-w-full gap-3",
         isUser ? "flex-row-reverse" : "flex-row",
       )}
     >
       <div
         className={cn(
           "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center shadow-sm sm:mt-1 sm:h-9 sm:w-9",
-          brutal ? "border-2 border-foreground" : "rounded-full ring-1 ring-border/80",
+          brutal ? "border border-border" : "rounded-full ring-1 ring-border/80",
           isUser ? "bg-primary text-primary-foreground" : meta.iconBg,
         )}
       >
@@ -117,7 +117,7 @@ function ChatMessage({
       <div className={cn("min-w-0 flex-1 max-w-[min(100%,36rem)] sm:max-w-[min(100%,42rem)]", isUser ? "items-end" : "items-start")}>
         <p
           className={cn(
-            "mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground",
+            "mb-1.5 text-[10px] font-bold  text-muted-foreground",
             isUser ? "text-right" : "text-left",
           )}
         >
@@ -127,14 +127,14 @@ function ChatMessage({
           className={cn(
             "relative px-3 py-2.5 text-sm shadow-sm [overflow-wrap:anywhere] sm:px-4 sm:py-3",
             isPreviewOpen && "overflow-hidden",
-            brutal ? "border-2 border-foreground" : "rounded-2xl",
+            brutal ? "border border-border" : "rounded-2xl",
             isUser
               ? cn(
                   "bg-primary text-primary-foreground",
                   !brutal && "rounded-br-md",
                 )
               : cn(
-                  "bg-muted/60 text-foreground backdrop-blur-sm",
+                  "bg-muted/50 text-foreground",
                   !brutal && "rounded-bl-md border border-border/50 border-l-[3px] border-l-primary/70",
                 ),
           )}
@@ -154,7 +154,7 @@ function ChatMessage({
                   view === "answer"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  brutal && view === "answer" && "rounded-none border-2 border-foreground",
+                  brutal && view === "answer" && "rounded-none border border-border",
                 )}
               >
                 <FileText className="h-3 w-3" />
@@ -168,7 +168,7 @@ function ChatMessage({
                   view === "preview"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  brutal && view === "preview" && "rounded-none border-2 border-foreground",
+                  brutal && view === "preview" && "rounded-none border border-border",
                 )}
               >
                 <Eye className="h-3 w-3" />
@@ -182,11 +182,7 @@ function ChatMessage({
             <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
           ) : content ? (
             <>
-              {isStreaming ? (
-                <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
-              ) : (
-                <AiMarkdown content={content} />
-              )}
+              <AiMarkdown content={content} />
               {isStreaming && (
                 <span
                   className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-middle"
@@ -268,6 +264,8 @@ export function AiChatPanel({
   const lastStreamUiRef = useRef(0);
   const streamFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollOnNextRef = useRef(false);
 
   const persistConversation = useCallback((modeId: AiModeId, id: number) => {
     setConversationId(id);
@@ -346,6 +344,17 @@ export function AiChatPanel({
     }
   }, [modelId, setModelId]);
 
+  useLayoutEffect(() => {
+    if (!scrollOnNextRef.current) return;
+    scrollOnNextRef.current = false;
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [messages, streamingContent, isStreaming]);
+
+  const scrollToBottom = useCallback(() => {
+    scrollOnNextRef.current = true;
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, []);
+
   useEffect(() => {
     modelIdRef.current = isValidPickerModelId(modelId) ? modelId : AI_MODEL_AUTO;
   }, [modelId]);
@@ -353,6 +362,14 @@ export function AiChatPanel({
   useEffect(() => {
     void loadConversationHistory(mode);
   }, [mode, loadConversationHistory]);
+
+  useEffect(() => {
+    if (isStreaming && streamingContent) scrollToBottom();
+  }, [streamingContent, isStreaming, scrollToBottom]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages.length, scrollToBottom]);
 
   const scheduleStreamingUi = useCallback((full: string) => {
     const flush = () => {
@@ -388,6 +405,7 @@ export function AiChatPanel({
       { id: assistantId, role: "assistant", content: "", createdAt: new Date().toISOString() },
     ]);
     setInput("");
+    scrollToBottom();
 
     const ac = new AbortController();
     abortRef.current = ac;
@@ -401,16 +419,13 @@ export function AiChatPanel({
           onDelta: (_chunk, full) => {
             scheduleStreamingUi(full);
           },
-          onDone: async (data) => {
+          onDone: (data) => {
             persistConversation(mode, data.conversationId);
-            try {
-              const conv = await getAiConversation(data.conversationId);
-              setMessages(conv.messages ?? []);
-            } catch {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? data.message : m)),
-              );
-            }
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...data.message, id: assistantId } : m,
+              ),
+            );
             setStreamingContent("");
             platformEvents.aiChat(mode);
             qc.invalidateQueries({ queryKey: aiKeys.conversations() });
@@ -518,7 +533,7 @@ export function AiChatPanel({
         disabled={isStreaming}
         className={cn(
           "h-8 gap-1.5 text-xs",
-          brutal && "rounded-none border-2 border-foreground font-black uppercase",
+          brutal && "rounded-none border border-border font-semibold uppercase",
         )}
       >
         <RotateCcw className="h-3.5 w-3.5" />
@@ -543,7 +558,7 @@ export function AiChatPanel({
           variant="secondary"
           className={cn(
             "h-6 max-w-[min(100%,12rem)] truncate rounded-full px-2 text-[10px] font-medium sm:max-w-none",
-            brutal && "rounded-none border-2 border-foreground",
+            brutal && "rounded-none border border-border",
           )}
         >
           {activeModelLabel}
@@ -571,7 +586,7 @@ export function AiChatPanel({
           {headerActions}
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 max-h-[min(70vh,720px)] overflow-y-auto overscroll-contain">
           {historyLoading ? (
             <div className="flex items-center justify-center px-1 py-12 text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -616,13 +631,14 @@ export function AiChatPanel({
                   }
                 />
               ))}
+              <div ref={messagesEndRef} className="h-px shrink-0" aria-hidden />
             </div>
           )}
         </div>
 
         <div className="mt-6 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {composerToolbar}
-          <div className="min-w-0 rounded-2xl border border-border/60 bg-card/95 p-2 shadow-2xl shadow-black/8 backdrop-blur-xl ring-1 ring-black/5 focus-within:border-primary/40 focus-within:ring-primary/20">
+          <div className="min-w-0 rounded-2xl border border-border/60 bg-card p-2 shadow-lg ring-1 ring-black/5 focus-within:border-primary/40 focus-within:ring-primary/20">
             <div className="flex items-end gap-2">
               <Textarea
                 ref={textareaRef}
@@ -673,9 +689,9 @@ export function AiChatPanel({
                     "inline-flex shrink-0 items-center gap-1.5 text-xs font-medium transition-all",
                     brutal
                       ? cn(
-                          "border-2 px-3 py-1.5 font-black uppercase tracking-wider",
+                          "border-2 px-3 py-1.5 font-semibold ",
                           active
-                            ? "border-foreground bg-primary text-primary-foreground brutal-shadow-sm -translate-x-0.5 -translate-y-0.5"
+                            ? "border-foreground bg-primary text-primary-foreground shadow-sm -translate-x-0.5 -translate-y-0.5"
                             : "border-foreground bg-card text-foreground hover:bg-muted",
                         )
                       : cn(
@@ -699,13 +715,13 @@ export function AiChatPanel({
       <div
         className={cn(
           "relative flex w-full max-w-full flex-col bg-card",
-          brutal ? "border-2 border-foreground brutal-shadow" : "rounded-2xl border shadow-md ring-1 ring-border/40",
+          brutal ? "border border-border brutal-shadow" : "rounded-2xl border shadow-md ring-1 ring-border/40",
         )}
       >
         <div
           className={cn(
             "flex shrink-0 flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3",
-            brutal ? "border-b-2 border-foreground bg-muted" : "border-b bg-muted/30 backdrop-blur-sm",
+            brutal ? "border-b border-border bg-muted" : "border-b bg-muted/30",
           )}
         >
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
@@ -739,8 +755,8 @@ export function AiChatPanel({
 
         <div
           className={cn(
-            "relative",
-            !brutal && "bg-gradient-to-b from-muted/20 via-background to-background",
+            "relative max-h-[min(65vh,640px)] overflow-y-auto overscroll-contain",
+            !brutal && "bg-gradient-to-b from-muted/15 via-background to-background",
           )}
         >
           {historyLoading ? (
@@ -761,7 +777,7 @@ export function AiChatPanel({
                   >
                     <Sparkles className={cn("h-7 w-7", meta.accent, !workspace && "h-8 w-8")} />
                   </div>
-                  <p className="text-lg font-black tracking-tight">How can I help?</p>
+                  <p className="text-lg font-semibold tracking-tight">How can I help?</p>
                   <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{meta.description}</p>
                 </div>
                 <div className={cn("grid w-full gap-2", workspace ? "flex-1 md:grid-cols-1" : "max-w-2xl mt-8")}>
@@ -776,7 +792,7 @@ export function AiChatPanel({
                       className={cn(
                         "flex items-start gap-3 px-4 py-3.5 text-left text-sm transition-all",
                         brutal
-                          ? "border-2 border-foreground bg-card font-medium hover:bg-muted hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow-sm"
+                          ? "border border-border bg-card font-medium hover:bg-muted hover:shadow-sm"
                           : "rounded-xl border border-border/60 bg-card/80 text-foreground shadow-sm hover:border-primary/40 hover:bg-muted/40 hover:shadow-md",
                       )}
                     >
@@ -803,6 +819,7 @@ export function AiChatPanel({
                   }
                 />
               ))}
+              <div ref={messagesEndRef} className="h-px shrink-0" aria-hidden />
             </div>
           )}
         </div>
@@ -810,7 +827,7 @@ export function AiChatPanel({
         <div
           className={cn(
             "shrink-0 p-2.5 sm:p-4",
-            brutal ? "border-t-2 border-foreground bg-muted/95" : "border-t bg-background/95",
+            brutal ? "border-t border-border bg-muted/95" : "border-t bg-background",
             "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           )}
         >
@@ -819,7 +836,7 @@ export function AiChatPanel({
             className={cn(
               "mx-auto flex max-w-3xl items-end gap-2 transition-shadow focus-within:ring-2 focus-within:ring-primary/20",
               brutal
-                ? "border-2 border-foreground bg-card p-2 brutal-shadow-sm"
+                ? "border border-border bg-card p-2 shadow-sm"
                 : "rounded-2xl border border-border/80 bg-card p-2 shadow-sm",
             )}
           >
@@ -841,9 +858,8 @@ export function AiChatPanel({
               disabled={!input.trim() || isStreaming || !isReady || historyLoading}
               size="icon"
               className={cn(
-                "mb-0.5 h-11 w-11 shrink-0 transition-transform hover:scale-105 active:scale-95",
-                brutal ? "border-2 border-foreground brutal-shadow-sm" : "rounded-xl shadow-sm",
-                input.trim() && !isStreaming && "shadow-primary/25",
+                "mb-0.5 h-11 w-11 shrink-0",
+                brutal ? "border border-border shadow-sm" : "rounded-xl shadow-sm",
               )}
               aria-label="Send message"
             >

@@ -5,10 +5,12 @@ import { useSubscribeNewsletter } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { AdSlot } from "@/components/site-scripts";
 import { format } from "date-fns";
 import { Mail, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function HomeSidebar({ popularPosts }: { popularPosts: Post[] }) {
+export function HomeNewsletterCard({ compact = false }: { compact?: boolean }) {
   const subscribe = useSubscribeNewsletter();
   const [email, setEmail] = useState("");
 
@@ -25,70 +27,88 @@ export function HomeSidebar({ popularPosts }: { popularPosts: Post[] }) {
   };
 
   return (
-    <aside className="space-y-6 lg:sticky lg:top-20">
-      <div className="border-2 border-foreground bg-primary p-6 brutal-shadow text-primary-foreground">
-        <div className="flex items-center gap-2 mb-3">
-          <Mail className="h-5 w-5" />
-          <h3 className="font-black text-lg">Newsletter</h3>
-        </div>
-        <p className="text-sm text-primary-foreground/90 leading-relaxed mb-5">
-          Weekly picks — articles, tools, and templates. No spam, unsubscribe anytime.
-        </p>
-        <form onSubmit={handleSubscribe} className="space-y-3">
-          <Input
-            type="email"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="border-foreground bg-background text-foreground placeholder:text-muted-foreground"
-          />
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full border-foreground bg-background text-foreground hover:bg-muted hover:text-foreground"
-            disabled={subscribe.isPending}
-          >
-            {subscribe.isPending ? "Subscribing…" : "Subscribe free"}
-          </Button>
-        </form>
-      </div>
-
-      {popularPosts.length > 0 && (
-        <div className="border-2 border-foreground bg-card brutal-shadow-sm">
-          <div className="flex items-center gap-2 border-b-2 border-foreground px-5 py-4 bg-muted">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            <h3 className="font-black text-sm uppercase tracking-wider">Popular</h3>
-          </div>
-          <ol className="divide-y-2 divide-foreground">
-            {popularPosts.slice(0, 5).map((post, i) => (
-              <li key={post.id}>
-                <Link
-                  href={`/post/${post.slug}`}
-                  className="group flex gap-3 px-5 py-4 hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-lg font-black text-primary/80 leading-none w-6 shrink-0">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </p>
-                    <time className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1 block">
-                      {format(new Date(post.createdAt), "MMM d")}
-                    </time>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ol>
-          <div className="border-t-2 border-foreground px-5 py-3">
-            <Link href="/search" className="text-xs font-black uppercase tracking-wider text-primary hover:underline">
-              View all articles →
-            </Link>
-          </div>
-        </div>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-primary text-primary-foreground shadow-sm",
+        compact ? "p-4 sm:p-5" : "p-5 sm:p-6",
       )}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+        <h3 className={cn("font-semibold", compact ? "text-base" : "text-lg")}>Newsletter</h3>
+      </div>
+      <p className="text-sm text-primary-foreground/90 leading-relaxed mb-4">
+        Weekly articles, tools, and templates. Unsubscribe anytime.
+      </p>
+      <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row lg:flex-col gap-2">
+        <Input
+          type="email"
+          placeholder="you@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="bg-background text-foreground border-0 flex-1"
+        />
+        <Button
+          type="submit"
+          variant="secondary"
+          className={cn("shrink-0", compact ? "sm:w-auto lg:w-full" : "w-full")}
+          disabled={subscribe.isPending}
+        >
+          {subscribe.isPending ? "…" : "Subscribe"}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+export function HomePopularCard({ popularPosts }: { popularPosts: Post[] }) {
+  if (popularPosts.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-muted/30">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold text-sm">Popular reads</h3>
+      </div>
+      <ol className="divide-y divide-border">
+        {popularPosts.slice(0, 5).map((post, i) => (
+          <li key={post.id}>
+            <Link
+              href={`/post/${post.slug}`}
+              className="group flex gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors"
+            >
+              <span className="text-sm font-semibold text-primary/80 w-5 shrink-0 tabular-nums">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                  {post.title}
+                </p>
+                <time className="text-xs text-muted-foreground mt-1 block">
+                  {format(new Date(post.createdAt), "MMM d")}
+                </time>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ol>
+      <div className="border-t border-border px-4 py-2.5">
+        <Link href="/search" className="text-xs font-medium text-primary hover:underline">
+          All articles →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** Desktop sticky sidebar */
+export function HomeSidebar({ popularPosts }: { popularPosts: Post[] }) {
+  return (
+    <aside className="space-y-5">
+      <HomeNewsletterCard />
+      <AdSlot variant="sidebar" />
+      <HomePopularCard popularPosts={popularPosts} />
     </aside>
   );
 }

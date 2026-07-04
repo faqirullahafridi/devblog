@@ -40,7 +40,7 @@ export default function TextDiffPage() {
       </div>
 
       <ToolPanel label={`Diff (${changes} changed line${changes === 1 ? "" : "s"})`} className="mt-4">
-        <div className="font-mono text-sm overflow-hidden border-2 border-foreground">
+        <div className="font-mono text-sm overflow-hidden border border-border">
           {diff.length === 0 ? (
             <p className="p-4 text-muted-foreground">No content to compare.</p>
           ) : (

@@ -169,7 +169,7 @@ export function AiChatHistory({
         }}
         className={cn(
           "h-8 gap-1.5 text-xs touch-manipulation",
-          brutal && "rounded-none border-2 border-foreground font-black uppercase",
+          brutal && "rounded-none border border-border font-semibold uppercase",
           className,
         )}
       >
@@ -186,7 +186,7 @@ export function AiChatHistory({
           className={cn(
             "z-[250] flex h-[100dvh] max-h-[100dvh] w-[min(100vw-2rem,20rem)] max-w-[85vw] flex-col gap-0 p-0",
             "touch-pan-y",
-            brutal && "rounded-none border-2 border-foreground",
+            brutal && "rounded-none border border-border",
           )}
         >
           <SheetHeader className="shrink-0 flex flex-row items-start justify-between gap-2 border-b border-border/60 px-4 py-3 text-left">

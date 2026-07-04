@@ -16,7 +16,7 @@ export function HubCardGrid({
           <Link
             key={item.slug}
             href={getHref(item.slug)}
-            className="group border-2 border-foreground bg-card p-5 brutal-shadow-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow transition-all"
+            className="group rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-start gap-4">
               <div className="rounded-lg bg-primary/10 p-2.5 text-primary group-hover:bg-primary/15 transition-colors shrink-0">

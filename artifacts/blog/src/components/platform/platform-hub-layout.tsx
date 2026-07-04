@@ -1,10 +1,10 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { ContentShell } from "@/components/layout/content-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { SeoHead } from "@/components/seo-head";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
 import { seoTitle } from "@/lib/site-config";
-import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function PlatformHubLayout({
   title,
@@ -26,19 +26,17 @@ export function PlatformHubLayout({
   return (
     <PublicLayout>
       <SeoHead title={seoTitle(title)} description={description} />
-      <div className={cn("container mx-auto px-4 py-10 max-w-6xl", className)}>
-        <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
-          <ChevronLeft className="h-4 w-4" />
-          {backLabel}
-        </Link>
-        <header className="mb-8 border-2 border-foreground bg-card p-6 brutal-shadow-sm">
-          <p className="text-xs font-black uppercase tracking-wider text-primary mb-2">{section}</p>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight">{title}</h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl leading-relaxed">{description}</p>
-        </header>
+      <ContentShell width="wide" showAdSidebar className={className}>
+        <PageHeader
+          title={title}
+          description={description}
+          section={section}
+          backHref={backHref}
+          backLabel={backLabel}
+        />
         {children}
         <HubSeoIntro />
-      </div>
+      </ContentShell>
     </PublicLayout>
   );
 }
@@ -61,11 +59,9 @@ export function PlatformCard({
   return (
     <Link
       href={href}
-      className="group block border-2 border-foreground bg-card p-5 brutal-shadow-sm transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:brutal-shadow"
+      className="group block rounded-lg border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md h-full"
     >
-      {badge && (
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">{badge}</span>
-      )}
+      {badge && <span className="text-xs font-medium text-primary">{badge}</span>}
       <h2 className="font-semibold mt-1 group-hover:text-primary transition-colors">{title}</h2>
       <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{description}</p>
     </Link>

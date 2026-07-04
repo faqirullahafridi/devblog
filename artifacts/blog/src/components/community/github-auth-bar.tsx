@@ -46,7 +46,7 @@ export function GitHubAuthBar() {
 
   if (siteUser?.authenticated && siteUser.user) {
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-6 border-2 border-foreground bg-muted/40 p-4 brutal-shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-6 border border-border bg-muted/40 p-4 shadow-sm">
         <User className="h-5 w-5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold">{siteUser.user.displayName}</p>
@@ -71,9 +71,9 @@ export function GitHubAuthBar() {
 
   if (github?.authenticated && github.user) {
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-6 border-2 border-foreground bg-muted/40 p-4 brutal-shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-6 border border-border bg-muted/40 p-4 shadow-sm">
         {github.user.avatar ? (
-          <img src={github.user.avatar} alt="" className="h-8 w-8 rounded-full border-2 border-foreground" />
+          <img src={github.user.avatar} alt="" className="h-8 w-8 rounded-full border border-border" />
         ) : (
           <Github className="h-5 w-5" />
         )}
@@ -99,7 +99,7 @@ export function GitHubAuthBar() {
   }
 
   return (
-    <div className="flex flex-col gap-3 mb-6 border-2 border-foreground bg-card p-4 brutal-shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 mb-6 border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-muted-foreground">
         Sign in to use your profile when asking and answering in the community.
       </p>
@@ -108,14 +108,14 @@ export function GitHubAuthBar() {
           asChild
           size="sm"
           variant="outline"
-          className="border-2 border-foreground brutal-shadow-sm font-bold"
+          className="border border-border shadow-sm font-bold"
         >
           <Link href="/login">Sign in</Link>
         </Button>
         <Button
           asChild
           size="sm"
-          className="border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm font-bold hover:bg-primary/90"
+          className="border border-border bg-primary text-primary-foreground shadow-sm font-bold hover:bg-primary/90"
         >
           <Link href="/signup">Sign up</Link>
         </Button>
@@ -123,7 +123,7 @@ export function GitHubAuthBar() {
           asChild
           size="sm"
           variant="secondary"
-          className="border-2 border-foreground brutal-shadow-sm font-bold"
+          className="border border-border shadow-sm font-bold"
         >
           <a href="/api/auth/github">
             <Github className="h-4 w-4 mr-2" /> GitHub

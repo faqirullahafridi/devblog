@@ -45,14 +45,14 @@ function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
         asChild
         variant="outline"
         size="sm"
-        className="flex-1 font-bold border-foreground brutal-shadow-sm"
+        className="flex-1 font-bold border-foreground shadow-sm"
       >
         <Link href="/login" onClick={onNavigate}>Sign in</Link>
       </Button>
       <Button
         asChild
         size="sm"
-        className="flex-1 font-bold border-2 border-foreground bg-primary text-primary-foreground brutal-shadow-sm hover:bg-primary/90"
+        className="flex-1 font-bold border border-border bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
       >
         <Link href="/signup" onClick={onNavigate}>Sign up</Link>
       </Button>
@@ -77,8 +77,8 @@ function NavLink({
       href={href}
       onClick={onNavigate}
       className={cn(
-        "block border-2 border-transparent px-3 py-2.5 text-sm font-bold transition-colors hover:border-foreground hover:bg-muted hover:text-foreground",
-        active ? "border-foreground bg-muted text-foreground" : "text-muted-foreground",
+        "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+        active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       {label}
@@ -89,7 +89,7 @@ function NavLink({
 function NavSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="px-3 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+      <p className="px-3 text-[10px] font-semibold  text-muted-foreground">
         {title}
       </p>
       <div className="space-y-0.5">{children}</div>
@@ -134,7 +134,7 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
         type="button"
         variant="ghost"
         size="icon"
-        className="relative z-20 shrink-0 touch-manipulation md:hidden border-2 border-transparent hover:border-foreground"
+        className="relative z-20 shrink-0 touch-manipulation md:hidden h-9 w-9"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
@@ -149,7 +149,7 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
 
       <MobileDrawer open={open} onClose={closeMenu}>
         <div id="mobile-nav-drawer" className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b-2 border-foreground px-5 py-4 shrink-0">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
             <MobileDrawerTitle>Menu</MobileDrawerTitle>
             <Button
               type="button"
