@@ -2,6 +2,7 @@ import { createHmac, randomBytes, randomInt, scryptSync, timingSafeEqual } from 
 import { query } from "./db-pool.js";
 import { hashPassword } from "./route-utils.js";
 import { sendResendEmail, wrapNewsletterHtml } from "./email.js";
+import { normalizeImageUrl, uploadBlogImage } from "./image-upload.js";
 
 const PROFILE_JSON_FIELDS = new Set([
   "workExperience",
@@ -372,6 +373,7 @@ export function isAdminRoutePath(path, method) {
   if (path === "/api/categories") return true;
   if (path === "/api/comments") return true;
   if (path === "/api/newsletter/subscribers") return true;
+  if (path === "/api/uploads/image" && m === "POST") return true;
   if (path === "/api/playgrounds/stats") return true;
   if (path === "/api/roadmaps/stats") return true;
   if (path === "/api/challenges/stats") return true;
@@ -524,6 +526,18 @@ export async function tryAdminRoute(path, req, res) {
       return true;
     }
 
+    if (method === "POST" && path === "/api/uploads/image") {
+      setNoCache(res);
+      const body = await readJsonBody(req);
+      const result = await uploadBlogImage(body);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      sendJson(res, 200, { url: result.url });
+      return true;
+    }
+
     if (method === "GET" && path === "/api/stats/overview") {
       setNoCache(res);
       const [postStats, categoryStats, subscriberStats, commentStats] = await Promise.all([
@@ -620,7 +634,8 @@ export async function tryAdminRoute(path, req, res) {
           slug: body.slug,
           content: body.content,
           excerpt: body.excerpt,
-          featuredImage: body.featuredImage,
+          featuredImage:
+            body.featuredImage !== undefined ? normalizeImageUrl(body.featuredImage) || null : undefined,
           status: body.status,
           seoTitle: body.seoTitle,
           metaDescription: body.metaDescription,
@@ -709,7 +724,7 @@ export async function tryAdminRoute(path, req, res) {
             finalSlug,
             body.content ?? "",
             body.excerpt ?? null,
-            body.featuredImage ?? null,
+            body.featuredImage ? normalizeImageUrl(body.featuredImage) : null,
             body.status ?? "draft",
             body.categoryId ? Number(body.categoryId) : null,
             body.seoTitle ?? null,

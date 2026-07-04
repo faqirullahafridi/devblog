@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { optimizeImageUrl } from "@/lib/image-url";
+import { optimizeImageUrl, normalizeImageUrl } from "@/lib/image-url";
 
 type SafeImageProps = {
   src: string;
@@ -24,9 +24,13 @@ export function SafeImage({
   priority = false,
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
-  const optimizedSrc = useMemo(() => (width ? optimizeImageUrl(src, width) : src), [src, width]);
+  const normalizedSrc = useMemo(() => normalizeImageUrl(src), [src]);
+  const optimizedSrc = useMemo(
+    () => (width ? optimizeImageUrl(normalizedSrc, width) : normalizedSrc),
+    [normalizedSrc, width],
+  );
 
-  if (failed || !src) {
+  if (failed || !normalizedSrc) {
     return (
       <div
         className={cn(

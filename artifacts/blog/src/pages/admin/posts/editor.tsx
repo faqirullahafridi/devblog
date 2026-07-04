@@ -16,6 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MarkdownContent } from "@/components/markdown-content";
 import { uploadImage } from "@/lib/api-extra";
+import { normalizeImageUrl } from "@/lib/image-url";
+import { SafeImage } from "@/components/safe-image";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -92,8 +94,9 @@ export default function PostEditor() {
       const url = await uploadImage(file);
       form.setValue("featuredImage", url);
       toast.success("Image uploaded");
-    } catch {
-      toast.error("Image upload failed — check Supabase storage config");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      toast.error(message);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -275,8 +278,34 @@ export default function PostEditor() {
                       <FormItem>
                         <FormLabel>Featured Image</FormLabel>
                         <FormControl>
-                          <Input placeholder="https://... or upload below" {...field} />
+                          <Input
+                            placeholder="https://images.unsplash.com/photo-..."
+                            {...field}
+                            onBlur={(e) => {
+                              field.onBlur();
+                              const normalized = normalizeImageUrl(e.target.value);
+                              if (normalized && normalized !== e.target.value) {
+                                field.onChange(normalized);
+                              }
+                            }}
+                          />
                         </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Use a direct image link (starts with{" "}
+                          <code className="text-xs bg-muted px-1 rounded">https://images.unsplash.com/</code>
+                          ), not an Unsplash photo page URL. Or upload below.
+                        </p>
+                        {field.value ? (
+                          <div className="mt-2 overflow-hidden rounded-lg border aspect-video max-h-40">
+                            <SafeImage
+                              src={field.value}
+                              alt="Featured image preview"
+                              className="h-full w-full object-cover"
+                              wrapperClassName="h-full w-full"
+                              width={480}
+                            />
+                          </div>
+                        ) : null}
                         <input
                           ref={fileInputRef}
                           type="file"

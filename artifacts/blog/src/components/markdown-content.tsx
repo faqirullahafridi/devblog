@@ -6,7 +6,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
 import { CodeBlockCopyButton } from "@/components/code-block-copy";
-import { IMAGE_WIDTHS, optimizeImageUrl } from "@/lib/image-url";
+import { IMAGE_WIDTHS, normalizeImageUrl, optimizeImageUrl } from "@/lib/image-url";
 
 type MarkdownContentProps = {
   content: string;
@@ -78,7 +78,7 @@ const markdownComponents: Components = {
   td: ({ children }) => <td className="markdown-td">{children}</td>,
   img: ({ src, alt }) => (
     <img
-      src={optimizeImageUrl(src, IMAGE_WIDTHS.article)}
+      src={optimizeImageUrl(normalizeImageUrl(src), IMAGE_WIDTHS.article)}
       alt={alt ?? ""}
       className="markdown-img"
       loading="lazy"

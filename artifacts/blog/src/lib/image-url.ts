@@ -1,10 +1,21 @@
 /** Resize remote image URLs where the CDN supports width params (Unsplash, etc.). */
-export function optimizeImageUrl(src: string | null | undefined, width: number, quality = 75): string {
+export function normalizeImageUrl(src: string | null | undefined): string {
   if (!src) return "";
-  if (width <= 0) return src;
+  let s = src.trim();
+  if (!s) return "";
+  if (s.startsWith("//")) return `https:${s}`;
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(s)) return `https://${s}`;
+  return s;
+}
+
+export function optimizeImageUrl(src: string | null | undefined, width: number, quality = 75): string {
+  const normalized = normalizeImageUrl(src);
+  if (!normalized) return "";
+  if (width <= 0) return normalized;
 
   try {
-    const url = new URL(src, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    const url = new URL(normalized);
 
     if (url.hostname === "images.unsplash.com") {
       url.searchParams.set("w", String(Math.round(width)));
@@ -14,10 +25,10 @@ export function optimizeImageUrl(src: string | null | undefined, width: number, 
       return url.toString();
     }
   } catch {
-    return src;
+    return normalized;
   }
 
-  return src;
+  return normalized;
 }
 
 export const IMAGE_WIDTHS = {
