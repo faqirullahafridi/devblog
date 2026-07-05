@@ -153,6 +153,8 @@ router.get("/sitemap.xml", cachePublic(3600), async (req, res) => {
       "/contact",
       "/privacy",
       "/terms",
+      "/disclaimer",
+      "/cookie-policy",
       "/search",
       ...toolPages,
       ...hubPages,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { IMAGE_WIDTHS, normalizeImageUrl, optimizeImageUrl } from "@/lib/image-url";
+import { IMAGE_WIDTHS, buildImageSrcSet, normalizeImageUrl, optimizeImageUrl } from "@/lib/image-url";
 
 type MarkdownImageProps = {
   src?: string;
@@ -13,6 +13,10 @@ export function MarkdownImage({ src, alt }: MarkdownImageProps) {
     () => (normalized ? optimizeImageUrl(normalized, IMAGE_WIDTHS.article) : ""),
     [normalized],
   );
+  const srcSet = useMemo(
+    () => (normalized && !useOriginal ? buildImageSrcSet(normalized, IMAGE_WIDTHS.article) : undefined),
+    [normalized, useOriginal],
+  );
   const displaySrc = useOriginal ? normalized : optimized;
 
   if (!displaySrc) return null;
@@ -20,6 +24,10 @@ export function MarkdownImage({ src, alt }: MarkdownImageProps) {
   return (
     <img
       src={displaySrc}
+      srcSet={srcSet}
+      sizes="(max-width: 768px) 100vw, 800px"
+      width={IMAGE_WIDTHS.article}
+      height={Math.round(IMAGE_WIDTHS.article * 0.625)}
       alt={alt ?? ""}
       className="markdown-img"
       loading="lazy"

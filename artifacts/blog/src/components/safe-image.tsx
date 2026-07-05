@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { optimizeImageUrl, normalizeImageUrl } from "@/lib/image-url";
+import { buildImageSrcSet, isDirectImageUrl, optimizeImageUrl, normalizeImageUrl } from "@/lib/image-url";
 
 type SafeImageProps = {
   src: string;
@@ -13,6 +13,19 @@ type SafeImageProps = {
   sizes?: string;
   priority?: boolean;
 };
+
+function shouldAvoidOriginalFallback(src: string): boolean {
+  const normalized = normalizeImageUrl(src);
+  if (!normalized) return false;
+  try {
+    const host = new URL(normalized).hostname.replace(/^www\./, "");
+    if (host.endsWith(".supabase.co")) return true;
+    if (host === "unsplash.com") return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 export function SafeImage({
   src,
@@ -28,6 +41,10 @@ export function SafeImage({
   const normalizedSrc = useMemo(() => normalizeImageUrl(src), [src]);
   const optimizedSrc = useMemo(
     () => (width ? optimizeImageUrl(normalizedSrc, width) : normalizedSrc),
+    [normalizedSrc, width],
+  );
+  const srcSet = useMemo(
+    () => (width && isDirectImageUrl(normalizedSrc) ? buildImageSrcSet(normalizedSrc, width) : undefined),
     [normalizedSrc, width],
   );
   const displaySrc = useOriginal || !width ? normalizedSrc : optimizedSrc;
@@ -50,17 +67,23 @@ export function SafeImage({
   return (
     <img
       src={displaySrc}
+      srcSet={useOriginal ? undefined : srcSet}
       alt={alt}
       className={className}
       width={width}
       height={width ? Math.round(width * 0.625) : undefined}
-      sizes={sizes}
+      sizes={sizes ?? (width ? `${width}px` : undefined)}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
       referrerPolicy="no-referrer"
       onError={() => {
-        if (!useOriginal && optimizedSrc && optimizedSrc !== normalizedSrc) {
+        if (
+          !useOriginal &&
+          optimizedSrc &&
+          optimizedSrc !== normalizedSrc &&
+          !shouldAvoidOriginalFallback(normalizedSrc)
+        ) {
           setUseOriginal(true);
           return;
         }

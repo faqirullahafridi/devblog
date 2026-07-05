@@ -1,4 +1,6 @@
-/** Short-lived in-memory cache for Vercel warm lambdas — cuts DB hits under burst traffic. */
+/** Short-lived cache for Vercel warm lambdas — optional Upstash for cross-instance sharing. */
+
+import { isKvConfigured, kvGet, kvSet } from "./kv-store.js";
 
 const store = new Map();
 
@@ -35,10 +37,31 @@ export function setRouteCache(key, value, ttlMs) {
 }
 
 export async function withRouteCache(key, ttlMs, loader) {
-  const hit = getRouteCache(key);
-  if (hit !== null) return hit;
+  const memHit = getRouteCache(key);
+  if (memHit !== null) return memHit;
+
+  const kvKey = `route:${key}`;
+  if (isKvConfigured()) {
+    try {
+      const raw = await kvGet(kvKey);
+      if (raw) {
+        const value = JSON.parse(raw);
+        setRouteCache(key, value, ttlMs);
+        return value;
+      }
+    } catch {
+      /* fall through to loader */
+    }
+  }
+
   const value = await loader();
-  if (value !== undefined) setRouteCache(key, value, ttlMs);
+  if (value !== undefined) {
+    setRouteCache(key, value, ttlMs);
+    if (isKvConfigured()) {
+      const ttlSec = Math.max(30, Math.ceil(ttlMs / 1000));
+      void kvSet(kvKey, JSON.stringify(value), ttlSec);
+    }
+  }
   return value;
 }
 

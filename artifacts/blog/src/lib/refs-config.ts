@@ -43,6 +43,8 @@ const REF_META: Omit<RefDef, "content">[] = [
   { slug: "jwt-auth", name: "JWT & Auth", description: "JWT structure, claims, verification, and security best practices.", icon: Shield, relatedTool: "jwt-decoder", relatedLearn: "/learn/web-apis/auth-jwt" },
 ];
 
+export const REF_NAV_ITEMS = REF_META;
+
 export const REFS: RefDef[] = REF_META.map((meta) => ({
   ...meta,
   content: REF_GUIDES[meta.slug] ?? "",

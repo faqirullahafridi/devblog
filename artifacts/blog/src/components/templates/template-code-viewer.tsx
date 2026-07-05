@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CodeBlockCopyButton } from "@/components/code-block-copy";
+import { MarkdownCodeBlock } from "@/components/markdown-code-block";
 import type { TemplateDef } from "@/lib/templates-config";
 import { getTemplateSourceFiles } from "@/lib/templates/template-source";
 import { getLayoutVariantLabel } from "@/lib/templates/template-design";
@@ -48,14 +47,11 @@ export function TemplateCodeViewer({ template }: { template: TemplateDef }) {
           <CodeBlockCopyButton code={active.code} className="relative static h-8 w-8 opacity-100" />
         </div>
       </div>
-      <SyntaxHighlighter
+      <MarkdownCodeBlock
         language={active.lang}
-        style={vscDarkPlus}
+        code={active.code}
         customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", maxHeight: "420px" }}
-        showLineNumbers
-      >
-        {active.code}
-      </SyntaxHighlighter>
+      />
     </div>
   );
 }

@@ -22,7 +22,6 @@ import {
   Workflow,
   Terminal,
 } from "lucide-react";
-import { getChaptersForPath } from "@/lib/content/learn-chapters/registry";
 
 export type LearnCategory = {
   id: string;
@@ -117,7 +116,3 @@ export function getPathsByCategory(categoryId: string) {
 }
 
 export const LEARN_SLUGS = LEARN_PATHS.map((p) => p.slug);
-
-export function getPathLessonCount(slug: string) {
-  return getChaptersForPath(slug).length;
-}

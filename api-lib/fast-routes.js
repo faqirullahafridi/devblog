@@ -4,6 +4,7 @@ import { loadSession } from "./admin-routes.js";
 import { sendNewsletterConfirmEmail } from "./email.js";
 import { withRouteCache } from "./route-cache.js";
 import { setCache, setNoCache } from "./route-utils.js";
+import { optimizeDisplayImageUrl, resolveImageUrl } from "./image-upload.js";
 
 const JOB_SOURCES = [
   { id: "remoteok", label: "RemoteOK", description: "Remote developer jobs", region: "global", requiresKey: false },
@@ -102,6 +103,27 @@ function formatPost(row, includeContent = false) {
   };
   if (!includeContent) delete out.content;
   return out;
+}
+
+async function enrichFeaturedImage(url, displayWidth = 480) {
+  if (!url) return url;
+  let resolved = url;
+  if (resolved.includes("unsplash.com") && !resolved.includes("images.unsplash.com")) {
+    resolved = await withRouteCache(`unsplash:${resolved}`, 86_400_000, () => resolveImageUrl(resolved));
+  }
+  return optimizeDisplayImageUrl(resolved, displayWidth);
+}
+
+async function formatPostsWithImages(rows, includeContent = false, displayWidth = 480) {
+  return Promise.all(
+    rows.map(async (row) => {
+      const post = formatPost(row, includeContent);
+      if (post.featuredImage) {
+        post.featuredImage = await enrichFeaturedImage(post.featuredImage, displayWidth);
+      }
+      return post;
+    }),
+  );
 }
 
 function toIso(val) {
@@ -237,10 +259,15 @@ async function handleHomeFeed(res) {
       query(`SELECT ${POST_LIST_SELECT} ${baseFrom} ORDER BY p.views DESC, p.created_at DESC LIMIT 6`),
     ]);
     const featuredRows = featured.rows.length > 0 ? featured.rows : recent.rows.slice(0, 4);
+    const [featuredPosts, recentPosts, popularPosts] = await Promise.all([
+      formatPostsWithImages(featuredRows, false, 640),
+      formatPostsWithImages(recent.rows, false, 480),
+      formatPostsWithImages(popular.rows, false, 480),
+    ]);
     return {
-      featured: featuredRows.map((r) => formatPost(r)),
-      recent: recent.rows.map((r) => formatPost(r)),
-      popular: popular.rows.map((r) => formatPost(r)),
+      featured: featuredPosts,
+      recent: recentPosts,
+      popular: popularPosts,
     };
   });
   sendJson(res, 200, payload);
@@ -290,8 +317,9 @@ async function handlePostsList(req, res) {
         params,
       ),
     ]);
+    const posts = await formatPostsWithImages(rows.rows);
     return {
-      posts: rows.rows.map((r) => formatPost(r)),
+      posts,
       total: countRows.rows[0]?.count ?? 0,
       page: pageNum,
       limit: limitNum,
@@ -317,7 +345,11 @@ async function handlePostBySlug(res, slug) {
       [slug],
     );
     if (!rows[0]) return null;
-    return formatPost(rows[0], true);
+    const post = formatPost(rows[0], true);
+    if (post.featuredImage) {
+      post.featuredImage = await enrichFeaturedImage(post.featuredImage, 960);
+    }
+    return post;
   });
   if (!post) {
     sendJson(res, 404, { error: "Post not found" });
@@ -344,7 +376,7 @@ async function handleRelatedPosts(req, res, slug) {
        ORDER BY p.created_at DESC LIMIT $3`,
       [posts[0].id, posts[0].categoryId, limitNum],
     );
-    return rows.map((r) => formatPost(r));
+    return formatPostsWithImages(rows);
   });
   sendJson(res, 200, payload);
 }
@@ -384,19 +416,29 @@ async function handleJobs(req, res) {
   }
 
   const where = `WHERE ${conditions.join(" AND ")}`;
-  const [rows, countRows] = await Promise.all([
-    query(
-      `SELECT ${JOB_SELECT} FROM jobs j ${where} ORDER BY j.updated_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-      [...params, limitNum, offset],
-    ),
-    query(`SELECT COUNT(*)::int AS count FROM jobs j ${where}`, params),
-  ]);
-  sendJson(res, 200, {
-    jobs: rows.rows.map(formatJob),
-    total: countRows.rows[0]?.count ?? 0,
-    page: pageNum,
-    limit: limitNum,
-  });
+  const cacheable = !q.search;
+  const cacheKey = `jobs:list:${pageNum}:${limitNum}:${q.category || ""}:${q.source || ""}:${q.remote || ""}`;
+
+  const load = async () => {
+    const [rows, countRows] = await Promise.all([
+      query(
+        `SELECT ${JOB_SELECT} FROM jobs j ${where} ORDER BY j.updated_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+        [...params, limitNum, offset],
+      ),
+      query(`SELECT COUNT(*)::int AS count FROM jobs j ${where}`, params),
+    ]);
+    return {
+      jobs: rows.rows.map(formatJob),
+      total: countRows.rows[0]?.count ?? 0,
+      page: pageNum,
+      limit: limitNum,
+    };
+  };
+
+  const payload = cacheable
+    ? await withRouteCache(cacheKey, 120_000, load)
+    : await load();
+  sendJson(res, 200, payload);
 }
 
 function handleJobSources(res) {
@@ -573,7 +615,7 @@ async function handlePopularPosts(req, res) {
        WHERE ${PUBLISHED} ORDER BY p.views DESC, p.created_at DESC LIMIT $1`,
       [limitNum],
     );
-    return data.map((r) => formatPost(r));
+    return formatPostsWithImages(data);
   });
   sendJson(res, 200, rows);
 }
@@ -595,7 +637,7 @@ async function handleFeaturedPosts(req, res) {
         [limitNum],
       ));
     }
-    return data.map((r) => formatPost(r));
+    return formatPostsWithImages(data);
   });
   sendJson(res, 200, rows);
 }

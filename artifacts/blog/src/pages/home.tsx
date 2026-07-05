@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { PublicLayout } from "@/components/layout/public-layout";
+import { PreloadLink } from "@/components/preload-link";
 import { SeoHead, siteUrl } from "@/components/seo-head";
 import { SITE_NAME, seoTitle } from "@/lib/site-config";
 import { getHomeFeed } from "@/lib/api-extra";
@@ -68,7 +67,7 @@ export default function Home() {
   const { data: feed, isLoading } = useQuery({
     queryKey: ["posts", "home-feed"],
     queryFn: getHomeFeed,
-    staleTime: 2 * 60_000,
+    staleTime: 5 * 60_000,
   });
 
   const featuredPosts = (feed?.featured ?? []) as Post[];
@@ -76,7 +75,7 @@ export default function Home() {
   const popularPosts = (feed?.popular ?? []) as Post[];
 
   return (
-    <PublicLayout>
+    <>
       <SeoHead
         title={seoTitle("AI Developer Hub")}
         description={HOME_DESCRIPTION}
@@ -117,14 +116,14 @@ export default function Home() {
           <nav className="flex flex-wrap items-center justify-center gap-2 sm:gap-3" aria-label="More on TechVentry">
             <span className="text-xs text-muted-foreground mr-1 hidden sm:inline">Also explore</span>
             {SECONDARY_LINKS.map(({ href, label, icon: Icon }) => (
-              <Link
+              <PreloadLink
                 key={href}
                 href={href}
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
               >
                 <Icon className="h-3.5 w-3.5 text-primary" />
                 {label}
-              </Link>
+              </PreloadLink>
             ))}
           </nav>
         </div>
@@ -174,6 +173,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </PublicLayout>
+    </>
   );
 }

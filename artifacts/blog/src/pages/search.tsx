@@ -49,6 +49,7 @@ export default function Search() {
           description="Find tutorials, guides, and developer notes across TechVentry."
           section="Articles"
           align="center"
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: "Search" }]}
         />
 
         <div className="mb-8">

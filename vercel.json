@@ -18,7 +18,7 @@
   "redirects": [],
   "headers": [
     {
-      "source": "/api/(posts/home-feed|posts/popular|posts/featured|posts/tags|categories|feeds/dev-headlines)",
+      "source": "/api/(posts/home-feed|posts/popular|posts/featured|posts|tags|categories|feeds/dev-headlines|jobs|profile)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -27,11 +27,20 @@
       ]
     },
     {
-      "source": "/api/posts/([^/]+)",
+      "source": "/api/posts/slug/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=180, s-maxage=600, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/api/(sitemap\\.xml|feed\\.xml|robots\\.txt)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
         }
       ]
     },

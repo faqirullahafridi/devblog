@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { PreloadLink } from "@/components/preload-link";
 import { PostTagsInline } from "@/components/post-tags";
 import type { Post } from "@workspace/api-client-react";
 import { format } from "date-fns";
@@ -65,10 +66,10 @@ export function PostCard({
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-0.5">
           {meta}
           <h3 className="text-sm font-semibold leading-snug tracking-tight sm:text-base">
-            <Link href={`/post/${post.slug}`} className="hover:text-primary">
+            <PreloadLink href={`/post/${post.slug}`} className="hover:text-primary">
               <span className="absolute inset-0" aria-hidden />
               <span className="line-clamp-2">{post.title}</span>
-            </Link>
+            </PreloadLink>
           </h3>
           {post.excerpt && (
             <p className="hidden text-xs leading-relaxed text-muted-foreground line-clamp-2 sm:block">
@@ -103,10 +104,10 @@ export function PostCard({
       <div className="flex flex-1 flex-col gap-2 p-4">
         {meta}
         <h3 className="text-sm font-semibold leading-snug tracking-tight sm:text-[0.95rem]">
-          <Link href={`/post/${post.slug}`} className="hover:text-primary">
+          <PreloadLink href={`/post/${post.slug}`} className="hover:text-primary">
             <span className="absolute inset-0" aria-hidden />
             <span className="line-clamp-2">{post.title}</span>
-          </Link>
+          </PreloadLink>
         </h3>
         {post.excerpt && (
           <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">{post.excerpt}</p>

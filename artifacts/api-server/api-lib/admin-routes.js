@@ -557,6 +557,18 @@ export async function tryAdminRoute(path, req, res) {
         return true;
       }
       const resolved = await resolveImageUrl(raw);
+      if (
+        raw.includes("unsplash.com/photos") &&
+        !resolved.includes("images.unsplash.com") &&
+        !resolved.includes("plus.unsplash.com")
+      ) {
+        sendJson(res, 422, {
+          error:
+            "Could not resolve that Unsplash link. Add UNSPLASH_ACCESS_KEY on Vercel (unsplash.com/oauth/applications), or paste a direct images.unsplash.com URL.",
+          url: resolved,
+        });
+        return true;
+      }
       sendJson(res, 200, { url: resolved });
       return true;
     }

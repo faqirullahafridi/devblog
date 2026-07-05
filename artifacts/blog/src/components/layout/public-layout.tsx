@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { useContext, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useListCategories } from "@workspace/api-client-react";
@@ -16,31 +16,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Search } from "lucide-react";
-import { PLATFORM_LINKS, CONTENT_LINKS } from "@/lib/nav-config";
+import { CONTENT_LINKS, PRIMARY_NAV, PRIMARY_NAV_HREFS, MORE_PLATFORM_LINKS } from "@/lib/nav-config";
 import { SiteAuthLinks } from "@/components/site-auth-links";
+import { MobileNav } from "@/components/mobile-nav";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { PublicLayoutNestContext } from "@/components/layout/public-layout-context";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
-const MobileNav = lazy(() =>
-  import("@/components/mobile-nav").then((m) => ({ default: m.MobileNav })),
-);
-const SiteFooter = lazy(() =>
-  import("@/components/layout/site-footer").then((m) => ({ default: m.SiteFooter })),
-);
-
-const PRIMARY_NAV = [
-  { href: "/search", label: "Articles" },
-  { href: "/templates", label: "Templates" },
-  { href: "/tools", label: "Tools" },
-  { href: "/learn", label: "Learn" },
-  { href: "/ai", label: "AI" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/api-sources", label: "APIs" },
-] as const;
-
-const PRIMARY_HREFS = new Set(PRIMARY_NAV.map((item) => item.href));
-
-const MORE_NAV = PLATFORM_LINKS.filter((item) => !PRIMARY_HREFS.has(item.href));
+const MORE_NAV = MORE_PLATFORM_LINKS;
 
 function NavLink({
   href,
@@ -98,7 +83,7 @@ function MoreMenu({ align = "end", compact = false }: { align?: "start" | "end" 
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs text-muted-foreground">Resources</DropdownMenuLabel>
-        {CONTENT_LINKS.filter((c) => !PRIMARY_HREFS.has(c.href)).map((item) => (
+        {CONTENT_LINKS.filter((c) => !PRIMARY_NAV_HREFS.has(c.href)).map((item) => (
           <DropdownMenuItem key={item.href} asChild>
             <Link href={item.href}>{item.label}</Link>
           </DropdownMenuItem>
@@ -109,14 +94,21 @@ function MoreMenu({ align = "end", compact = false }: { align?: "start" | "end" 
 }
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
+  const nested = useContext(PublicLayoutNestContext);
+  if (nested) {
+    return <>{children}</>;
+  }
+
   const { data: categoriesRaw } = useListCategories();
   const categories = Array.isArray(categoriesRaw) ? categoriesRaw : [];
   const [location] = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
 
   return (
-    <div className="min-h-screen min-w-0 overflow-x-clip bg-background flex flex-col">
+    <PublicLayoutNestContext.Provider value={true}>
+    <div className="min-h-screen min-w-0 overflow-x-clip bg-background flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <Analytics />
       <AdSenseScript />
 
@@ -124,9 +116,11 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center">
             <div className="col-start-1 flex min-w-0 items-center gap-2 justify-self-start">
-              <Suspense fallback={<div className="h-9 w-9 shrink-0 md:hidden" aria-hidden />}>
-                <MobileNav categories={categories} />
-              </Suspense>
+              <MobileNav
+                categories={categories}
+                open={mobileNavOpen}
+                onOpenChange={setMobileNavOpen}
+              />
               <PreloadLink href="/" className="flex shrink-0 items-center">
                 <BrandLogo compact className="sm:hidden" />
                 <BrandLogo className="hidden sm:flex" />
@@ -205,10 +199,13 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
-      <Suspense fallback={null}>
-        <SiteFooter />
-      </Suspense>
+      <MobileBottomNav
+        menuOpen={mobileNavOpen}
+        onOpenMenu={() => setMobileNavOpen((v) => !v)}
+      />
+      <SiteFooter />
       <CookieConsent />
     </div>
+    </PublicLayoutNestContext.Provider>
   );
 }

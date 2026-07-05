@@ -1,15 +1,15 @@
 /** Resize and compress images in the browser before upload (Mac photos are often 5–15 MB). */
 export async function compressImageForUpload(
   file: File,
-  maxWidth = 1600,
-  quality = 0.82,
+  maxWidth = 1200,
+  quality = 0.78,
 ): Promise<{ data: string; contentType: string; filename: string }> {
   if (!file.type.startsWith("image/")) {
     throw new Error("File must be an image");
   }
 
-  // Skip compression for small files already under ~400 KB
-  if (file.size < 400_000 && /jpe?g$/i.test(file.name)) {
+  // Skip compression for small files already under ~300 KB
+  if (file.size < 300_000) {
     const data = await readFileAsBase64(file);
     return { data, contentType: file.type || "image/jpeg", filename: file.name };
   }

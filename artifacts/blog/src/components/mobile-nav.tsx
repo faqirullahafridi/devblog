@@ -1,60 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense, startTransition } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronDown, Menu, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MobileDrawer, MobileDrawerTitle } from "@/components/mobile-drawer";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { PreloadLink } from "@/components/preload-link";
+import { MobileDrawer, MobileDrawerTitle, releaseMobileDrawerFocus } from "@/components/mobile-drawer";
 import type { Category } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { forceUnlockBodyScroll } from "@/lib/body-scroll-lock";
-import { MORE_PAGE_LINKS, PRIMARY_PAGE_LINKS, PLATFORM_LINKS } from "@/lib/nav-config";
-import { TOOLS, getToolHref } from "@/lib/tools-config";
-import { REFS, getRefHref } from "@/lib/refs-config";
-import { LEARN_PATHS, getLearnHref } from "@/lib/learn-config";
-import { INTERVIEW_TOPICS, getInterviewHref } from "@/lib/interview-config";
-import { TEMPLATE_CATEGORIES, getTemplateCategoryHref } from "@/lib/templates-config";
-import { getSiteUser } from "@/lib/api-extra";
+import { PRIMARY_NAV } from "@/lib/nav-config";
 
-function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
-  const { data } = useQuery({
-    queryKey: ["auth", "site-user"],
-    queryFn: getSiteUser,
-    staleTime: 60_000,
-  });
+const MobileNavExploreSections = lazy(() =>
+  import("@/components/mobile-nav-explore").then((m) => ({
+    default: m.MobileNavExploreSections,
+  })),
+);
 
-  if (data?.authenticated && data.user) {
-    return (
-      <NavSection title="Account">
-        <NavLink
-          href={`/community/profile/${data.user.username}`}
-          label={data.user.displayName || data.user.username}
-          onNavigate={onNavigate}
-        />
-      </NavSection>
-    );
-  }
+type MobileNavProps = {
+  categories?: Category[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
 
+function DrawerAuthBar({ onNavigate }: { onNavigate: () => void }) {
   return (
-    <div className="flex gap-2 px-3">
-      <Button
-        asChild
-        variant="outline"
-        size="sm"
-        className="flex-1 font-bold border-foreground shadow-sm"
-      >
-        <Link href="/login" onClick={onNavigate}>Sign in</Link>
+    <div className="flex gap-2 border-b border-border bg-muted/30 px-4 py-3 shrink-0">
+      <Button asChild variant="outline" size="sm" className="flex-1 h-10 font-semibold">
+        <Link
+          href="/login"
+          onClick={() => {
+            releaseMobileDrawerFocus();
+            onNavigate();
+          }}
+        >
+          Sign in
+        </Link>
       </Button>
-      <Button
-        asChild
-        size="sm"
-        className="flex-1 font-bold border border-border bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-      >
-        <Link href="/signup" onClick={onNavigate}>Sign up</Link>
+      <Button asChild size="sm" className="flex-1 h-10 font-semibold">
+        <Link
+          href="/signup"
+          onClick={() => {
+            releaseMobileDrawerFocus();
+            onNavigate();
+          }}
+        >
+          Sign up
+        </Link>
       </Button>
     </div>
   );
@@ -64,32 +53,36 @@ function NavLink({
   href,
   label,
   onNavigate,
+  active,
 }: {
   href: string;
   label: string;
   onNavigate: () => void;
+  active: boolean;
 }) {
-  const [location] = useLocation();
-  const active = location === href || (href !== "/" && location.startsWith(href));
-
   return (
-    <Link
+    <PreloadLink
       href={href}
-      onClick={onNavigate}
+      onClick={() => {
+        releaseMobileDrawerFocus();
+        onNavigate();
+      }}
       className={cn(
-        "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-        active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        "block rounded-lg px-3 py-3.5 text-sm font-medium touch-manipulation",
+        active
+          ? "bg-primary/10 text-primary font-semibold"
+          : "text-foreground hover:bg-muted/60",
       )}
     >
       {label}
-    </Link>
+    </PreloadLink>
   );
 }
 
 function NavSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="px-3 text-[10px] font-semibold  text-muted-foreground">
+      <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </p>
       <div className="space-y-0.5">{children}</div>
@@ -97,48 +90,47 @@ function NavSection({ title, children }: { title: string; children: React.ReactN
   );
 }
 
-export function MobileNav({ categories }: { categories?: Category[] }) {
-  const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+export function MobileNav({ categories, open: controlledOpen, onOpenChange }: MobileNavProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [location] = useLocation();
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const closeMenu = () => {
-    setMoreOpen(false);
-    setOpen(false);
-    forceUnlockBodyScroll();
-    document.documentElement.style.overflow = "";
+  const isActive = useMemo(
+    () => (href: string) => location === href || (href !== "/" && location.startsWith(href)),
+    [location],
+  );
+
+  const closeMenu = (returnFocus = false) => {
+    releaseMobileDrawerFocus(returnFocus ? menuButtonRef.current : null);
+    startTransition(() => setOpen(false));
   };
 
   const toggleMenu = () => {
-    setOpen((v) => {
-      if (v) {
-        forceUnlockBodyScroll();
-        document.documentElement.style.overflow = "";
-      }
-      return !v;
-    });
+    if (open) {
+      closeMenu(true);
+      return;
+    }
+    startTransition(() => setOpen(true));
   };
 
   useEffect(() => {
-    setOpen(false);
-    setMoreOpen(false);
-  }, [location]);
-
-  useEffect(() => {
-    return () => forceUnlockBodyScroll();
-  }, []);
+    releaseMobileDrawerFocus();
+    startTransition(() => setOpen(false));
+  }, [location, setOpen]);
 
   return (
     <>
       <Button
+        ref={menuButtonRef}
         type="button"
         variant="ghost"
         size="icon"
-        className="relative z-20 shrink-0 touch-manipulation md:hidden h-9 w-9"
+        className="relative z-[120] shrink-0 touch-manipulation md:hidden h-9 w-9"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
-        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           toggleMenu();
@@ -147,138 +139,68 @@ export function MobileNav({ categories }: { categories?: Category[] }) {
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
-      <MobileDrawer open={open} onClose={closeMenu}>
-        <div id="mobile-nav-drawer" className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
-            <MobileDrawerTitle>Menu</MobileDrawerTitle>
+      <MobileDrawer open={open} onClose={() => closeMenu(true)}>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
+            <MobileDrawerTitle>Browse</MobileDrawerTitle>
             <Button
               type="button"
               variant="outline"
               size="icon"
               className="h-9 w-9 shrink-0"
               aria-label="Close menu"
-              onClick={closeMenu}
+              onClick={() => closeMenu(true)}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-6 touch-pan-y [-webkit-overflow-scrolling:touch]">
-            <NavLink href="/" label="Home" onNavigate={closeMenu} />
+          <DrawerAuthBar onNavigate={() => closeMenu()} />
 
-            <NavSection title="Platform">
-              {PLATFORM_LINKS.map((item) => (
-                <NavLink key={item.href} href={item.href} label={item.label} onNavigate={closeMenu} />
-              ))}
-            </NavSection>
+          <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-5 touch-pan-y [-webkit-overflow-scrolling:touch]">
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/search"
+                onClick={() => {
+                  releaseMobileDrawerFocus();
+                  closeMenu();
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm font-semibold hover:bg-muted touch-manipulation"
+              >
+                <Search className="h-4 w-4" />
+                Search
+              </Link>
+              <Link
+                href="/"
+                onClick={() => {
+                  releaseMobileDrawerFocus();
+                  closeMenu();
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm font-semibold hover:bg-muted touch-manipulation"
+              >
+                Home
+              </Link>
+            </div>
 
-            <NavSection title="Pages">
-              {PRIMARY_PAGE_LINKS.map((item) => (
-                <NavLink key={item.href} href={item.href} label={item.label} onNavigate={closeMenu} />
-              ))}
-              <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
-                <CollapsibleTrigger className="flex w-full items-center justify-between border-2 border-transparent px-3 py-2.5 text-sm font-bold text-muted-foreground transition-colors hover:border-foreground hover:bg-muted hover:text-foreground">
-                  <span>More</span>
-                  <ChevronDown
-                    className={cn("h-4 w-4 transition-transform duration-200", moreOpen && "rotate-180")}
-                  />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden">
-                  <div className="mt-0.5 space-y-0.5 border-l-2 border-foreground ml-3 pl-2">
-                    {MORE_PAGE_LINKS.map((item) => (
-                      <NavLink key={item.href} href={item.href} label={item.label} onNavigate={closeMenu} />
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </NavSection>
-
-            <NavSection title="Blogs">
-              {categories && categories.length > 0 ? (
-                categories.map((c) => (
+            <NavSection title="Main">
+              <div className="grid grid-cols-2 gap-1">
+                {PRIMARY_NAV.map((item) => (
                   <NavLink
-                    key={c.id}
-                    href={`/category/${c.slug}`}
-                    label={c.name}
-                    onNavigate={closeMenu}
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    onNavigate={() => closeMenu()}
+                    active={isActive(item.href)}
                   />
-                ))
-              ) : (
-                <p className="px-3 py-2 text-sm text-muted-foreground">No categories yet</p>
-              )}
+                ))}
+              </div>
             </NavSection>
 
-            <NavSection title="Templates">
-              <NavLink href="/templates" label="Browse all" onNavigate={closeMenu} />
-              <NavLink href="/templates/trending" label="Trending" onNavigate={closeMenu} />
-              <NavLink href="/templates/new" label="Latest" onNavigate={closeMenu} />
-              <NavLink href="/templates/popular" label="Popular" onNavigate={closeMenu} />
-              {TEMPLATE_CATEGORIES.map((cat) => (
-                <NavLink
-                  key={cat.slug}
-                  href={getTemplateCategoryHref(cat.slug)}
-                  label={cat.title}
-                  onNavigate={closeMenu}
-                />
-              ))}
-            </NavSection>
-
-            <NavSection title="Tools">
-              <NavLink href="/tools" label="All tools" onNavigate={closeMenu} />
-              {TOOLS.map((tool) => (
-                <NavLink
-                  key={tool.slug}
-                  href={getToolHref(tool.slug)}
-                  label={tool.name}
-                  onNavigate={closeMenu}
-                />
-              ))}
-            </NavSection>
-
-            <NavSection title="Refs">
-              <NavLink href="/refs" label="All references" onNavigate={closeMenu} />
-              {REFS.map((ref) => (
-                <NavLink
-                  key={ref.slug}
-                  href={getRefHref(ref.slug)}
-                  label={ref.name}
-                  onNavigate={closeMenu}
-                />
-              ))}
-            </NavSection>
-
-            <NavSection title="Learn">
-              <NavLink href="/learn" label="All paths" onNavigate={closeMenu} />
-              {LEARN_PATHS.map((path) => (
-                <NavLink
-                  key={path.slug}
-                  href={getLearnHref(path.slug)}
-                  label={path.title}
-                  onNavigate={closeMenu}
-                />
-              ))}
-            </NavSection>
-
-            <NavSection title="Snippets">
-              <NavLink href="/snippets" label="All snippets" onNavigate={closeMenu} />
-            </NavSection>
-
-            <NavSection title="Interview">
-              <NavLink href="/interview" label="All topics" onNavigate={closeMenu} />
-              {INTERVIEW_TOPICS.map((t) => (
-                <NavLink
-                  key={t.slug}
-                  href={getInterviewHref(t.slug)}
-                  label={t.title}
-                  onNavigate={closeMenu}
-                />
-              ))}
-            </NavSection>
-
-            <NavLink href="/resources" label="Resources" onNavigate={closeMenu} />
-            <NavLink href="/ides" label="IDEs & Editors" onNavigate={closeMenu} />
-
-            <MobileAuthLinks onNavigate={closeMenu} />
+            {open && (
+              <Suspense fallback={null}>
+                <MobileNavExploreSections categories={categories} onNavigate={() => closeMenu()} />
+              </Suspense>
+            )}
           </nav>
         </div>
       </MobileDrawer>

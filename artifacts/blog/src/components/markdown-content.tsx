@@ -1,12 +1,11 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
 import { CodeBlockCopyButton } from "@/components/code-block-copy";
 import { MarkdownImage } from "@/components/markdown-image";
+import { MarkdownCodeBlock } from "@/components/markdown-code-block";
 
 type MarkdownContentProps = {
   content: string;
@@ -86,16 +85,12 @@ const markdownComponents: Components = {
       return (
         <div className="relative group markdown-code-block-wrap">
           <CodeBlockCopyButton code={code} />
-          <SyntaxHighlighter
-            style={vscDarkPlus as Record<string, CSSProperties>}
+          <MarkdownCodeBlock
             language={match[1]}
-            PreTag="div"
+            code={code}
             className="markdown-code-block"
             customStyle={{ margin: 0, padding: "1.25rem", paddingRight: "3rem", background: "transparent" }}
-            {...props}
-          >
-            {code}
-          </SyntaxHighlighter>
+          />
         </div>
       );
     }

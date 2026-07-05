@@ -89,13 +89,20 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
+    target: "es2020",
+    cssCodeSplit: true,
+    sourcemap: false,
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
-          // Order matters: @radix-ui/react-* paths contain "/react/" — match those first.
+          if (!id.includes("node_modules")) {
+            if (id.includes("/lib/content/learn-chapters/")) return "content-learn";
+            if (id.includes("/lib/content/ref-guides")) return "content-refs";
+            if (id.includes("/lib/content/interview")) return "content-interview";
+            return undefined;
+          }
           if (id.includes("@radix-ui")) return "vendor-radix";
           if (id.includes("@tanstack/react-query")) return "vendor-query";
           if (id.includes("/node_modules/react-dom/") || id.includes("/node_modules/react/")) {
@@ -103,8 +110,20 @@ export default defineConfig({
           }
           if (id.includes("lucide-react")) return "vendor-icons";
           if (id.includes("date-fns")) return "vendor-date";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
-          if (id.includes("@codemirror") || id.includes("codemirror")) return "vendor-codemirror";
+          if (
+            id.includes("react-syntax-highlighter") ||
+            id.includes("refractor") ||
+            id.includes("prismjs")
+          ) {
+            return "vendor-syntax";
+          }
+          if (
+            id.includes("react-markdown") ||
+            id.includes("remark-gfm") ||
+            id.includes("micromark")
+          ) {
+            return "vendor-markdown";
+          }
           if (id.includes("sql.js") || id.includes("sql-wasm")) return "vendor-sql";
           return undefined;
         },

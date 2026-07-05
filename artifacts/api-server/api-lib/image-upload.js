@@ -4,6 +4,7 @@ import tls from "node:tls";
 
 const UNSPLASH_IMAGE_HOSTS = new Set(["images.unsplash.com", "plus.unsplash.com"]);
 const httpsAgent = new https.Agent({ ca: tls.rootCertificates });
+const USER_AGENT = "devblog-platform/1.0 (image-resolver)";
 
 /** Ensure image URLs work in <img src> (add https:// when missing). */
 export function normalizeImageUrl(src) {
@@ -17,58 +18,77 @@ export function normalizeImageUrl(src) {
 }
 
 function unsplashPhotoIdFromPath(pathname) {
-  const match = pathname.match(/^\/photos\/([^/?#]+)/);
-  if (!match) return null;
-  const segment = decodeURIComponent(match[1]);
-  if (!segment) return null;
-  return segment.includes("-") ? segment.split("-").pop() : segment;
+  const segments = pathname.split("/").filter(Boolean);
+  const photosIdx = segments.indexOf("photos");
+  if (photosIdx === -1) return null;
+  const tail = segments.slice(photosIdx + 1).map((s) => decodeURIComponent(s.replace(/^@/, "")));
+  if (!tail.length) return null;
+
+  const last = tail[tail.length - 1];
+  if (!last) return null;
+
+  // /photos/AbCdEfGhIj or /photos/T-0jd8lTZsA
+  if (tail.length === 1 && /^[A-Za-z0-9_-]{5,20}$/.test(last)) {
+    return last;
+  }
+
+  // /photos/slug-with-id-at-end — id is the last hyphen segment (usually 11 chars)
+  const slugMatch = last.match(/-([A-Za-z0-9][A-Za-z0-9_-]{4,14})$/);
+  if (slugMatch) return slugMatch[1];
+
+  return null;
 }
 
-function fetchJson(url, headers = {}) {
+function httpGet(url, headers = {}, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
+    const u = new URL(url);
     const req = https.request(
-      url,
-      { method: "GET", agent: httpsAgent, headers: { Accept: "application/json", ...headers } },
+      u,
+      {
+        method: "GET",
+        agent: httpsAgent,
+        headers: { "User-Agent": USER_AGENT, Accept: "*/*", ...headers },
+      },
       (res) => {
+        if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && maxRedirects > 0) {
+          const next = new URL(res.headers.location, url).toString();
+          resolve(httpGet(next, headers, maxRedirects - 1));
+          return;
+        }
         let body = "";
         res.on("data", (chunk) => {
           body += chunk;
         });
         res.on("end", () => {
-          if ((res.statusCode ?? 500) >= 400) {
-            reject(new Error(`HTTP ${res.statusCode} for ${url}`));
-            return;
-          }
-          try {
-            resolve(JSON.parse(body));
-          } catch (err) {
-            reject(err);
-          }
+          resolve({ status: res.statusCode ?? 500, body, headers: res.headers });
         });
       },
     );
     req.on("error", reject);
-    req.setTimeout(10_000, () => req.destroy(new Error("timeout")));
+    req.setTimeout(12_000, () => req.destroy(new Error("timeout")));
     req.end();
   });
 }
 
-async function resolveUnsplashViaOembed(pageUrl) {
+async function fetchJson(url, headers = {}) {
+  const { status, body } = await httpGet(url, { Accept: "application/json", ...headers });
+  if (status >= 400) throw new Error(`HTTP ${status} for ${url}`);
+  return JSON.parse(body);
+}
+
+function applyUnsplashCdnParams(rawUrl, width = 1200, quality = 80) {
   try {
-    const data = await fetchJson(
-      `https://unsplash.com/oembed?url=${encodeURIComponent(pageUrl)}`,
-    );
-    const thumb = data?.thumbnail_url;
-    if (!thumb || typeof thumb !== "string") return null;
-    const parsed = new URL(thumb);
-    parsed.searchParams.set("w", "1200");
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (!UNSPLASH_IMAGE_HOSTS.has(host)) return rawUrl;
+    parsed.searchParams.set("w", String(width));
     parsed.searchParams.set("auto", "format");
     parsed.searchParams.set("fit", "crop");
-    parsed.searchParams.set("q", "80");
+    parsed.searchParams.set("q", String(quality));
+    parsed.searchParams.set("fm", "webp");
     return parsed.toString();
-  } catch (err) {
-    console.warn("[resolveImageUrl] Unsplash oEmbed failed:", err instanceof Error ? err.message : err);
-    return null;
+  } catch {
+    return rawUrl;
   }
 }
 
@@ -77,11 +97,63 @@ async function resolveUnsplashViaApi(photoId, key) {
     const data = await fetchJson(`https://api.unsplash.com/photos/${encodeURIComponent(photoId)}`, {
       Authorization: `Client-ID ${key}`,
     });
-    return data.urls?.regular || data.urls?.small || data.urls?.full || null;
+    const url = data.urls?.regular || data.urls?.small || data.urls?.full || null;
+    return url ? applyUnsplashCdnParams(url) : null;
   } catch (err) {
     console.error("[resolveImageUrl] Unsplash API error:", err instanceof Error ? err.message : err);
     return null;
   }
+}
+
+async function resolveUnsplashViaPage(pageUrl) {
+  try {
+    const { status, body } = await httpGet(pageUrl, { Accept: "text/html,application/xhtml+xml" });
+    if (status >= 400 || !body) return null;
+
+    const og =
+      body.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+      body.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    if (og?.[1]?.includes("images.unsplash.com")) {
+      return applyUnsplashCdnParams(og[1].replace(/&amp;/g, "&"));
+    }
+
+    const cdn = body.match(/https:\/\/images\.unsplash\.com\/photo-[A-Za-z0-9_-]+[^"'\s<>]*/);
+    if (cdn?.[0]) return applyUnsplashCdnParams(cdn[0].replace(/&amp;/g, "&"));
+  } catch (err) {
+    console.warn("[resolveImageUrl] Unsplash page scrape failed:", err instanceof Error ? err.message : err);
+  }
+  return null;
+}
+
+/** Resize params for display in lists/cards (server-side). */
+export function optimizeDisplayImageUrl(src, width = 480, quality = 72) {
+  const url = normalizeImageUrl(src);
+  if (!url) return url;
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (UNSPLASH_IMAGE_HOSTS.has(host)) {
+      return applyUnsplashCdnParams(url, width, quality);
+    }
+
+    if (host.endsWith(".supabase.co") && parsed.pathname.includes("/storage/v1/object/public/")) {
+      const renderPath = parsed.pathname.replace(
+        "/storage/v1/object/public/",
+        "/storage/v1/render/image/public/",
+      );
+      const renderUrl = new URL(renderPath, parsed.origin);
+      renderUrl.searchParams.set("width", String(width));
+      renderUrl.searchParams.set("quality", String(quality));
+      renderUrl.searchParams.set("resize", "cover");
+      return renderUrl.toString();
+    }
+  } catch {
+    return url;
+  }
+
+  return url;
 }
 
 /** Turn Unsplash page/share links into direct CDN URLs when possible. */
@@ -99,10 +171,7 @@ export async function resolveImageUrl(raw) {
   const host = parsed.hostname.replace(/^www\./, "");
 
   if (UNSPLASH_IMAGE_HOSTS.has(host)) {
-    if (!parsed.searchParams.has("w")) parsed.searchParams.set("w", "1200");
-    if (!parsed.searchParams.has("auto")) parsed.searchParams.set("auto", "format");
-    if (!parsed.searchParams.has("q")) parsed.searchParams.set("q", "80");
-    return parsed.toString();
+    return applyUnsplashCdnParams(url);
   }
 
   if (host === "unsplash.com") {
@@ -114,8 +183,14 @@ export async function resolveImageUrl(raw) {
       if (apiUrl) return apiUrl;
     }
 
-    const oembedUrl = await resolveUnsplashViaOembed(parsed.toString());
-    if (oembedUrl) return oembedUrl;
+    const pageUrl = await resolveUnsplashViaPage(parsed.toString());
+    if (pageUrl) return pageUrl;
+
+    if (!key) {
+      console.warn(
+        "[resolveImageUrl] UNSPLASH_ACCESS_KEY is not set — add it on Vercel to resolve Unsplash page URLs.",
+      );
+    }
   }
 
   return url;

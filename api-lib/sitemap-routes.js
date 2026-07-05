@@ -108,6 +108,8 @@ export function getStaticSitemapPaths() {
     "/contact",
     "/privacy",
     "/terms",
+    "/disclaimer",
+    "/cookie-policy",
     "/search",
     ...TOOL_PAGES,
     ...hubPages,

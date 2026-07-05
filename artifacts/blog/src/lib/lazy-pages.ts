@@ -19,43 +19,114 @@ export const loaders = {
   search: () => import("@/pages/search"),
   post: () => import("@/pages/post"),
   category: () => import("@/pages/category"),
+  about: () => import("@/pages/about"),
+  contact: () => import("@/pages/contact"),
+  privacy: () => import("@/pages/privacy"),
+  terms: () => import("@/pages/terms"),
+  disclaimer: () => import("@/pages/disclaimer"),
+  cookiePolicy: () => import("@/pages/cookie-policy"),
+  developer: () => import("@/pages/developer"),
   ai: () => import("@/pages/ai/index"),
   aiChat: () => import("@/pages/ai/chat"),
   tools: () => import("@/pages/tools/index"),
   templates: () => import("@/pages/templates/index"),
   learn: () => import("@/pages/learn/index"),
+  refs: () => import("@/pages/refs/index"),
+  snippets: () => import("@/pages/snippets/index"),
+  interview: () => import("@/pages/interview/index"),
+  resources: () => import("@/pages/resources/index"),
+  apiSources: () => import("@/pages/api-sources/index"),
+  ides: () => import("@/pages/ides/index"),
+  playground: () => import("@/pages/playground/index"),
+  roadmaps: () => import("@/pages/roadmaps/index"),
+  challenges: () => import("@/pages/challenges/index"),
+  jobs: () => import("@/pages/jobs/index"),
+  community: () => import("@/pages/community/index"),
+  login: () => import("@/pages/login"),
+  signup: () => import("@/pages/signup"),
   admin: () => import("@/pages/admin/dashboard"),
 } as const;
 
 const pathLoaders: Record<string, () => Promise<unknown>> = {
   "/": loaders.home,
   "/search": loaders.search,
+  "/about": loaders.about,
+  "/contact": loaders.contact,
+  "/privacy": loaders.privacy,
+  "/terms": loaders.terms,
+  "/disclaimer": loaders.disclaimer,
+  "/cookie-policy": loaders.cookiePolicy,
+  "/developer": loaders.developer,
   "/ai": loaders.ai,
   "/ai/chat": loaders.aiChat,
   "/tools": loaders.tools,
   "/templates": loaders.templates,
   "/learn": loaders.learn,
+  "/refs": loaders.refs,
+  "/snippets": loaders.snippets,
+  "/interview": loaders.interview,
+  "/resources": loaders.resources,
+  "/api-sources": loaders.apiSources,
+  "/ides": loaders.ides,
+  "/playground": loaders.playground,
+  "/roadmaps": loaders.roadmaps,
+  "/challenges": loaders.challenges,
+  "/jobs": loaders.jobs,
+  "/community": loaders.community,
+  "/login": loaders.login,
+  "/signup": loaders.signup,
   "/admin": loaders.admin,
   "/admin/dashboard": loaders.admin,
 };
 
+/** Prefix → hub index loader for deep links (e.g. /tools/json-formatter → /tools). */
+const prefixLoaders: Array<{ prefix: string; loader: () => Promise<unknown> }> = [
+  { prefix: "/tools", loader: loaders.tools },
+  { prefix: "/templates", loader: loaders.templates },
+  { prefix: "/learn", loader: loaders.learn },
+  { prefix: "/ai", loader: loaders.ai },
+  { prefix: "/refs", loader: loaders.refs },
+  { prefix: "/snippets", loader: loaders.snippets },
+  { prefix: "/interview", loader: loaders.interview },
+  { prefix: "/ides", loader: loaders.ides },
+  { prefix: "/playground", loader: loaders.playground },
+  { prefix: "/roadmaps", loader: loaders.roadmaps },
+  { prefix: "/challenges", loader: loaders.challenges },
+  { prefix: "/jobs", loader: loaders.jobs },
+  { prefix: "/community", loader: loaders.community },
+  { prefix: "/category", loader: loaders.category },
+  { prefix: "/post", loader: loaders.post },
+  { prefix: "/admin", loader: loaders.admin },
+];
+
 export function preloadPath(path: string) {
   const base = path.split("?")[0].split("#")[0];
-  const loader = pathLoaders[base];
-  if (loader) preloadPage(loader);
+  const exact = pathLoaders[base];
+  if (exact) {
+    preloadPage(exact);
+    return;
+  }
+  for (const { prefix, loader } of prefixLoaders) {
+    if (base === prefix || base.startsWith(`${prefix}/`)) {
+      preloadPage(loader);
+      return;
+    }
+  }
 }
 
 // ——— Public ———
 export const Home = page(loaders.home);
-export const Search = page(() => import("@/pages/search"));
-export const PostPage = page(() => import("@/pages/post"));
-export const Category = page(() => import("@/pages/category"));
+export const Search = page(loaders.search);
+export const PostPage = page(loaders.post);
+export const Category = page(loaders.category);
 export const TagPage = page(() => import("@/pages/tag"));
-export const About = page(() => import("@/pages/about"));
-export const Developer = page(() => import("@/pages/developer"));
-export const Privacy = page(() => import("@/pages/privacy"));
-export const Terms = page(() => import("@/pages/terms"));
-export const Contact = page(() => import("@/pages/contact"));
+export const About = page(loaders.about);
+export const Developer = page(loaders.developer);
+export const Privacy = page(loaders.privacy);
+export const Terms = page(loaders.terms);
+export const Disclaimer = page(loaders.disclaimer);
+export const CookiePolicy = page(loaders.cookiePolicy);
+export const Contact = page(loaders.contact);
 export const NewsletterConfirm = page(() => import("@/pages/newsletter-confirm"));
 export const NewsletterUnsubscribe = page(() => import("@/pages/newsletter-unsubscribe"));
 

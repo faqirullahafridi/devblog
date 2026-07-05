@@ -10,6 +10,7 @@ import { REFS } from "@/lib/refs-config";
 import { SNIPPETS } from "@/lib/snippets-config";
 import { LEARN_PATHS } from "@/lib/learn-config";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function AboutPage() {
   const { data: profile } = useGetDeveloperProfile();
@@ -19,17 +20,15 @@ export default function AboutPage() {
     <PublicLayout>
       <SeoHead title={seoTitle("About")} description={SITE_DESCRIPTION} />
       <div className="border-b-2 border-foreground bg-muted">
-        <div className="container mx-auto px-4 py-14 md:py-20 max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">
-            About this site
-          </p>
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
-            A home for developers who care about craft
-          </h1>
-          <p className="text-lg text-muted-foreground mt-5 leading-relaxed">
-            {SITE_NAME} is a focused knowledge hub for tutorials, deep dives, and practical tools —
-            covering web development, Python, JavaScript, and the craft of building software well.
-          </p>
+        <div className="container mx-auto px-4 py-10 md:py-14 max-w-3xl">
+          <PageHeader
+            title="About Us"
+            description={`${SITE_NAME} is a focused knowledge hub for tutorials, deep dives, and practical tools — covering web development, Python, JavaScript, and the craft of building software well.`}
+            section="About this site"
+            breadcrumbs={[{ label: "Home", href: "/" }, { label: "About Us" }]}
+            align="center"
+            className="mb-0"
+          />
         </div>
       </div>
 

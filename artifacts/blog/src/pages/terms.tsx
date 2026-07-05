@@ -4,7 +4,11 @@ const LAST_UPDATED = "June 23, 2026";
 
 export default function TermsPage() {
   return (
-    <LegalPageLayout title="Terms of Service" lastUpdated={LAST_UPDATED}>
+    <LegalPageLayout
+      title="Terms & Conditions"
+      lastUpdated={LAST_UPDATED}
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Terms & Conditions" }]}
+    >
       <p>
         Welcome to TechVentry. By accessing or using this website, you agree to be bound by these
         Terms of Service. If you do not agree, please do not use the site.

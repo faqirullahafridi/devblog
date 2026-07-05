@@ -59,13 +59,13 @@ export function SiteFooter() {
           <FooterColumn title="Platform" links={PLATFORM_LINKS} />
           <FooterColumn title="Content" links={CONTENT_LINKS} />
           <FooterColumn title="Resources" links={[...RESOURCE_LINKS, ...PRIMARY_PAGE_LINKS.slice(0, 2)]} />
-          <FooterColumn title="Legal & help" links={[...LEGAL_LINKS, { href: "/feed.xml", label: "RSS Feed" }]} />
+          <FooterColumn title="Legal & help" links={[...LEGAL_LINKS, { href: "/about", label: "About Us" }, { href: "/feed.xml", label: "RSS Feed" }]} />
         </div>
 
         <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} {SITE_NAME}. Built with craft.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">About Us</Link>
             <Link href="/developer" className="hover:text-foreground transition-colors">Developer</Link>
             <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </div>

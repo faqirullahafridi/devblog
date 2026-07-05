@@ -9,10 +9,11 @@ export function getPool() {
   const connectionString =
     process.env.DATABASE_POOLER_URL?.trim() || process.env.DATABASE_URL?.trim();
   if (!connectionString) throw new Error("DATABASE_URL (or DATABASE_POOLER_URL) is not set");
+  const poolMax = Number(process.env.DATABASE_POOL_MAX);
   pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
-    max: 2,
+    max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 1,
     idleTimeoutMillis: 5_000,
     connectionTimeoutMillis: 8_000,
     allowExitOnIdle: true,

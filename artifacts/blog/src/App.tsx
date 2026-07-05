@@ -1,31 +1,26 @@
 import { Suspense } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RouteAnalytics } from "@/components/route-analytics";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { SeoDocumentReload } from "@/components/seo-document-reload";
-import { PageLoader } from "@/components/page-loader";
+import { PageContentLoader, PageLoader } from "@/components/page-loader";
+import { PublicLayout } from "@/components/layout/public-layout";
+import { queryClient } from "@/lib/query-client";
 import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home";
 import * as P from "@/lib/lazy-pages";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 3 * 60_000,
-      gcTime: 10 * 60_000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
 function Router() {
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/" component={P.Home} />
+  const [location] = useLocation();
+  const isAdmin = location.startsWith("/admin");
+
+  const routes = (
+    <Switch>
+        <Route path="/" component={HomePage} />
         <Route path="/category/:slug" component={P.Category} />
         <Route path="/tag/:slug" component={P.TagPage} />
         <Route path="/post/:slug" component={P.PostPage} />
@@ -34,6 +29,8 @@ function Router() {
         <Route path="/developer" component={P.Developer} />
         <Route path="/privacy" component={P.Privacy} />
         <Route path="/terms" component={P.Terms} />
+        <Route path="/disclaimer" component={P.Disclaimer} />
+        <Route path="/cookie-policy" component={P.CookiePolicy} />
         <Route path="/contact" component={P.Contact} />
         <Route path="/newsletter/confirm" component={P.NewsletterConfirm} />
         <Route path="/newsletter/unsubscribe" component={P.NewsletterUnsubscribe} />
@@ -129,7 +126,16 @@ function Router() {
         <Route path="/admin/profile" component={P.AdminProfile} />
         <Route component={NotFound} />
       </Switch>
-    </Suspense>
+  );
+
+  if (isAdmin) {
+    return <Suspense fallback={<PageLoader />}>{routes}</Suspense>;
+  }
+
+  return (
+    <PublicLayout>
+      <Suspense fallback={<PageContentLoader />}>{routes}</Suspense>
+    </PublicLayout>
   );
 }
 

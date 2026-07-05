@@ -17,7 +17,7 @@ export async function submitContact(data: { name: string; email: string; message
 }
 
 export async function getRelatedPosts(slug: string, limit = 3) {
-  const res = await fetch(`/api/posts/slug/${slug}/related?limit=${limit}`, { credentials: "include" });
+  const res = await fetch(`/api/posts/slug/${slug}/related?limit=${limit}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -25,7 +25,6 @@ export async function getRelatedPosts(slug: string, limit = 3) {
 export async function searchPosts(search: string, limit = 6) {
   const res = await fetch(
     `/api/posts?search=${encodeURIComponent(search)}&status=published&limit=${limit}`,
-    { credentials: "include" },
   );
   if (!res.ok) return [];
   const data = await res.json();
@@ -33,7 +32,7 @@ export async function searchPosts(search: string, limit = 6) {
 }
 
 export async function getPopularPosts(limit = 6) {
-  const res = await fetch(`/api/posts/popular?limit=${limit}`, { credentials: "include" });
+  const res = await fetch(`/api/posts/popular?limit=${limit}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -49,7 +48,7 @@ function asArray<T>(value: unknown): T[] {
 }
 
 export async function getHomeFeed(): Promise<HomeFeed> {
-  const res = await fetch("/api/posts/home-feed", { credentials: "include" });
+  const res = await fetch("/api/posts/home-feed");
   if (!res.ok) throw new Error("Failed to load home feed");
   const data = (await res.json()) as Partial<HomeFeed>;
   return {
@@ -62,7 +61,6 @@ export async function getHomeFeed(): Promise<HomeFeed> {
 export async function getPostsByTag(tagSlug: string, page = 1, limit = 10) {
   const res = await fetch(
     `/api/posts?tag=${encodeURIComponent(tagSlug)}&status=published&page=${page}&limit=${limit}`,
-    { credentials: "include" },
   );
   if (!res.ok) throw new Error("Failed to load posts");
   return res.json() as Promise<{ posts: unknown[]; total: number; page: number; limit: number }>;

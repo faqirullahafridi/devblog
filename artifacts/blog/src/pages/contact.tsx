@@ -12,6 +12,7 @@ import { submitContact } from "@/lib/api-extra";
 import { SeoHead } from "@/components/seo-head";
 import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, seoTitle } from "@/lib/site-config";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function ContactPage() {
   const { data: profile } = useGetDeveloperProfile();
@@ -42,12 +43,13 @@ export default function ContactPage() {
     <PublicLayout>
       <SeoHead title={seoTitle("Contact")} description={`Get in touch with the ${SITE_NAME} team.`} />
       <div className="container mx-auto px-4 py-12 max-w-2xl">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Contact Us</h1>
-          <p className="text-muted-foreground mt-3 leading-relaxed">
-            Have a question, feedback, or advertising inquiry? We&apos;d love to hear from you.
-          </p>
-        </header>
+        <PageHeader
+          title="Contact Us"
+          description="Have a question, feedback, or advertising inquiry? We'd love to hear from you."
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: "Contact Us" }]}
+          align="center"
+          className="mb-10"
+        />
 
         <div className="grid gap-6 sm:grid-cols-2 mb-10">
           <div className="rounded-xl border bg-card p-5 flex items-start gap-3">

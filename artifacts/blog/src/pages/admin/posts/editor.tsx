@@ -290,12 +290,16 @@ export default function PostEditor() {
                                 if (resolved !== field.value) field.onChange(resolved);
                                 if (isUnsplashPageUrl(raw) && !isDirectImageUrl(resolved)) {
                                   toast.error(
-                                    "Could not resolve that Unsplash link. Paste a direct images.unsplash.com URL, or try again.",
+                                    "Could not resolve that Unsplash link. Ensure UNSPLASH_ACCESS_KEY is set on Vercel, or paste a direct images.unsplash.com URL.",
                                   );
                                 }
-                              } catch {
+                              } catch (err) {
+                                const message = err instanceof Error ? err.message : "Could not resolve image URL";
+                                toast.error(message);
                                 const normalized = normalizeImageUrl(raw);
-                                if (normalized !== field.value) field.onChange(normalized);
+                                if (normalized !== field.value && isDirectImageUrl(normalized)) {
+                                  field.onChange(normalized);
+                                }
                               }
                             }}
                           />

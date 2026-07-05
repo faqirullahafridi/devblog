@@ -4,7 +4,7 @@ const LAST_UPDATED = "June 23, 2026";
 
 export default function PrivacyPage() {
   return (
-    <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED}>
+    <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED} breadcrumbs={[{ label: "Home", href: "/" }, { label: "Privacy Policy" }]}>
       <p>
         This Privacy Policy describes how TechVentry (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects,
         uses, and shares information when you visit our website and use our services.
@@ -41,7 +41,8 @@ export default function PrivacyPage() {
       <h2>Cookies and advertising</h2>
       <p>
         We use cookies and similar tracking technologies to remember preferences, understand how
-        visitors use our site, and serve advertisements.
+        visitors use our site, and serve advertisements. For full details, see our{" "}
+        <a href="/cookie-policy">Cookie Policy</a>.
       </p>
       <p>
         <strong>Google AdSense.</strong> We use Google AdSense to display ads. Google and its

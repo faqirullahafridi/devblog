@@ -34,6 +34,8 @@ export function CookieConsent() {
       <div className="container mx-auto max-w-3xl rounded-xl border bg-card p-4 shadow-lg flex flex-col sm:flex-row sm:items-center gap-4">
         <p className="text-sm text-muted-foreground flex-1">
           We use cookies for analytics and ads. See our{" "}
+          <Link href="/cookie-policy" className="text-primary underline">Cookie Policy</Link>
+          {" "}and{" "}
           <Link href="/privacy" className="text-primary underline">Privacy Policy</Link>.
         </p>
         <div className="flex gap-2 shrink-0">

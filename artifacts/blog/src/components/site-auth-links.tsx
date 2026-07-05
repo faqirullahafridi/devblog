@@ -23,13 +23,19 @@ export function SiteAuthLinks() {
 
   if (data?.authenticated && data.user) {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex gap-2 font-bold border-foreground">
+      <>
+        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 md:hidden" asChild>
+          <Link href={`/community/profile/${data.user.username}`} aria-label="Your profile">
             <User className="h-4 w-4" />
-            <span className="max-w-[8rem] truncate">{data.user.displayName || data.user.username}</span>
-          </Button>
-        </DropdownMenuTrigger>
+          </Link>
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="hidden md:inline-flex gap-2 font-bold border-foreground">
+              <User className="h-4 w-4" />
+              <span className="max-w-[8rem] truncate">{data.user.displayName || data.user.username}</span>
+            </Button>
+          </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="border border-border">
           <DropdownMenuLabel className="font-normal">
             <p className="font-bold">{data.user.displayName}</p>
@@ -51,23 +57,24 @@ export function SiteAuthLinks() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </>
     );
   }
 
   return (
-    <div className="hidden sm:flex items-center gap-2">
+    <div className="flex items-center gap-1.5 sm:gap-2">
       <Button
         asChild
         variant="outline"
         size="sm"
-        className="font-bold border-foreground shadow-sm"
+        className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm font-semibold border-foreground"
       >
         <Link href="/login">Sign in</Link>
       </Button>
       <Button
         asChild
         size="sm"
-        className="font-bold border border-border bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:-translate-x-0.5 hover:-translate-y-0.5"
+        className="hidden sm:inline-flex h-9 font-semibold"
       >
         <Link href="/signup">Sign up</Link>
       </Button>
