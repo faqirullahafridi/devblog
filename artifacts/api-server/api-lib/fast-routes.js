@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { query } from "./db-pool.js";
 import { loadSession } from "./admin-routes.js";
 import { sendNewsletterConfirmEmail } from "./email.js";
+import { withRouteCache } from "./route-cache.js";
+import { setCache, setNoCache } from "./route-utils.js";
 
 const JOB_SOURCES = [
   { id: "remoteok", label: "RemoteOK", description: "Remote developer jobs", region: "global", requiresKey: false },
@@ -37,18 +39,6 @@ const PROFILE_SELECT = `
   about_me AS "aboutMe", work_experience AS "workExperience", education, projects,
   technical_skills AS "technicalSkills", languages, status, updated_at AS "updatedAt"
 `;
-
-function setCache(res, maxAge = 120) {
-  res.setHeader(
-    "Cache-Control",
-    `public, max-age=${maxAge}, s-maxage=${maxAge * 2}, stale-while-revalidate=300`,
-  );
-}
-
-function setNoCache(res) {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.setHeader("Pragma", "no-cache");
-}
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -222,7 +212,8 @@ async function handleAiConversations(req, res) {
 
 async function handleCategories(res) {
   setCache(res, 300);
-  const { rows } = await query(`
+  const rows = await withRouteCache("categories:all", 300_000, async () => {
+    const { rows: data } = await query(`
     SELECT c.id, c.name, c.slug, c.description, c.created_at AS "createdAt",
            COUNT(p.id)::int AS "postCount"
     FROM categories c
@@ -230,126 +221,132 @@ async function handleCategories(res) {
     GROUP BY c.id, c.name, c.slug, c.description, c.created_at
     ORDER BY c.name
   `);
-  sendJson(
-    res,
-    200,
-    rows.map((r) => ({ ...r, createdAt: new Date(r.createdAt).toISOString() })),
-  );
+    return data.map((r) => ({ ...r, createdAt: new Date(r.createdAt).toISOString() }));
+  });
+  sendJson(res, 200, rows);
 }
 
 async function handleHomeFeed(res) {
-  setCache(res, 120);
-  const baseFrom = `
+  setCache(res, 180);
+  const payload = await withRouteCache("posts:home-feed", 180_000, async () => {
+    const baseFrom = `
     FROM posts p LEFT JOIN categories c ON c.id = p.category_id WHERE ${PUBLISHED}`;
-  const [featured, recent, popular] = await Promise.all([
-    query(`SELECT ${POST_LIST_SELECT} ${baseFrom} AND p.is_featured = true ORDER BY p.created_at DESC LIMIT 4`),
-    query(`SELECT ${POST_LIST_SELECT} ${baseFrom} ORDER BY p.created_at DESC LIMIT 6`),
-    query(`SELECT ${POST_LIST_SELECT} ${baseFrom} ORDER BY p.views DESC, p.created_at DESC LIMIT 6`),
-  ]);
-  const featuredRows = featured.rows.length > 0 ? featured.rows : recent.rows.slice(0, 4);
-  sendJson(res, 200, {
-    featured: featuredRows.map((r) => formatPost(r)),
-    recent: recent.rows.map((r) => formatPost(r)),
-    popular: popular.rows.map((r) => formatPost(r)),
+    const [featured, recent, popular] = await Promise.all([
+      query(`SELECT ${POST_LIST_SELECT} ${baseFrom} AND p.is_featured = true ORDER BY p.created_at DESC LIMIT 4`),
+      query(`SELECT ${POST_LIST_SELECT} ${baseFrom} ORDER BY p.created_at DESC LIMIT 6`),
+      query(`SELECT ${POST_LIST_SELECT} ${baseFrom} ORDER BY p.views DESC, p.created_at DESC LIMIT 6`),
+    ]);
+    const featuredRows = featured.rows.length > 0 ? featured.rows : recent.rows.slice(0, 4);
+    return {
+      featured: featuredRows.map((r) => formatPost(r)),
+      recent: recent.rows.map((r) => formatPost(r)),
+      popular: popular.rows.map((r) => formatPost(r)),
+    };
   });
+  sendJson(res, 200, payload);
 }
 
 async function handlePostsList(req, res) {
-  setCache(res, 120);
   const q = parseQuery(req.url);
   const pageNum = Math.max(1, parseInt(q.page || "1", 10) || 1);
   const limitNum = Math.min(50, parseInt(q.limit || "10", 10) || 10);
-  const offset = (pageNum - 1) * limitNum;
-  const params = [];
-  const conditions = [PUBLISHED.replace(/\bp\./g, "p.")];
-  let paramIdx = 1;
+  const searchable = Boolean(q.search?.trim());
+  setCache(res, searchable ? 30 : 180);
 
-  if (q.status === "published" || !q.status) {
-    // already in PUBLISHED
-  } else if (q.status && q.status !== "all") {
-    conditions[0] = `p.status = $${paramIdx++}`;
-    params.push(q.status);
-  }
+  const load = async () => {
+    const offset = (pageNum - 1) * limitNum;
+    const params = [];
+    const conditions = [PUBLISHED.replace(/\bp\./g, "p.")];
+    let paramIdx = 1;
 
-  if (q.category) {
-    conditions.push(`c.slug = $${paramIdx++}`);
-    params.push(q.category);
-  }
-  if (q.search) {
-    conditions.push(
-      `(p.title ILIKE $${paramIdx} OR p.excerpt ILIKE $${paramIdx} OR p.content ILIKE $${paramIdx})`,
-    );
-    params.push(`%${q.search}%`);
-    paramIdx++;
-  }
+    if (q.status && q.status !== "published" && q.status !== "all") {
+      conditions[0] = `p.status = $${paramIdx++}`;
+      params.push(q.status);
+    }
 
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-  const [rows, countRows] = await Promise.all([
-    query(
-      `SELECT ${POST_LIST_SELECT} FROM posts p
-       LEFT JOIN categories c ON c.id = p.category_id
-       ${where} ORDER BY p.created_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-      [...params, limitNum, offset],
-    ),
-    query(
-      `SELECT COUNT(*)::int AS count FROM posts p
-       LEFT JOIN categories c ON c.id = p.category_id ${where}`,
-      params,
-    ),
-  ]);
-  sendJson(res, 200, {
-    posts: rows.rows.map((r) => formatPost(r)),
-    total: countRows.rows[0]?.count ?? 0,
-    page: pageNum,
-    limit: limitNum,
-  });
+    if (q.category) {
+      conditions.push(`c.slug = $${paramIdx++}`);
+      params.push(q.category);
+    }
+    if (q.search) {
+      conditions.push(
+        `(p.title ILIKE $${paramIdx} OR p.excerpt ILIKE $${paramIdx} OR p.content ILIKE $${paramIdx})`,
+      );
+      params.push(`%${q.search}%`);
+      paramIdx++;
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const [rows, countRows] = await Promise.all([
+      query(
+        `SELECT ${POST_LIST_SELECT} FROM posts p
+         LEFT JOIN categories c ON c.id = p.category_id
+         ${where} ORDER BY p.created_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+        [...params, limitNum, offset],
+      ),
+      query(
+        `SELECT COUNT(*)::int AS count FROM posts p
+         LEFT JOIN categories c ON c.id = p.category_id ${where}`,
+        params,
+      ),
+    ]);
+    return {
+      posts: rows.rows.map((r) => formatPost(r)),
+      total: countRows.rows[0]?.count ?? 0,
+      page: pageNum,
+      limit: limitNum,
+    };
+  };
+
+  const cacheKey = searchable
+    ? null
+    : `posts:list:${pageNum}:${limitNum}:${q.category || ""}:${q.status || "published"}`;
+  const payload = cacheKey
+    ? await withRouteCache(cacheKey, 180_000, load)
+    : await load();
+  sendJson(res, 200, payload);
 }
 
 async function handlePostBySlug(res, slug) {
   setCache(res, 300);
-  const { rows } = await query(
-    `SELECT ${POST_DETAIL_SELECT} FROM posts p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE p.slug = $1 AND ${PUBLISHED} LIMIT 1`,
-    [slug],
-  );
-  if (!rows[0]) {
+  const post = await withRouteCache(`post:slug:${slug}`, 300_000, async () => {
+    const { rows } = await query(
+      `SELECT ${POST_DETAIL_SELECT} FROM posts p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.slug = $1 AND ${PUBLISHED} LIMIT 1`,
+      [slug],
+    );
+    if (!rows[0]) return null;
+    return formatPost(rows[0], true);
+  });
+  if (!post) {
     sendJson(res, 404, { error: "Post not found" });
     return;
   }
-  sendJson(res, 200, formatPost(rows[0], true));
+  sendJson(res, 200, post);
 }
 
 async function handleRelatedPosts(req, res, slug) {
   setCache(res, 300);
   const q = parseQuery(req.url);
   const limitNum = Math.min(6, parseInt(q.limit || "3", 10) || 3);
-  const { rows: posts } = await query(
-    `SELECT p.id, p.category_id AS "categoryId" FROM posts p
-     WHERE p.slug = $1 AND ${PUBLISHED} LIMIT 1`,
-    [slug],
-  );
-  if (!posts[0]) {
-    sendJson(res, 404, { error: "Post not found" });
-    return;
-  }
-  const post = posts[0];
-  const params = [post.id];
-  let categoryClause = "";
-  if (post.categoryId) {
-    categoryClause = ` AND p.category_id = $2`;
-    params.push(post.categoryId);
-  }
-  params.push(limitNum);
-  const limitParam = `$${params.length}`;
-  const { rows } = await query(
-    `SELECT ${POST_LIST_SELECT} FROM posts p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE ${PUBLISHED} AND p.id != $1${categoryClause}
-     ORDER BY p.created_at DESC LIMIT ${limitParam}`,
-    params,
-  );
-  sendJson(res, 200, rows.map((r) => formatPost(r)));
+  const payload = await withRouteCache(`post:related:${slug}:${limitNum}`, 300_000, async () => {
+    const { rows: posts } = await query(
+      `SELECT p.id, p.category_id AS "categoryId" FROM posts p
+       WHERE p.slug = $1 AND ${PUBLISHED} LIMIT 1`,
+      [slug],
+    );
+    if (!posts[0]) return [];
+    const { rows } = await query(
+      `SELECT ${POST_LIST_SELECT} FROM posts p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE ${PUBLISHED} AND p.id != $1 AND p.category_id = $2
+       ORDER BY p.created_at DESC LIMIT $3`,
+      [posts[0].id, posts[0].categoryId, limitNum],
+    );
+    return rows.map((r) => formatPost(r));
+  });
+  sendJson(res, 200, payload);
 }
 
 async function handleJobs(req, res) {
@@ -465,48 +462,51 @@ async function handleDevHeadlines(req, res) {
   setCache(res, 600);
   const q = parseQuery(req.url);
   const limit = Math.min(Number(q.limit ?? 8), 20);
-  const perSource = Math.ceil(limit / 2);
-  const items = [];
-  try {
-    const ids = await fetchJson("https://hacker-news.firebaseio.com/v0/topstories.json");
-    const hnResults = await Promise.allSettled(
-      ids.slice(0, perSource).map(async (id) => {
-        const item = await fetchJson(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-        if (!item?.title) return null;
-        return {
-          id: `hn-${id}`,
-          title: item.title,
-          url: item.url ?? `https://news.ycombinator.com/item?id=${id}`,
-          source: "hackernews",
-          score: item.score,
-          comments: item.descendants,
-          author: item.by,
-        };
-      }),
-    );
-    for (const r of hnResults) {
-      if (r.status === "fulfilled" && r.value) items.push(r.value);
+  const payload = await withRouteCache(`feeds:dev-headlines:${limit}`, 600_000, async () => {
+    const perSource = Math.ceil(limit / 2);
+    const items = [];
+    try {
+      const ids = await fetchJson("https://hacker-news.firebaseio.com/v0/topstories.json");
+      const hnResults = await Promise.allSettled(
+        ids.slice(0, perSource).map(async (id) => {
+          const item = await fetchJson(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+          if (!item?.title) return null;
+          return {
+            id: `hn-${id}`,
+            title: item.title,
+            url: item.url ?? `https://news.ycombinator.com/item?id=${id}`,
+            source: "hackernews",
+            score: item.score,
+            comments: item.descendants,
+            author: item.by,
+          };
+        }),
+      );
+      for (const r of hnResults) {
+        if (r.status === "fulfilled" && r.value) items.push(r.value);
+      }
+    } catch (err) {
+      console.warn("[fast-routes] HN fetch failed:", err instanceof Error ? err.message : err);
     }
-  } catch (err) {
-    console.warn("[fast-routes] HN fetch failed:", err.message);
-  }
-  try {
-    const devto = await fetchJson(`https://dev.to/api/articles?per_page=${perSource}`);
-    for (const a of devto) {
-      items.push({
-        id: `devto-${a.id}`,
-        title: a.title,
-        url: a.url,
-        source: "devto",
-        score: a.positive_reactions_count,
-        comments: a.comments_count,
-        author: a.user?.username,
-      });
+    try {
+      const devto = await fetchJson(`https://dev.to/api/articles?per_page=${perSource}`);
+      for (const a of devto) {
+        items.push({
+          id: `devto-${a.id}`,
+          title: a.title,
+          url: a.url,
+          source: "devto",
+          score: a.positive_reactions_count,
+          comments: a.comments_count,
+          author: a.user?.username,
+        });
+      }
+    } catch (err) {
+      console.warn("[fast-routes] Dev.to fetch failed:", err instanceof Error ? err.message : err);
     }
-  } catch (err) {
-    console.warn("[fast-routes] Dev.to fetch failed:", err.message);
-  }
-  sendJson(res, 200, { items: items.slice(0, limit) });
+    return { items: items.slice(0, limit) };
+  });
+  sendJson(res, 200, payload);
 }
 
 function handleUserMe(res) {
@@ -563,16 +563,61 @@ async function handlePublishedProfile(res) {
 }
 
 async function handlePopularPosts(req, res) {
-  setCache(res, 120);
+  setCache(res, 180);
   const q = parseQuery(req.url);
   const limitNum = Math.min(12, parseInt(q.limit || "6", 10) || 6);
-  const { rows } = await query(
-    `SELECT ${POST_LIST_SELECT} FROM posts p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE ${PUBLISHED} ORDER BY p.views DESC, p.created_at DESC LIMIT $1`,
-    [limitNum],
-  );
-  sendJson(res, 200, rows.map((r) => formatPost(r)));
+  const rows = await withRouteCache(`posts:popular:${limitNum}`, 180_000, async () => {
+    const { rows: data } = await query(
+      `SELECT ${POST_LIST_SELECT} FROM posts p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE ${PUBLISHED} ORDER BY p.views DESC, p.created_at DESC LIMIT $1`,
+      [limitNum],
+    );
+    return data.map((r) => formatPost(r));
+  });
+  sendJson(res, 200, rows);
+}
+
+async function handleFeaturedPosts(req, res) {
+  setCache(res, 180);
+  const q = parseQuery(req.url);
+  const limitNum = Math.min(20, parseInt(q.limit || "6", 10) || 6);
+  const rows = await withRouteCache(`posts:featured:${limitNum}`, 180_000, async () => {
+    let { rows: data } = await query(
+      `SELECT ${POST_LIST_SELECT} FROM posts p LEFT JOIN categories c ON c.id = p.category_id
+       WHERE ${PUBLISHED} AND p.is_featured = true ORDER BY p.created_at DESC LIMIT $1`,
+      [limitNum],
+    );
+    if (data.length === 0) {
+      ({ rows: data } = await query(
+        `SELECT ${POST_LIST_SELECT} FROM posts p LEFT JOIN categories c ON c.id = p.category_id
+         WHERE ${PUBLISHED} ORDER BY p.created_at DESC LIMIT $1`,
+        [limitNum],
+      ));
+    }
+    return data.map((r) => formatPost(r));
+  });
+  sendJson(res, 200, rows);
+}
+
+async function handleTags(res) {
+  setCache(res, 300);
+  const tags = await withRouteCache("posts:tags", 300_000, async () => {
+    const { rows } = await query(`SELECT tags FROM posts p WHERE ${PUBLISHED}`);
+    const tagSet = new Map();
+    for (const row of rows) {
+      for (const t of row.tags ?? []) {
+        const trimmed = String(t).trim();
+        if (!trimmed) continue;
+        const slug = trimmed.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+        if (slug) tagSet.set(slug, trimmed);
+      }
+    }
+    return [...tagSet.entries()]
+      .map(([slug, name]) => ({ slug, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+  sendJson(res, 200, tags);
 }
 
 /** Public routes — raw pg/fetch, no 2.5MB bundle. Returns true when handled. */
@@ -602,6 +647,14 @@ export async function tryFastRoute(path, req, res) {
     }
     if (method === "GET" && path === "/api/posts/popular") {
       await handlePopularPosts(req, res);
+      return true;
+    }
+    if (method === "GET" && path === "/api/posts/featured") {
+      await handleFeaturedPosts(req, res);
+      return true;
+    }
+    if (method === "GET" && path === "/api/tags") {
+      await handleTags(res);
       return true;
     }
     if (method === "GET" && path === "/api/ai/status") {
@@ -670,6 +723,8 @@ export function isFastRoutePath(path, req) {
   if (method === "GET" && path === "/api/auth/user/me") return true;
   if (method === "GET" && path === "/api/profile") return true;
   if (method === "GET" && path === "/api/posts/popular") return true;
+  if (method === "GET" && path === "/api/posts/featured") return true;
+  if (method === "GET" && path === "/api/tags") return true;
   if (method === "GET" && path === "/api/ai/status") return true;
   if (method === "GET" && path === "/api/ai/conversations") return true;
   if (method === "GET" && path === "/api/jobs/sources") return true;

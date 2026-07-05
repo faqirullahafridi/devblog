@@ -14,8 +14,8 @@ import * as P from "@/lib/lazy-pages";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
+      staleTime: 3 * 60_000,
+      gcTime: 10 * 60_000,
       refetchOnWindowFocus: false,
     },
   },

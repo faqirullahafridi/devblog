@@ -18,6 +18,24 @@
   "redirects": [],
   "headers": [
     {
+      "source": "/api/(posts/home-feed|posts/popular|posts/featured|posts/tags|categories|feeds/dev-headlines)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/api/posts/([^/]+)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=180, s-maxage=600, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
       "source": "/api/auth/(.*)",
       "headers": [
         {

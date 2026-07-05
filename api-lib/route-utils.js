@@ -48,10 +48,15 @@ export async function readJsonBody(req) {
 }
 
 export function setCache(res, maxAge = 120) {
+  const edgeMax = Number(process.env.CDN_CACHE_SECONDS);
+  const sMaxAge = Number.isFinite(edgeMax) && edgeMax > 0 ? edgeMax : Math.max(maxAge * 3, 300);
+  const swr = Number(process.env.CDN_STALE_SECONDS) || 3600;
   res.setHeader(
     "Cache-Control",
-    `public, max-age=${maxAge}, s-maxage=${maxAge * 2}, stale-while-revalidate=300`,
+    `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`,
   );
+  res.setHeader("CDN-Cache-Control", `max-age=${sMaxAge}, stale-while-revalidate=${swr}`);
+  res.setHeader("Vary", "Accept-Encoding");
 }
 
 export function setNoCache(res) {

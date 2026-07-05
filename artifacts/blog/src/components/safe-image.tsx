@@ -8,7 +8,7 @@ type SafeImageProps = {
   alt: string;
   className?: string;
   wrapperClassName?: string;
-  /** Request a smaller CDN variant when supported (e.g. Unsplash). */
+  /** Request a smaller CDN variant when supported (e.g. Unsplash, Supabase). */
   width?: number;
   sizes?: string;
   priority?: boolean;
@@ -30,7 +30,7 @@ export function SafeImage({
     () => (width ? optimizeImageUrl(normalizedSrc, width) : normalizedSrc),
     [normalizedSrc, width],
   );
-  const displaySrc = useOriginal ? normalizedSrc : optimizedSrc;
+  const displaySrc = useOriginal || !width ? normalizedSrc : optimizedSrc;
 
   if (failed || !normalizedSrc) {
     return (
@@ -53,11 +53,12 @@ export function SafeImage({
       alt={alt}
       className={className}
       width={width}
+      height={width ? Math.round(width * 0.625) : undefined}
       sizes={sizes}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
-      referrerPolicy="origin"
+      referrerPolicy="no-referrer"
       onError={() => {
         if (!useOriginal && optimizedSrc && optimizedSrc !== normalizedSrc) {
           setUseOriginal(true);

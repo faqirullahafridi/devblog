@@ -41,12 +41,27 @@ export function optimizeImageUrl(src: string | null | undefined, width: number, 
 
   try {
     const url = new URL(normalized);
+    const host = url.hostname.replace(/^www\./, "");
 
-    if (UNSPLASH_HOSTS.has(url.hostname)) {
-      if (!url.searchParams.has("w")) url.searchParams.set("w", String(Math.round(width)));
-      if (!url.searchParams.has("auto")) url.searchParams.set("auto", "format");
-      if (!url.searchParams.has("q")) url.searchParams.set("q", String(quality));
+    if (UNSPLASH_HOSTS.has(host)) {
+      url.searchParams.set("w", String(Math.round(width)));
+      url.searchParams.set("auto", "format");
+      url.searchParams.set("fit", "crop");
+      url.searchParams.set("q", String(quality));
       return url.toString();
+    }
+
+    // Supabase Storage — request a resized variant via the image renderer
+    if (host.endsWith(".supabase.co") && url.pathname.includes("/storage/v1/object/public/")) {
+      const renderPath = url.pathname.replace(
+        "/storage/v1/object/public/",
+        "/storage/v1/render/image/public/",
+      );
+      const renderUrl = new URL(renderPath, url.origin);
+      renderUrl.searchParams.set("width", String(Math.round(width)));
+      renderUrl.searchParams.set("quality", String(quality));
+      renderUrl.searchParams.set("resize", "contain");
+      return renderUrl.toString();
     }
   } catch {
     return normalized;

@@ -3,6 +3,7 @@ import { query } from "./db-pool.js";
 import { hashPassword } from "./route-utils.js";
 import { sendResendEmail, wrapNewsletterHtml } from "./email.js";
 import { normalizeImageUrl, uploadBlogImage, resolveImageUrl, resolveMarkdownImageUrls } from "./image-upload.js";
+import { invalidateRouteCache } from "./route-cache.js";
 
 const PROFILE_JSON_FIELDS = new Set([
   "workExperience",
@@ -11,6 +12,13 @@ const PROFILE_JSON_FIELDS = new Set([
   "technicalSkills",
   "languages",
 ]);
+
+function bustPublicPostCache() {
+  invalidateRouteCache("posts:");
+  invalidateRouteCache("post:");
+  invalidateRouteCache("categories:");
+  invalidateRouteCache("feeds:");
+}
 
 async function safeQuery(text, params, fallbackRows = []) {
   try {
@@ -393,6 +401,7 @@ export function isAdminRoutePath(path, method) {
   if (/^\/api\/challenges\/\d+$/.test(path)) return true;
   if (path === "/api/posts" && m === "POST") return true;
   if (/^\/api\/posts\/\d+$/.test(path)) return true;
+  if (/^\/api\/posts\/\d+\/(feature|publish)$/.test(path) && m === "PATCH") return true;
   if (/^\/api\/categories\/\d+$/.test(path)) return true;
   if (/^\/api\/comments\/\d+(\/reply)?$/.test(path)) return true;
   return false;
@@ -620,6 +629,53 @@ export async function tryAdminRoute(path, req, res) {
       return true;
     }
 
+    const postFeatureMatch = path.match(/^\/api\/posts\/(\d+)\/feature$/);
+    if (postFeatureMatch && method === "PATCH") {
+      setNoCache(res);
+      const postId = parseInt(postFeatureMatch[1], 10);
+      const body = await readJsonBody(req);
+      const { rows } = await query(
+        `UPDATE posts SET is_featured = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+        [Boolean(body.isFeatured), postId],
+      );
+      if (!rows[0]) {
+        sendJson(res, 404, { error: "Post not found" });
+        return true;
+      }
+      bustPublicPostCache();
+      const { rows: detail } = await query(
+        `SELECT ${POST_DETAIL_SELECT} FROM posts p
+         LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = $1 LIMIT 1`,
+        [postId],
+      );
+      sendJson(res, 200, formatPostDetail(detail[0]));
+      return true;
+    }
+
+    const postPublishMatch = path.match(/^\/api\/posts\/(\d+)\/publish$/);
+    if (postPublishMatch && method === "PATCH") {
+      setNoCache(res);
+      const postId = parseInt(postPublishMatch[1], 10);
+      const body = await readJsonBody(req);
+      const status = body.status === "published" ? "published" : "draft";
+      const { rows } = await query(
+        `UPDATE posts SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+        [status, postId],
+      );
+      if (!rows[0]) {
+        sendJson(res, 404, { error: "Post not found" });
+        return true;
+      }
+      bustPublicPostCache();
+      const { rows: detail } = await query(
+        `SELECT ${POST_DETAIL_SELECT} FROM posts p
+         LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = $1 LIMIT 1`,
+        [postId],
+      );
+      sendJson(res, 200, formatPostDetail(detail[0]));
+      return true;
+    }
+
     const postIdMatch = path.match(/^\/api\/posts\/(\d+)$/);
     if (postIdMatch) {
       const postId = parseInt(postIdMatch[1], 10);
@@ -709,12 +765,14 @@ export async function tryAdminRoute(path, req, res) {
           sendJson(res, 404, { error: "Post not found" });
           return true;
         }
+        bustPublicPostCache();
         sendJson(res, 200, formatPostDetail(rows[0]));
         return true;
       }
       if (method === "DELETE") {
         setNoCache(res);
         await query(`DELETE FROM posts WHERE id = $1`, [postId]);
+        bustPublicPostCache();
         res.statusCode = 204;
         res.end();
         return true;
@@ -769,6 +827,7 @@ export async function tryAdminRoute(path, req, res) {
          LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = $1 LIMIT 1`,
         [rows[0].id],
       );
+      bustPublicPostCache();
       sendJson(res, 201, formatPostDetail(detail[0]));
       return true;
     }

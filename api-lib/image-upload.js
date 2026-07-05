@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
+import https from "node:https";
+import tls from "node:tls";
 
 const UNSPLASH_IMAGE_HOSTS = new Set(["images.unsplash.com", "plus.unsplash.com"]);
+const httpsAgent = new https.Agent({ ca: tls.rootCertificates });
 
 /** Ensure image URLs work in <img src> (add https:// when missing). */
 export function normalizeImageUrl(src) {
@@ -21,6 +24,66 @@ function unsplashPhotoIdFromPath(pathname) {
   return segment.includes("-") ? segment.split("-").pop() : segment;
 }
 
+function fetchJson(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      url,
+      { method: "GET", agent: httpsAgent, headers: { Accept: "application/json", ...headers } },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => {
+          body += chunk;
+        });
+        res.on("end", () => {
+          if ((res.statusCode ?? 500) >= 400) {
+            reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+            return;
+          }
+          try {
+            resolve(JSON.parse(body));
+          } catch (err) {
+            reject(err);
+          }
+        });
+      },
+    );
+    req.on("error", reject);
+    req.setTimeout(10_000, () => req.destroy(new Error("timeout")));
+    req.end();
+  });
+}
+
+async function resolveUnsplashViaOembed(pageUrl) {
+  try {
+    const data = await fetchJson(
+      `https://unsplash.com/oembed?url=${encodeURIComponent(pageUrl)}`,
+    );
+    const thumb = data?.thumbnail_url;
+    if (!thumb || typeof thumb !== "string") return null;
+    const parsed = new URL(thumb);
+    parsed.searchParams.set("w", "1200");
+    parsed.searchParams.set("auto", "format");
+    parsed.searchParams.set("fit", "crop");
+    parsed.searchParams.set("q", "80");
+    return parsed.toString();
+  } catch (err) {
+    console.warn("[resolveImageUrl] Unsplash oEmbed failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+async function resolveUnsplashViaApi(photoId, key) {
+  try {
+    const data = await fetchJson(`https://api.unsplash.com/photos/${encodeURIComponent(photoId)}`, {
+      Authorization: `Client-ID ${key}`,
+    });
+    return data.urls?.regular || data.urls?.small || data.urls?.full || null;
+  } catch (err) {
+    console.error("[resolveImageUrl] Unsplash API error:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 /** Turn Unsplash page/share links into direct CDN URLs when possible. */
 export async function resolveImageUrl(raw) {
   const url = normalizeImageUrl(raw);
@@ -36,25 +99,23 @@ export async function resolveImageUrl(raw) {
   const host = parsed.hostname.replace(/^www\./, "");
 
   if (UNSPLASH_IMAGE_HOSTS.has(host)) {
+    if (!parsed.searchParams.has("w")) parsed.searchParams.set("w", "1200");
+    if (!parsed.searchParams.has("auto")) parsed.searchParams.set("auto", "format");
+    if (!parsed.searchParams.has("q")) parsed.searchParams.set("q", "80");
     return parsed.toString();
   }
 
   if (host === "unsplash.com") {
     const photoId = unsplashPhotoIdFromPath(parsed.pathname);
     const key = process.env.UNSPLASH_ACCESS_KEY?.trim();
+
     if (photoId && key) {
-      try {
-        const res = await fetch(`https://api.unsplash.com/photos/${encodeURIComponent(photoId)}`, {
-          headers: { Authorization: `Client-ID ${key}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          return data.urls?.regular || data.urls?.small || data.urls?.full || url;
-        }
-      } catch (err) {
-        console.error("[resolveImageUrl] Unsplash API error:", err instanceof Error ? err.message : err);
-      }
+      const apiUrl = await resolveUnsplashViaApi(photoId, key);
+      if (apiUrl) return apiUrl;
     }
+
+    const oembedUrl = await resolveUnsplashViaOembed(parsed.toString());
+    if (oembedUrl) return oembedUrl;
   }
 
   return url;

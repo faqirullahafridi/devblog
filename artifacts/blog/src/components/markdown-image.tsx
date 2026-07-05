@@ -24,7 +24,7 @@ export function MarkdownImage({ src, alt }: MarkdownImageProps) {
       className="markdown-img"
       loading="lazy"
       decoding="async"
-      referrerPolicy="origin"
+      referrerPolicy="no-referrer"
       onError={() => {
         if (!useOriginal && optimized && optimized !== normalized) {
           setUseOriginal(true);

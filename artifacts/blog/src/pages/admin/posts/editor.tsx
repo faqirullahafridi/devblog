@@ -288,9 +288,9 @@ export default function PostEditor() {
                               try {
                                 const resolved = await resolveImageUrlApi(raw);
                                 if (resolved !== field.value) field.onChange(resolved);
-                                if (isUnsplashPageUrl(resolved) && !isDirectImageUrl(resolved)) {
+                                if (isUnsplashPageUrl(raw) && !isDirectImageUrl(resolved)) {
                                   toast.error(
-                                    "Unsplash page link detected. Right-click the photo → Copy image address, or add UNSPLASH_ACCESS_KEY on Vercel.",
+                                    "Could not resolve that Unsplash link. Paste a direct images.unsplash.com URL, or try again.",
                                   );
                                 }
                               } catch {
@@ -301,9 +301,9 @@ export default function PostEditor() {
                           />
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
-                          Paste an Unsplash photo page URL, a direct{" "}
+                          Paste an Unsplash photo page URL (auto-resolves), a direct{" "}
                           <code className="text-xs bg-muted px-1 rounded">images.unsplash.com</code> link, or upload
-                          below. Page links auto-resolve when UNSPLASH_ACCESS_KEY is set on Vercel.
+                          below. Uploads are compressed automatically for faster page loads.
                         </p>
                         {field.value ? (
                           <div className="mt-2 overflow-hidden rounded-lg border aspect-video max-h-40">
