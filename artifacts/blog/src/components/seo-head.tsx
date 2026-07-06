@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
-import { SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site-config";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_OG_IMAGE_ALT, siteUrl } from "@/lib/site-config";
 
 export { siteUrl };
 
@@ -40,6 +40,7 @@ export function SeoHead({
 }: SeoHeadProps) {
   const [location] = useLocation();
   const pageUrl = resolvePageUrl(url ?? (location.split("?")[0] || "/"));
+  const shareImage = image ?? SITE_OG_IMAGE;
 
   useEffect(() => {
     document.title = title;
@@ -48,13 +49,16 @@ export function SeoHead({
     setMeta("og:description", description, true);
     setMeta("og:type", type, true);
     setMeta("og:url", pageUrl, true);
+    setMeta("og:image", shareImage, true);
+    setMeta("og:image:width", "1200", true);
+    setMeta("og:image:height", "630", true);
+    setMeta("og:image:alt", SITE_OG_IMAGE_ALT, true);
+    setMeta("og:site_name", SITE_NAME, true);
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
-    if (image) {
-      setMeta("og:image", image, true);
-      setMeta("twitter:image", image);
-    }
+    setMeta("twitter:image", shareImage);
+    setMeta("twitter:image:alt", SITE_OG_IMAGE_ALT);
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!canonical) {
       canonical = document.createElement("link");
@@ -76,7 +80,7 @@ export function SeoHead({
     return () => {
       document.getElementById(scriptId)?.remove();
     };
-  }, [title, description, image, pageUrl, type, jsonLd]);
+  }, [title, description, shareImage, pageUrl, type, jsonLd]);
 
   return null;
 }

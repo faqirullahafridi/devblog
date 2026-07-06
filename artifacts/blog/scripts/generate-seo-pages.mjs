@@ -8,6 +8,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { HUB_SEO_PAGES, SITE_ORIGIN } from "./seo-pages-data.js";
 
+const OG_IMAGE = `${SITE_ORIGIN}/og-image.jpg`;
+const OG_IMAGE_ALT = "TechVentry — AI Developer Hub, Tools & Tutorials";
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const blogDir = path.resolve(scriptDir, "..");
 const distDir = path.resolve(blogDir, "dist/public");
@@ -78,6 +81,44 @@ function applySeo(template, page) {
   html = html.replace(
     /<meta name="twitter:description" content="[^"]*"\s*\/?>/,
     `<meta name="twitter:description" content="${escapeHtml(page.description)}" />`,
+  );
+
+  const ogImageTags = [
+    `<meta property="og:image" content="${escapeHtml(OG_IMAGE)}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />`,
+    `<meta name="twitter:image" content="${escapeHtml(OG_IMAGE)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />`,
+  ].join("\n    ");
+
+  html = html.replace(
+    /<meta property="og:image" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta property="og:image:width" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta property="og:image:height" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta property="og:image:alt" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta name="twitter:image" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta name="twitter:image:alt" content="[^"]*"\s*\/?>\s*/g,
+    "",
+  );
+  html = html.replace(
+    "<!-- seo-head-injection -->",
+    `${ogImageTags}\n    <!-- seo-head-injection -->`,
   );
 
   const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonical)}" />`;
