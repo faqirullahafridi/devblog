@@ -1,7 +1,9 @@
 import type { TemplateDef } from "../templates-config";
+import { keyEvents } from "@/lib/analytics";
 import { getTemplateSourceFiles, getTemplateHtml, getTemplateCss, getTemplateSourceCode, getTemplateScreenshots } from "./template-source";
 
 export function downloadTemplateSource(template: TemplateDef) {
+  keyEvents.templateDownload(template.slug);
   const files = getTemplateSourceFiles(template);
   downloadBlob(`${template.slug}.html`, files.html, "text/html");
   setTimeout(() => downloadBlob(`${template.slug}-styles.css`, files.css, "text/css"), 150);

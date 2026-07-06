@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { loginSiteUser } from "@/lib/api-extra";
+import { keyEvents } from "@/lib/analytics";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -23,6 +24,7 @@ export default function LoginPage() {
     try {
       await loginSiteUser({ login: login.trim(), password });
       queryClient.invalidateQueries({ queryKey: ["auth", "site-user"] });
+      keyEvents.login("email");
       toast.success("Signed in");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "/";

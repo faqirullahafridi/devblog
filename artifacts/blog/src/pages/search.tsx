@@ -9,6 +9,7 @@ import { Pagination } from "@/components/pagination";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { HubSeoIntro } from "@/components/hub/hub-seo-intro";
+import { keyEvents } from "@/lib/analytics";
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +27,7 @@ export default function Search() {
       setPage(1);
       if (query) {
         window.history.replaceState(null, "", `?q=${encodeURIComponent(query)}`);
+        keyEvents.search(query);
       } else {
         window.history.replaceState(null, "", window.location.pathname);
       }

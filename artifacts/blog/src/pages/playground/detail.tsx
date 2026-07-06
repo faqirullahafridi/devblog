@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/tools/copy-button";
 import { Loader2, GitFork, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { platformEvents, trackEvent } from "@/lib/analytics";
+import { platformEvents, trackEvent, GA_KEY_EVENTS } from "@/lib/analytics";
 import { useEffect } from "react";
 
 export default function PlaygroundDetailPage() {
@@ -21,7 +21,7 @@ export default function PlaygroundDetailPage() {
   });
 
   useEffect(() => {
-    if (pg) trackEvent("playground_view", { slug: pg.slug, language: pg.language });
+    if (pg) trackEvent(GA_KEY_EVENTS.PLAYGROUND_VIEW, { slug: pg.slug, language: pg.language });
   }, [pg?.slug, pg?.language]);
 
   const fork = useMutation({

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Github, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getGitHubUser, getSiteUser, logoutGitHub, logoutSiteUser } from "@/lib/api-extra";
+import { keyEvents } from "@/lib/analytics";
 import { toast } from "sonner";
 
 export function GitHubAuthBar() {
@@ -31,8 +32,10 @@ export function GitHubAuthBar() {
       return;
     }
 
-    if (auth === "success") toast.success("Signed in with GitHub");
-    else if (auth === "failed") toast.error("GitHub sign-in failed");
+    if (auth === "success") {
+      keyEvents.login("github");
+      toast.success("Signed in with GitHub");
+    } else if (auth === "failed") toast.error("GitHub sign-in failed");
     else if (auth === "unconfigured") toast.message("GitHub OAuth is not configured on this server");
 
     params.delete("auth");

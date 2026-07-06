@@ -3,7 +3,7 @@ import https from "node:https";
 import tls from "node:tls";
 
 const RESEND_API = "https://api.resend.com";
-const httpsAgent = new https.Agent({ ca: tls.rootCertificates });
+const httpsAgent = new https.Agent({ ca: [...tls.rootCertificates] });
 
 export const RESEND_TEMPLATE_ALIASES = {
   transactional: "techventry-transactional",

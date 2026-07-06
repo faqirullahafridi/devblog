@@ -33,6 +33,12 @@
 
       gtag("js", new Date());
       gtag("config", "G-4XPLQ8RK00", { send_page_view: false });
+      /*
+       * GA4 key events (mark in Admin → Data display → Key events):
+       * sign_up, login, generate_lead, search, share, file_download,
+       * ai_chat, playground_save, playground_fork, playground_view,
+       * roadmap_generate, challenge_submit, job_bookmark, community_ask, community_answer
+       */
 
       try {
         var consentChoice = localStorage.getItem("cookie-consent");

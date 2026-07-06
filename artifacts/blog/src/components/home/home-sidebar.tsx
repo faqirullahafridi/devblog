@@ -5,6 +5,7 @@ import { useSubscribeNewsletter } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { keyEvents } from "@/lib/analytics";
 import { AdSlot } from "@/components/site-scripts";
 import { format } from "date-fns";
 import { Mail, TrendingUp } from "lucide-react";
@@ -19,6 +20,7 @@ export function HomeNewsletterCard({ compact = false }: { compact?: boolean }) {
     if (!email) return;
     try {
       await subscribe.mutateAsync({ data: { email } });
+      keyEvents.newsletterSubscribe();
       toast.success("Check your email to confirm your subscription!");
       setEmail("");
     } catch {

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SeoHead } from "@/components/seo-head";
 import { seoTitle } from "@/lib/site-config";
 import { signupSiteUser } from "@/lib/api-extra";
+import { keyEvents } from "@/lib/analytics";
 import { toast } from "sonner";
 
 export default function SignupPage() {
@@ -35,6 +36,7 @@ export default function SignupPage() {
         displayName: displayName.trim() || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ["auth", "site-user"] });
+      keyEvents.signUp("email");
       toast.success("Account created. Welcome!");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "/";
