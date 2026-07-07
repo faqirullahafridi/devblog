@@ -4,6 +4,7 @@ import { hashPassword } from "./route-utils.js";
 import { sendResendEmail, wrapNewsletterHtml } from "./email.js";
 import { normalizeImageUrl, uploadBlogImage, resolveImageUrl, resolveMarkdownImageUrls } from "./image-upload.js";
 import { invalidateRouteCache } from "./route-cache.js";
+import { notifyIndexNowForPost } from "./indexnow.js";
 
 const PROFILE_JSON_FIELDS = new Set([
   "workExperience",
@@ -684,7 +685,9 @@ export async function tryAdminRoute(path, req, res) {
          LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = $1 LIMIT 1`,
         [postId],
       );
-      sendJson(res, 200, formatPostDetail(detail[0]));
+      const publishedPost = formatPostDetail(detail[0]);
+      notifyIndexNowForPost(publishedPost);
+      sendJson(res, 200, publishedPost);
       return true;
     }
 
@@ -778,7 +781,9 @@ export async function tryAdminRoute(path, req, res) {
           return true;
         }
         bustPublicPostCache();
-        sendJson(res, 200, formatPostDetail(rows[0]));
+        const updatedPost = formatPostDetail(rows[0]);
+        notifyIndexNowForPost(updatedPost);
+        sendJson(res, 200, updatedPost);
         return true;
       }
       if (method === "DELETE") {
@@ -840,7 +845,9 @@ export async function tryAdminRoute(path, req, res) {
         [rows[0].id],
       );
       bustPublicPostCache();
-      sendJson(res, 201, formatPostDetail(detail[0]));
+      const createdPost = formatPostDetail(detail[0]);
+      notifyIndexNowForPost(createdPost);
+      sendJson(res, 201, createdPost);
       return true;
     }
 

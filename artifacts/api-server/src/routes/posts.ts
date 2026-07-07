@@ -7,6 +7,7 @@ import { requireAuth } from "../middleware/require-auth";
 import { cachePublic, setPublicCache } from "../lib/cache";
 import { cached } from "../lib/memory-cache";
 import { withDbRetry } from "../lib/db-retry";
+import { notifyIndexNowForPost } from "../lib/indexnow";
 
 const router = Router();
 
@@ -349,7 +350,9 @@ router.post("/posts", requireAuth, async (req, res) => {
       .where(eq(postsTable.id, post.id))
       .limit(1);
 
-    res.status(201).json(formatPost(withCat as any));
+    const formatted = formatPost(withCat as any);
+    notifyIndexNowForPost(formatted);
+    res.status(201).json(formatted);
   } catch (err) {
     req.log.error({ err }, "Failed to create post");
     res.status(500).json({ error: "Failed to create post" });
@@ -401,7 +404,9 @@ router.patch("/posts/:id", requireAuth, async (req, res) => {
       .where(eq(postsTable.id, id))
       .limit(1);
 
-    res.json(formatPost(withCat as any));
+    const formatted = formatPost(withCat as any);
+    notifyIndexNowForPost(formatted);
+    res.json(formatted);
   } catch (err) {
     req.log.error({ err }, "Failed to update post");
     res.status(500).json({ error: "Failed to update post" });
@@ -454,7 +459,9 @@ router.patch("/posts/:id/publish", requireAuth, async (req, res) => {
       .where(eq(postsTable.id, id))
       .limit(1);
 
-    res.json(formatPost(withCat as any));
+    const formatted = formatPost(withCat as any);
+    notifyIndexNowForPost(formatted);
+    res.json(formatted);
   } catch (err) {
     req.log.error({ err }, "Failed to toggle post publish");
     res.status(500).json({ error: "Failed to update post" });
